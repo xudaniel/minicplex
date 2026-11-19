@@ -1503,6 +1503,8 @@ python3 tools/fuzz_vs_ortools.py fuzz fuzz/ours.csv   # 第二个标准答案
 
 **OR-Tools 对拍的两个坑**（已在 `tools/verify_with_ortools.py` 里处理）：OR-Tools 的 MPSolver 没有“不可行或无界”这个状态，GLOP 预处理只能判断到这一步时会直接报“不可行”（见 OR-Tools 源码 `glop_utils.cc`），所以 GLOP 报不可行时会关掉预处理再解一次；LP 松弛无界的整数题，SCIP 可能一直搜下去，所以先解松弛，无界就直接判为“不可行或无界”。首次对拍的完整记录见 [docs/ortools-comparison.md](docs/ortools-comparison.md)。
 
+**HiGHS 自己也会出错**：极少数题目上 HiGHS 的预处理会内部报错（返回“其他”状态，例如种子 18 的第 311 题，一道很容易手算出不可行的小题）。`tools/fuzz_vs_highs.py` 遇到这种情况会关掉 HiGHS 预处理重解，还不行就逐点暴力枚举当裁判。
+
 GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：Linux / macOS 编译与测试、Sanitizer 测试、
 500 道随机题与 HiGHS 对拍（每次换随机种子）、基准测试与基线对比、Java 版（JDK 17 / 21）测试并与 C++ 版逐题逐步对比。
 

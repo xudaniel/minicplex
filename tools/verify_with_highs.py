@@ -119,18 +119,18 @@ def read_lp(path):
     return c, oc, sense, A, lo, hi, lb, ub, integ, names
 
 
-def solve_with_highs(path, gap=1e-9, relax=False):
+def solve_with_highs(path, gap=1e-9, relax=False, presolve=True):
     """返回 (状态, 目标值)。
 
     状态为 Optimal / Infeasible / Unbounded / InfeasibleOrUnbounded / Other。
-    relax=True 时忽略整数约束，只求 LP 松弛。
+    relax=True 时忽略整数约束，只求 LP 松弛；presolve=False 时关闭 HiGHS 的预处理。
     """
     c, oc, sense, A, lo, hi, lb, ub, integ, _ = read_lp(path)
     if relax:
         integ = np.zeros_like(integ)
     cons = [LinearConstraint(A, lo, hi)] if A.shape[0] else []
     res = milp(sense * c, constraints=cons, bounds=Bounds(lb, ub), integrality=integ,
-               options={'mip_rel_gap': gap})
+               options={'mip_rel_gap': gap, 'presolve': presolve})
     if res.status == 0:
         return 'Optimal', sense * res.fun + oc
     msg = (res.message or '').lower()
