@@ -65,10 +65,12 @@ Nodes:        13
 |---|---|---|
 | `examples/easy1_bakery.cpp` | 线性规划 | 面包店生产计划：最大利润 21 元（蛋糕 3 个、面包 1.5 个） |
 | `examples/easy2_projects.cpp` | 0-1 整数规划 | 预算 10 万选投资项目：最大收益 16 万（选 A、C、D） |
+| `examples/hard_production_plan.cpp` | 混合整数规划（复杂） | 3 产品 × 6 周生产排程：换线、最小批量、加班、仓储；最低成本 35,615 元（约 5,300 个节点，0.5 秒，与 HiGHS 结果一致） |
 
 ```bash
 ./build/easy1_bakery
 ./build/easy2_projects
+./build/hard_production_plan
 ```
 
 ## C++ 建模 API

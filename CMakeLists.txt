@@ -31,3 +31,6 @@ enable_testing()
 add_executable(minicplex_tests tests/test_solver.cpp)
 target_link_libraries(minicplex_tests PRIVATE minicplex_lib)
 add_test(NAME minicplex_tests COMMAND minicplex_tests)
+
+add_executable(hard_production_plan examples/hard_production_plan.cpp)
+target_link_libraries(hard_production_plan PRIVATE minicplex_lib)
