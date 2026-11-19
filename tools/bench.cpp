@@ -28,6 +28,10 @@ int main(int argc, char** argv) {
         else if (a == "--gap" && i + 1 < argc) P.mipGap = std::stod(argv[++i]);
         else if (a == "--time" && i + 1 < argc) P.timeLimit = std::stod(argv[++i]);
         else if (a == "--quiet") quiet = true;
+        else if (a == "--branch" && i + 1 < argc)
+            P.branching = std::string(argv[++i]) == "frac" ? Branching::MostFractional : Branching::PseudoCost;
+        else if (a == "--cuts" && i + 1 < argc) P.cutRounds = std::stoi(argv[++i]);
+        else if (a == "--no-presolve") P.presolve = false;
         else if (fs::is_directory(a)) {
             for (const auto& e : fs::directory_iterator(a))
                 if (e.path().extension() == ".lp") files.push_back(e.path().string());

@@ -18,6 +18,7 @@ add_library(minicplex_lib
   src/model.cpp
   src/simplex.cpp
   src/branch_and_bound.cpp
+  src/presolve.cpp
   src/lp_reader.cpp)
 target_include_directories(minicplex_lib PUBLIC include)
 target_compile_options(minicplex_lib PRIVATE -Wall -Wextra)

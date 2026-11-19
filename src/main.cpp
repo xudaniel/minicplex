@@ -21,7 +21,10 @@ static void usage() {
         "  --time T        time limit in seconds\n"
         "  --quiet         no node log\n"
         "  --all           print zero-valued variables too\n"
-        "  --write FILE    write the parsed model back out in LP format");
+        "  --write FILE    write the parsed model back out in LP format\n"
+        "  --branch R      branching rule: pc (pseudo-cost, default) | frac (most fractional)\n"
+        "  --cuts K        rounds of root Gomory cuts (default 2, 0 = off)\n"
+        "  --no-presolve   skip presolve");
 }
 
 int main(int argc, char** argv) {
@@ -42,6 +45,9 @@ int main(int argc, char** argv) {
         else if (a == "--time") P.timeLimit = std::atof(next());
         else if (a == "--quiet") P.verbose = false;
         else if (a == "--all") printAll = true;
+        else if (a == "--branch") P.branching = std::string(next()) == "frac" ? Branching::MostFractional : Branching::PseudoCost;
+        else if (a == "--cuts") P.cutRounds = std::atoi(next());
+        else if (a == "--no-presolve") P.presolve = false;
         else if (a == "--write") writePath = next();
         else if (!a.empty() && a[0] == '-') { usage(); return 2; }
         else path = a;

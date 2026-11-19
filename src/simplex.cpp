@@ -510,6 +510,15 @@ LPStatus LPEngine::solve(long maxIters, double cutoff) {
         if (refreshD) recomputeReducedCosts();
         bool clean = true;
         for (int i = 0; i < m_ && clean; ++i) clean = infeasibility(head_[i]) == 0.0;
+        // Guard against round-off in T: the slack values must agree with the
+        // row activities computed from the original matrix.
+        for (int i = 0; i < m_ && clean; ++i) {
+            double act = 0.0;
+            const double* a = &A_[static_cast<size_t>(i) * n_];
+            for (int k = 0; k < n_; ++k)
+                if (a[k] != 0.0) act += a[k] * x_[k];
+            if (std::abs(act - x_[n_ + i]) > 1e-9 * (1.0 + std::abs(act))) clean = false;
+        }
         for (int j = 0; j < N_ && clean; ++j) {
             const signed char s = stat_[j];
             if (s == kBasic || s == kFixed) continue;
@@ -523,6 +532,137 @@ LPStatus LPEngine::solve(long maxIters, double cutoff) {
         loadBasis(basis(), true);  // numerical trouble: refactor and continue
     }
     return LPStatus::IterationLimit;
+}
+
+// Gomory mixed-integer (GMI) cuts.
+//
+// Row r of the tableau reads  x_B + sum_j T[r][j] x_j = 0.  Writing every
+// nonbasic variable as its distance y_j >= 0 from the bound it sits on
+// (x_j = l_j + y_j, or x_j = u_j - y_j) gives
+//     x_B + sum_j a_j y_j = b,      b = current value of x_B,
+// with a_j = T[r][j] (at lower) or -T[r][j] (at upper).  If x_B must be
+// integer and f0 = frac(b) > 0, every integer-feasible point satisfies
+//     sum_j g_j y_j >= 1,
+//     g_j = f_j / f0              if y_j integer and f_j = frac(a_j) <= f0
+//         = (1 - f_j) / (1 - f0)  if y_j integer and f_j > f0
+//         = a_j / f0              if y_j continuous and a_j >= 0
+//         = -a_j / (1 - f0)       if y_j continuous and a_j < 0,
+// which the current vertex (all y_j = 0) violates.  Slack variables are
+// integer when their row has integer coefficients on integer variables;
+// they are finally substituted by their definition s_i = a_i x.
+std::vector<Constraint> LPEngine::gomoryCuts(const std::vector<char>& isIntCol, int maxCuts) const {
+    auto isIntegral = [](double v) { return std::isfinite(v) && std::abs(v - std::round(v)) < 1e-9; };
+    std::vector<char> isInt(N_, 0);
+    for (int j = 0; j < n_; ++j) isInt[j] = isIntCol[j];
+    for (int i = 0; i < m_; ++i) {
+        bool ok = true;
+        for (int j = 0; j < n_ && ok; ++j) {
+            const double a = A_[static_cast<size_t>(i) * n_ + j];
+            if (a != 0.0 && (!isIntCol[j] || !isIntegral(a))) ok = false;
+        }
+        isInt[n_ + i] = ok;
+    }
+
+    struct Cand { std::vector<double> pi; double rhs, eff; };
+    std::vector<Cand> cands;
+    for (int r = 0; r < m_; ++r) {
+        const int v = head_[r];
+        if (!isInt[v]) continue;
+        const double b = x_[v];
+        const double f0 = b - std::floor(b);
+        if (f0 < 0.01 || f0 > 0.99) continue;  // nearly integral: numerically unsafe
+
+        std::vector<double> pi(n_, 0.0);  // cut in structural space: pi x >= rhs
+        double rhs = 1.0;
+        bool ok = true;
+        for (int j = 0; j < N_ && ok; ++j) {
+            const signed char s = stat_[j];
+            if (s == kBasic || s == kFixed) continue;
+            const double t = T(r, j);
+            if (std::abs(t) < 1e-11) continue;
+            if (s == kFree) { ok = false; break; }
+            const bool atLower = (s == kLower);
+            const double a = atLower ? t : -t;
+            const double bnd = atLower ? lb_[j] : ub_[j];
+            double g;
+            if (isInt[j] && isIntegral(bnd)) {
+                const double fj = a - std::floor(a);
+                g = (fj <= f0) ? fj / f0 : (1.0 - fj) / (1.0 - f0);
+            } else {
+                g = (a >= 0) ? a / f0 : -a / (1.0 - f0);
+            }
+            if (g == 0.0) continue;
+            // g * y_j  with  y_j = x_j - l_j  or  u_j - x_j
+            const double coef = atLower ? g : -g;
+            rhs += atLower ? g * bnd : -g * bnd;
+            if (j < n_) {
+                pi[j] += coef;
+            } else {  // slack: s_i = a_i x
+                const int i = j - n_;
+                for (int k = 0; k < n_; ++k) {
+                    const double aik = A_[static_cast<size_t>(i) * n_ + k];
+                    if (aik != 0.0) pi[k] += coef * aik;
+                }
+            }
+        }
+        if (!ok) continue;
+
+        // Clean up: drop tiny coefficients (relaxing the rhs safely), check dynamism.
+        double maxAbs = 0.0;
+        for (double p : pi) maxAbs = std::max(maxAbs, std::abs(p));
+        if (maxAbs < 1e-9) continue;
+        double minAbs = INF;
+        for (int k = 0; k < n_ && ok; ++k) {
+            const double p = pi[k];
+            if (p == 0.0) continue;
+            if (std::abs(p) < 1e-9 * maxAbs) {
+                // remove p x_k from a ">=" cut: subtract its largest possible value
+                const double hi = p > 0 ? ub_[k] : lb_[k];
+                if (!std::isfinite(hi)) { ok = false; break; }
+                rhs -= p * hi;
+                pi[k] = 0.0;
+                continue;
+            }
+            minAbs = std::min(minAbs, std::abs(p));
+        }
+        if (!ok || maxAbs / minAbs > 1e6) continue;
+
+        double act = 0.0, norm2 = 0.0;
+        for (int k = 0; k < n_; ++k) {
+            act += pi[k] * x_[k];
+            norm2 += pi[k] * pi[k];
+        }
+        const double viol = rhs - act;
+        const double eff = viol / std::sqrt(norm2);
+        if (viol <= 1e-6 * (1.0 + std::abs(rhs)) || eff < 1e-5) continue;
+        cands.push_back({std::move(pi), rhs, eff});
+    }
+
+    std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.eff > b.eff; });
+    std::vector<Constraint> out;
+    std::vector<const Cand*> kept;
+    for (const Cand& c : cands) {
+        if (static_cast<int>(out.size()) >= maxCuts) break;
+        bool parallel = false;
+        for (const Cand* k : kept) {
+            double dot = 0, na = 0, nb = 0;
+            for (int j = 0; j < n_; ++j) {
+                dot += c.pi[j] * k->pi[j];
+                na += c.pi[j] * c.pi[j];
+                nb += k->pi[j] * k->pi[j];
+            }
+            if (dot / std::sqrt(na * nb) > 0.98) { parallel = true; break; }
+        }
+        if (parallel) continue;
+        kept.push_back(&c);
+        Constraint con;
+        for (int j = 0; j < n_; ++j)
+            if (c.pi[j] != 0.0) con.coefs[j] = c.pi[j];
+        con.sense = Sense::GE;
+        con.rhs = c.rhs;
+        out.push_back(std::move(con));
+    }
+    return out;
 }
 
 LPResult lpMin(const Model& M, const std::vector<double>& lb, const std::vector<double>& ub, double objSign,

@@ -20,8 +20,16 @@ enum class Status {
 
 const char* toString(Status s);
 
+enum class Branching {
+    MostFractional,  // branch on the variable closest to .5
+    PseudoCost,      // branch on the largest estimated bound improvement
+};
+
 struct Params {
     bool relaxIntegrality = false;  // solve the LP relaxation only
+    Branching branching = Branching::PseudoCost;
+    int cutRounds = 2;              // rounds of root Gomory cuts (0 = off)
+    bool presolve = true;           // bound propagation + coefficient tightening
     double intTol = 1e-6;           // integrality tolerance (CPLEX EpInt)
     double mipGap = 1e-6;           // relative MIP gap (CPLEX EpGap)
     long nodeLimit = 10'000'000;
@@ -39,6 +47,7 @@ struct Result {
     std::vector<double> x;          // values, indexed like Model::vars
     long nodes = 0;
     long lpIterations = 0;
+    int cuts = 0;                   // Gomory cuts kept after the root cut loop
     double seconds = 0.0;
 };
 
@@ -93,6 +102,13 @@ public:
     long iterations() const { return iters_; }
 
     Basis basis() const { return {head_, stat_}; }
+    int numRows() const { return m_; }
+
+    // Gomory mixed-integer cuts read off the current optimal tableau.
+    // isIntCol[j] says whether structural j is integer. Returns at most
+    // maxCuts cuts of the form sum(coefs) >= rhs in structural variables,
+    // sorted by efficacy and filtered for parallelism and dynamism.
+    std::vector<Constraint> gomoryCuts(const std::vector<char>& isIntCol, int maxCuts) const;
     // Move to basis b. By default this pivots from the current tableau and
     // only swaps the columns that differ; fromScratch rebuilds T from A.
     void loadBasis(const Basis& b, bool fromScratch = false);
@@ -127,6 +143,18 @@ private:
     LPStatus primal(long maxIters);
     LPStatus dual(long maxIters, double cutoff);
 };
+
+struct PresolveStats {
+    int boundsTightened = 0;
+    int coefsTightened = 0;
+    int rowsRemoved = 0;
+};
+
+// MIP presolve on a copy of the model: tightens lb/ub (indexed like
+// Model::vars), tightens big-M coefficients of binaries, removes redundant
+// rows. Variables are never removed. Returns false if infeasibility is proven.
+bool presolve(Model& model, std::vector<double>& lb, std::vector<double>& ub, const std::vector<char>& isInt,
+              PresolveStats& stats);
 
 // Convenience wrapper: solve one LP from scratch.
 LPResult lpMin(const Model& model, const std::vector<double>& lb, const std::vector<double>& ub,

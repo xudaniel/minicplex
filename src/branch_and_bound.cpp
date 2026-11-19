@@ -11,6 +11,8 @@
 //   * if the objective only involves integer variables with integer
 //     coefficients, node bounds are rounded up (stronger pruning)
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -63,6 +65,34 @@ struct Node {
     double bound;  // lower bound (internal min sense) inherited from the parent
     int depth;
     detail::Basis basis;  // parent's optimal basis (warm start)
+    // How this node was created (for pseudo-cost learning).
+    int branchVar = -1;
+    int dir = 0;          // 0 = down branch, 1 = up branch
+    double dist = 0.0;    // distance the variable was moved (fractional part)
+    double parentObj = 0.0;
+};
+
+// Pseudo-costs: average objective increase per unit change of a variable,
+// learned separately for down and up branches.
+struct PseudoCosts {
+    std::vector<double> sum[2];
+    std::vector<int> cnt[2];
+    double totSum[2] = {0, 0};
+    int totCnt[2] = {0, 0};
+
+    explicit PseudoCosts(int n) {
+        for (int d = 0; d < 2; ++d) { sum[d].assign(n, 0.0); cnt[d].assign(n, 0); }
+    }
+    void update(int j, int d, double gainPerUnit) {
+        sum[d][j] += gainPerUnit;
+        ++cnt[d][j];
+        totSum[d] += gainPerUnit;
+        ++totCnt[d];
+    }
+    double get(int j, int d) const {
+        if (cnt[d][j] > 0) return sum[d][j] / cnt[d][j];
+        return totCnt[d] > 0 ? totSum[d] / totCnt[d] : 1.0;  // uninitialised: global average
+    }
 };
 
 struct NodeCmp {
@@ -96,7 +126,27 @@ Result solve(const Model& M, const Params& P) {
         }
     }
 
-    detail::LPEngine E(M, sgn);
+    // ---------------- presolve (MIP only) ----------------
+    Model PM;
+    const Model* LM = &M;  // model given to the LP engine
+    if (P.presolve && !ints.empty()) {
+        std::vector<char> isIntCol(nv, 0);
+        for (int j : ints) isIntCol[j] = 1;
+        PM = M;
+        detail::PresolveStats ps;
+        const bool feasible = detail::presolve(PM, lb, ub, isIntCol, ps);
+        if (P.verbose)
+            std::printf("Presolve: %d bounds tightened, %d coefficients tightened, %d rows removed%s\n",
+                        ps.boundsTightened, ps.coefsTightened, ps.rowsRemoved, feasible ? "" : ", INFEASIBLE");
+        if (!feasible) {
+            R.status = Status::Infeasible;
+            R.seconds = elapsed();
+            return R;
+        }
+        LM = &PM;
+    }
+
+    detail::LPEngine E(*LM, sgn);
     E.setAllColBounds(lb, ub);
 
     // ---------------- pure LP ----------------
@@ -146,9 +196,25 @@ Result solve(const Model& M, const Params& P) {
         if (objIntegral) c = std::min(c, inc - 1.0 + 1e-6);
         return c;
     };
+    // Accept a candidate only after "polishing": fix the integer variables at
+    // their rounded values and re-solve the continuous part with a fresh LP,
+    // so a point that is only feasible thanks to round-off is never accepted.
+    bool hasContinuous = false;
+    for (int j = 0; j < nv; ++j) hasContinuous |= !M.isInteger(j) || P.relaxIntegrality;
     auto tryIncumbent = [&](std::vector<double> x) {
         for (int j : ints) x[j] = std::round(x[j]);
         if (!checkFeasible(M, x, 1e-6)) return false;
+        if (sgn * evalObjective(M, x) >= inc - 1e-12) return false;
+        if (hasContinuous) {
+            std::vector<double> plb(nv), pub(nv);
+            for (int j = 0; j < nv; ++j) { plb[j] = M.vars[j].lb; pub[j] = M.vars[j].ub; }
+            for (int j : ints) plb[j] = pub[j] = x[j];
+            const auto pol = detail::lpMin(M, plb, pub, sgn, maxIt);
+            if (pol.status != detail::LPStatus::Optimal) return false;
+            x = pol.x;
+            for (int j : ints) x[j] = plb[j];
+        }
+        if (!checkFeasible(M, x, 1e-7)) return false;
         const double v = sgn * evalObjective(M, x);
         if (v < inc - 1e-12) {
             inc = v;
@@ -158,6 +224,60 @@ Result solve(const Model& M, const Params& P) {
         return false;
     };
 
+    // ---------------- root cutting planes ----------------
+    // Rounds of Gomory mixed-integer cuts. Each round's cuts become new rows;
+    // the LP is re-optimised from the previous basis (new slacks basic) with
+    // the dual simplex. Cuts that are not tight at the end are dropped again.
+    long cutIters = 0;
+    if (P.cutRounds > 0 && E.solve(maxIt) == detail::LPStatus::Optimal) {
+        std::vector<char> isIntCol(nv, 0);
+        for (int j : ints) isIntCol[j] = 1;
+        Model W = *LM;
+        const int m0 = W.numConstrs();
+        double obj = E.objective();
+        for (int round = 0; round < P.cutRounds; ++round) {
+            const std::vector<double> x = E.colValues();
+            bool fractional = false;
+            for (int j : ints) fractional |= std::abs(x[j] - std::round(x[j])) > P.intTol;
+            if (!fractional) break;
+            auto cuts = E.gomoryCuts(isIntCol, std::max(5, std::min(20, W.numConstrs())));
+            if (cuts.empty()) break;
+            detail::Basis B = E.basis();
+            for (auto& c : cuts) {
+                B.head.push_back(nv + W.numConstrs());  // new slack starts basic
+                B.stat.push_back(0);
+                W.addConstr(std::move(c), "gmi" + std::to_string(W.numConstrs() - m0 + 1));
+            }
+            cutIters += E.iterations();
+            E = detail::LPEngine(W, sgn);
+            E.setAllColBounds(lb, ub);
+            E.loadBasis(B, true);
+            if (E.solve(maxIt) != detail::LPStatus::Optimal) break;
+            const double nobj = E.objective();
+            const bool stalled = nobj - obj < 1e-4 * (1.0 + std::abs(obj));
+            obj = nobj;
+            if (stalled) break;
+        }
+        // Keep only the cuts that are tight at the final root LP.
+        if (W.numConstrs() > m0) {
+            const std::vector<double> x = E.colValues();
+            Model K = *LM;
+            for (int i = m0; i < W.numConstrs(); ++i) {
+                const Constraint& c = W.constraints[i];
+                double act = 0.0;
+                for (const auto& [k, a] : c.coefs) act += a * x[k];
+                if (act <= c.rhs + 1e-6 * (1.0 + std::abs(c.rhs))) K.addConstr(c);
+            }
+            R.cuts = K.numConstrs() - m0;
+            cutIters += E.iterations();
+            E = detail::LPEngine(K, sgn);
+            E.setAllColBounds(lb, ub);
+        }
+        if (P.verbose && R.cuts > 0)
+            std::printf("Root cuts: %d Gomory cuts kept, root bound %.6g\n", R.cuts, sgn * obj);
+    }
+
+    PseudoCosts pc(nv);
     std::priority_queue<Node, std::vector<Node>, NodeCmp> open;
     Node cur{lb, ub, -INF, 0, {}};
     bool haveCur = true;  // root: engine already holds bounds and the slack basis
@@ -219,6 +339,8 @@ Result solve(const Model& M, const Params& P) {
 
         const std::vector<double> x = E.colValues();
         const double lpObj = E.objective();
+        if (cur.branchVar >= 0 && cur.dist > 1e-9)
+            pc.update(cur.branchVar, cur.dir, std::max(0.0, lpObj - cur.parentObj) / cur.dist);
         const double nodeBound = strengthen(lpObj);
         cur.bound = nodeBound;
         if (!incX.empty() && closeEnough(nodeBound, inc)) {
@@ -226,12 +348,73 @@ Result solve(const Model& M, const Params& P) {
             continue;
         }
 
+        // Reliability branching: candidates whose pseudo-costs have not been
+        // observed yet are evaluated by strong branching (a few dual simplex
+        // iterations on each side), which also initialises their pseudo-costs.
+        constexpr double kHuge = 1e12;
+        std::vector<std::array<double, 2>> sbGain(0);
+        std::vector<int> sbVar;
+        bool pruneNode = false;
+        if (P.branching == Branching::PseudoCost) {
+            std::vector<std::pair<double, int>> unrel;
+            for (int j : ints) {
+                const double f = x[j] - std::floor(x[j]);
+                const double frac = std::min(f, 1.0 - f);
+                if (frac > P.intTol && (pc.cnt[0][j] < 1 || pc.cnt[1][j] < 1)) unrel.push_back({frac, j});
+            }
+            std::sort(unrel.begin(), unrel.end(), [](auto& a, auto& b) { return a.first > b.first; });
+            if (unrel.size() > 8) unrel.resize(8);
+            if (!unrel.empty()) {
+                const detail::Basis B = E.basis();
+                for (const auto& [fr, j] : unrel) {
+                    (void)fr;
+                    const double v = x[j], fl = std::floor(v), ce = std::ceil(v);
+                    std::array<double, 2> g{};
+                    for (int d = 0; d < 2; ++d) {
+                        const double olb = cur.lb[j], oub = cur.ub[j];
+                        if (d == 0) E.setColBounds(j, olb, fl); else E.setColBounds(j, ce, oub);
+                        const auto st = E.solve(40, cutoff());
+                        const double dist = d == 0 ? v - fl : ce - v;
+                        if (st == detail::LPStatus::Infeasible) {
+                            g[d] = kHuge;
+                        } else if (st == detail::LPStatus::Cutoff) {
+                            g[d] = std::max(cutoff() - lpObj, 1e-6);
+                            pc.update(j, d, g[d] / dist);
+                            g[d] = kHuge;  // this side would be pruned immediately
+                        } else {
+                            g[d] = std::max(0.0, E.objective() - lpObj);
+                            if (st == detail::LPStatus::Optimal) pc.update(j, d, g[d] / dist);
+                        }
+                        E.setColBounds(j, olb, oub);
+                        E.loadBasis(B);
+                    }
+                    sbVar.push_back(j);
+                    sbGain.push_back(g);
+                    if (g[0] >= kHuge && g[1] >= kHuge) { pruneNode = true; break; }
+                }
+            }
+        }
+        if (pruneNode) {  // both children are infeasible or cut off
+            haveCur = false;
+            continue;
+        }
+
+        // Branching variable: pseudo-cost product score, or most fractional.
         int bj = -1;
-        double bestFrac = 0.0;
+        double bestScore = -1.0, bestFrac = 0.0;
         for (int j : ints) {
             const double f = x[j] - std::floor(x[j]);
             const double frac = std::min(f, 1.0 - f);
-            if (frac > P.intTol && frac > bestFrac) {
+            if (frac <= P.intTol) continue;
+            double score = frac;
+            if (P.branching == Branching::PseudoCost) {
+                double down = pc.get(j, 0) * f, up = pc.get(j, 1) * (1.0 - f);
+                for (size_t k = 0; k < sbVar.size(); ++k)
+                    if (sbVar[k] == j) { down = sbGain[k][0]; up = sbGain[k][1]; }
+                score = std::max(down, 1e-6) * std::max(up, 1e-6);
+            }
+            if (score > bestScore * (1 + 1e-9) || (score >= bestScore * (1 - 1e-9) && frac > bestFrac)) {
+                bestScore = score;
                 bestFrac = frac;
                 bj = j;
             }
@@ -255,17 +438,25 @@ Result solve(const Model& M, const Params& P) {
         const bool goUp = (v - fl) >= 0.5;
         Node sib{cur.lb, cur.ub, nodeBound, cur.depth + 1, E.basis()};
         if (goUp) sib.ub[bj] = fl; else sib.lb[bj] = ce;
+        sib.branchVar = bj;
+        sib.dir = goUp ? 0 : 1;
+        sib.dist = goUp ? v - fl : ce - v;
+        sib.parentObj = lpObj;
         open.push(std::move(sib));
 
         if (goUp) cur.lb[bj] = ce; else cur.ub[bj] = fl;
         cur.depth += 1;
+        cur.branchVar = bj;
+        cur.dir = goUp ? 1 : 0;
+        cur.dist = goUp ? ce - v : v - fl;
+        cur.parentObj = lpObj;
         E.setColBounds(bj, cur.lb[bj], cur.ub[bj]);  // warm start: same tableau
 
         if (P.verbose && R.nodes % P.logEvery == 0) logLine("", lpObj);
     }
 
     R.seconds = elapsed();
-    R.lpIterations = E.iterations();
+    R.lpIterations = E.iterations() + cutIters;
     const double bound = bestBound();
     if (incX.empty()) {
         R.status = (stop != Status::Optimal) ? stop

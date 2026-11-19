@@ -121,6 +121,94 @@ static void testEngineEdgeCases() {
     CHECK(solve(e).status == Status::Infeasible);
 }
 
+static void testPresolve() {
+    // Loose big-M: x <= 1000 y with x <= 20  ->  coefficient becomes -20.
+    {
+        Model m;
+        Var x = m.addVar(0, 20), y = m.addVar(0, 1, VarType::Binary);
+        m.addConstr(x - 1000 * y <= 0, "link");
+        m.setObjective(2 * x - 30 * y, ObjSense::Maximize);
+        std::vector<double> lb = {0, 0}, ub = {20, 1};
+        std::vector<char> isInt = {0, 1};
+        Model W = m;
+        detail::PresolveStats st;
+        CHECK(detail::presolve(W, lb, ub, isInt, st));
+        bool tight = false;
+        for (const auto& c : W.constraints)
+            if (c.name == "link") tight = std::abs(c.coefs.at(y.id) + 20) < 1e-9;
+        CHECK(st.coefsTightened >= 1 && tight);
+        Params off;
+        off.presolve = false;
+        off.cutRounds = 0;
+        Result r1 = solve(m), r2 = solve(m, off);
+        CHECK(r1.status == Status::Optimal && near(r1.objective, 10) && near(r2.objective, 10));
+    }
+    // Bound propagation: x >= 7 forces y = 1 through the link row.
+    {
+        Model m;
+        Var x = m.addVar(0, 20), y = m.addVar(0, 1, VarType::Binary);
+        m.addConstr(x - 1000 * y <= 0, "link");
+        m.addConstr(x >= 7, "need");
+        m.setObjective(x + 50 * y);
+        std::vector<double> lb = {0, 0}, ub = {20, 1};
+        std::vector<char> isInt = {0, 1};
+        Model W = m;
+        detail::PresolveStats st;
+        CHECK(detail::presolve(W, lb, ub, isInt, st));
+        CHECK(lb[1] == 1.0 && lb[0] >= 7.0 - 1e-6);
+        Result r = solve(m);
+        CHECK(r.status == Status::Optimal && near(r.objective, 57));
+    }
+
+    // Infeasibility proven by presolve alone.
+    Model q;
+    Var a = q.addVar(0, 10, VarType::Integer), b = q.addVar(0, 10, VarType::Integer);
+    q.addConstr(a + b <= 1);
+    q.addConstr(a >= 2);
+    q.setObjective(a + b);
+    CHECK(solve(q).status == Status::Infeasible);
+}
+
+static void testGomoryCutsAreValid() {
+    // Cuts from the root tableau must never cut off an integer-feasible point.
+    std::mt19937 rng(777);
+    auto ri = [&](int a, int b) { return std::uniform_int_distribution<int>(a, b)(rng); };
+    int checked = 0, cutsSeen = 0;
+    bool allValid = true;
+    for (int t = 0; t < 200; ++t) {
+        Model M;
+        const int n = 4;
+        for (int j = 0; j < n; ++j) M.addVar(0, 4, VarType::Integer);
+        for (int i = 0; i < 3; ++i) {
+            LinExpr e;
+            for (int j = 0; j < n; ++j) e += ri(-4, 6) * Var{j};
+            M.addConstr(e <= ri(3, 15));
+        }
+        LinExpr obj;
+        for (int j = 0; j < n; ++j) obj += ri(1, 9) * Var{j};
+        M.setObjective(obj, ObjSense::Maximize);
+        detail::LPEngine E(M, -1.0);
+        if (E.solve(10000) != detail::LPStatus::Optimal) continue;
+        auto cuts = E.gomoryCuts(std::vector<char>(n, 1), 20);
+        cutsSeen += static_cast<int>(cuts.size());
+        std::vector<double> p(n);
+        for (int a = 0; a < 625; ++a) {  // every integer point of [0,4]^4
+            int k = a;
+            for (int j = 0; j < n; ++j) { p[j] = k % 5; k /= 5; }
+            if (!checkFeasible(M, p)) continue;
+            ++checked;
+            for (const auto& c : cuts) {
+                double act = 0;
+                for (const auto& [j, v] : c.coefs) act += v * p[j];
+                if (act < c.rhs - 1e-7) allValid = false;
+            }
+        }
+    }
+    std::cout << "  gomory: " << cutsSeen << " cuts checked against " << checked << " integer points\n";
+    CHECK(cutsSeen > 50);
+    CHECK(allValid);
+}
+
 static void testKnapsack() {
     Model m;
     double val[] = {10, 13, 7, 8}, wt[] = {5, 6, 4, 3};
@@ -210,14 +298,19 @@ static void testRandomVsBruteForce(int instances) {
             if (j == n) break;
         }
 
-        Params P;
-        P.mipGap = 1e-9;
-        Result r = solve(M, P);
-        bool ok = std::isnan(best) ? r.status == Status::Infeasible
-                                   : (r.status == Status::Optimal && near(r.objective, best) && checkFeasible(M, r.x));
+        bool ok = true;
+        for (int cfg = 0; cfg < 3; ++cfg) {  // default, no MIP features, aggressive cuts
+            Params P;
+            P.mipGap = 1e-9;
+            if (cfg == 1) { P.presolve = false; P.cutRounds = 0; P.branching = Branching::MostFractional; }
+            if (cfg == 2) P.cutRounds = 10;
+            Result r = solve(M, P);
+            ok = ok && (std::isnan(best) ? r.status == Status::Infeasible
+                                         : (r.status == Status::Optimal && near(r.objective, best) &&
+                                            checkFeasible(M, r.x)));
+        }
         if (ok) ++agree;
-        else std::cerr << "  random instance " << t << " mismatch: brute=" << best
-                       << " solver=" << r.objective << " (" << toString(r.status) << ")\n";
+        else std::cerr << "  random instance " << t << " mismatch: brute=" << best << "\n";
     }
     std::cout << "  random IPs: " << agree << "/" << instances << " match brute force\n";
     CHECK(agree == instances);
@@ -229,6 +322,8 @@ int main() {
     testFreeAndEquality();
     testBealeCycling();
     testEngineEdgeCases();
+    testPresolve();
+    testGomoryCutsAreValid();
     testKnapsack();
     testReaderRoundTrip();
     testRandomVsBruteForce(500);
