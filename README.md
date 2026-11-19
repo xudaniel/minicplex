@@ -59,6 +59,18 @@ Best bound:   360   (gap 0.0000%)
 Nodes:        13
 ```
 
+## 两个入门例子
+
+| 文件 | 类型 | 内容 |
+|---|---|---|
+| `examples/easy1_bakery.cpp` | 线性规划 | 面包店生产计划：最大利润 21 元（蛋糕 3 个、面包 1.5 个） |
+| `examples/easy2_projects.cpp` | 0-1 整数规划 | 预算 10 万选投资项目：最大收益 16 万（选 A、C、D） |
+
+```bash
+./build/easy1_bakery
+./build/easy2_projects
+```
+
 ## C++ 建模 API
 
 ```cpp

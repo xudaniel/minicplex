@@ -21,6 +21,12 @@ target_link_libraries(minicplex PRIVATE minicplex_lib)
 add_executable(api_demo examples/api_demo.cpp)
 target_link_libraries(api_demo PRIVATE minicplex_lib)
 
+add_executable(easy1_bakery examples/easy1_bakery.cpp)
+target_link_libraries(easy1_bakery PRIVATE minicplex_lib)
+
+add_executable(easy2_projects examples/easy2_projects.cpp)
+target_link_libraries(easy2_projects PRIVATE minicplex_lib)
+
 enable_testing()
 add_executable(minicplex_tests tests/test_solver.cpp)
 target_link_libraries(minicplex_tests PRIVATE minicplex_lib)
