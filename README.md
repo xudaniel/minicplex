@@ -56,7 +56,7 @@ ctest --test-dir build          # 或 ./build/minicplex_tests
 输出示例：
 
 ```
-minicplex 0.1 | examples/facility.lp
+minicplex 1.0 | examples/facility.lp
   15 variables (15 integer), 7 constraints, minimize
 
 Status:       Optimal
