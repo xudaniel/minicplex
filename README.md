@@ -1,23 +1,155 @@
-# minicplex
+<div align="center">
 
-[![CI](https://github.com/xudaniel/minicplex/actions/workflows/ci.yml/badge.svg)](https://github.com/xudaniel/minicplex/actions/workflows/ci.yml)
-![版本](https://img.shields.io/badge/版本-1.0.0-blue)
-![C++17](https://img.shields.io/badge/C%2B%2B-17-informational)
-![Java 17+](https://img.shields.io/badge/Java-17%2B-informational)
-![依赖](https://img.shields.io/badge/依赖-零-success)
-![许可证](https://img.shields.io/badge/许可证-MIT-lightgrey)
+<img src="docs/assets/logo.svg" alt="minicplex" width="760">
 
-一个用 **C++17 编写、零依赖的线性规划 / 混合整数规划（LP / MIP）求解器**。这是一个业余项目，目的是从内部
-理解 IBM ILOG CPLEX 这类求解器的工作原理。它能读取 CPLEX `.lp` 文件，提供类似 Concert 的 C++ 建模 API，
-并输出类似 CPLEX 的分支定界日志。
+<h3>从零写一个迷你版 CPLEX：线性规划 + 混合整数规划求解器</h3>
 
-同一个求解器还有一份**逐行移植的 Java 版**（[`java/`](java/)，Java 17+，同样零依赖）：同一道题，两个版本的
-最优解、节点数、单纯形迭代次数，乃至 `--trace` 打印的每一步都一模一样。见 [Java 版](#java-版)。
+<p>
+<a href="https://github.com/xudaniel/minicplex/actions/workflows/ci.yml"><img src="https://github.com/xudaniel/minicplex/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="https://github.com/xudaniel/minicplex/releases"><img src="https://img.shields.io/github/v/release/xudaniel/minicplex?label=%E7%89%88%E6%9C%AC&color=0ea5e9" alt="版本"></a>
+<img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17">
+<img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
+<img src="https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-22c55e" alt="零依赖">
+<a href="LICENSE"><img src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-64748b" alt="MIT"></a>
+</p>
+
+<p>
+<a href="#30-秒上手"><b>30 秒上手</b></a> ·
+<a href="#用大白话讲-minicplex先看这里">大白话原理</a> ·
+<a href="#例子">例子</a> ·
+<a href="#代码解析">代码解析</a> ·
+<a href="#java-版">Java 版</a> ·
+<a href="#english">English</a>
+</p>
+
+</div>
+
+**minicplex** 是一个零依赖的 LP / MIP 求解器，C++17 写成，另有一份逐行移植的 Java 版。它能读写 CPLEX `.lp` 文件，
+提供类似 Concert 的建模 API，打印类似 CPLEX 的分支定界日志。写它是为了**从内部看懂** IBM ILOG CPLEX 这类求解器：
+代码不长，注释详细，加上 `--trace` 就能看到单纯形的每一次换基、每一个割平面、每一次分支。
+
+<p align="center"><img src="docs/assets/demo.svg" alt="minicplex 求解一个生产排程整数规划" width="760"></p>
+
+## 亮点
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+**🧮 完整的求解流程**<br>
+有界变量单纯形、对偶单纯形热启动、预处理、Gomory 割平面、可靠性分支、解抛光，一个现代 MIP 求解器的主干都在。
+
+</td>
+<td width="33%" valign="top">
+
+**🔍 每一步都看得见**<br>
+`--trace` 用中文打印求解过程：谁进基、谁离基、为什么剪枝、为什么选这个变量分支。适合当教材。
+
+</td>
+<td width="33%" valign="top">
+
+**✅ 和权威求解器逐题对拍**<br>
+与 HiGHS、OR-Tools 对比了上万道随机题，结果全部一致，还顺带抓到了 HiGHS 自己的错误。
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**☕ C++ 和 Java 两个版本**<br>
+Java 版逐行移植，同一道题两边的节点数、迭代次数、每一步 trace 完全相同，CI 每次提交都会核对。
+
+</td>
+<td valign="top">
+
+**📚 从零开始的中文教程**<br>
+10 个由浅入深的入门例子、建模技巧速查表、练习题，以及逐函数的代码解析。
+
+</td>
+<td valign="top">
+
+**🪶 零依赖，小而可读**<br>
+不依赖任何第三方库，C++ 核心代码约 2,300 行（含头文件）。一个下午就能从 `main` 读到分支定界。
+
+</td>
+</tr>
+</table>
+
+## 30 秒上手
+
+```bash
+git clone https://github.com/xudaniel/minicplex.git && cd minicplex
+cmake -S . -B build && cmake --build build -j
+./build/minicplex examples/bakery.lp            # 解一道面包店整数规划
+./build/minicplex examples/bakery.lp --trace    # 看它一步一步怎么算
+```
+
+`examples/bakery.lp` 就是用 CPLEX LP 格式写的一道小题：
+
+```text
+Maximize
+ profit: 5 cake + 4 bread
+Subject To
+ flour: 6 cake + 4 bread <= 24
+ labor: cake + 2 bread <= 6
+General
+ cake bread
+End
+```
+
+也可以直接在代码里建模：
+
+<table>
+<tr><th>C++</th><th>Java</th></tr>
+<tr>
+<td>
+
+```cpp
+Model m;
+Var cake  = m.addVar(0, INF, VarType::Integer, "cake");
+Var bread = m.addVar(0, INF, VarType::Integer, "bread");
+m.addConstr(6 * cake + 4 * bread <= 24, "flour");
+m.addConstr(cake + 2 * bread <= 6, "labor");
+m.setObjective(5 * cake + 4 * bread,
+               ObjSense::Maximize);
+Result r = solve(m);   // r.objective == 20
+```
+
+</td>
+<td>
+
+```java
+Model m = new Model();
+Var cake  = m.addVar(0, Model.INF, VarType.INTEGER, "cake");
+Var bread = m.addVar(0, Model.INF, VarType.INTEGER, "bread");
+m.addConstr(LinExpr.of(6, cake).plus(4, bread).le(24), "flour");
+m.addConstr(LinExpr.of(cake).plus(2, bread).le(6), "labor");
+m.setObjective(LinExpr.of(5, cake).plus(4, bread),
+               ObjSense.MAXIMIZE);
+Result r = Solver.solve(m);   // r.objective == 20
+```
+
+</td>
+</tr>
+</table>
+
+## 它是怎么工作的
+
+```mermaid
+flowchart LR
+    A["📄 模型<br/>.lp 文件 / 建模 API"] --> B["🧹 预处理<br/>收紧边界和系数"]
+    B --> C["📐 LP 松弛<br/>有界变量单纯形"]
+    C --> D["✂️ 根节点割平面<br/>Gomory 混合整数割"]
+    D --> E["🌳 分支定界<br/>可靠性分支 + 热启动"]
+    E --> F["✨ 解抛光<br/>严格复核"]
+    F --> G["✅ 最优解<br/>影子价格 / 日志"]
+```
+
+每一个方框在[代码解析](#代码解析)里都有对应的源码讲解。
 
 > 与 IBM 无关。这是一个学习项目，不是 CPLEX 的替代品：它使用稠密单纯形表，适合中小规模模型
->（几百行 / 几百列）。
-
-第一次接触优化问题？先看[用大白话讲 minicplex](#用大白话讲-minicplex先看这里)；想了解实现细节，请看[代码解析](#代码解析)。产品需求文档见 [docs/PRD.md](docs/PRD.md)，版本更新记录见 [CHANGELOG.md](CHANGELOG.md)，发布说明见 [docs/releases](docs/releases/)。
+>（几百行 / 几百列）。产品需求文档见 [docs/PRD.md](docs/PRD.md)，更新记录见 [CHANGELOG.md](CHANGELOG.md)，
+> 发布说明见 [docs/releases](docs/releases/)。
 
 ## 用大白话讲 minicplex（先看这里）
 
@@ -1512,14 +1644,16 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：L
 
 ```
 docs/      PRD.md（产品需求文档）  ortools-comparison.md（与 OR-Tools 对拍记录）
+           releases/（发布说明）  assets/（logo 和演示图）
 include/   model.hpp  solver.hpp  lp_reader.hpp
-src/       simplex.cpp  branch_and_bound.cpp  lp_reader.cpp  model.cpp  main.cpp
+src/       simplex.cpp  branch_and_bound.cpp  presolve.cpp  lp_reader.cpp  model.cpp  main.cpp
 examples/  basics/（01～05 入门、06～10 进阶建模技巧）  *.lp  api_demo.cpp  easy1/easy2/hard_* 例子
 tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
            verify_with_ortools.py  fuzz_vs_ortools.py  bench_compare.py
            compare_java_cpp.py  compare_examples_java_cpp.sh
 bench/     models/（基准模型）  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
+.github/   workflows/ci.yml（持续集成）
 java/      build.sh  pom.xml
            src/main/java/minicplex/（求解器、命令行、tools/ 基准与生成器）
            src/test/java/minicplex/SolverTest.java
@@ -1529,8 +1663,31 @@ java/      build.sh  pom.xml
 ## 后续方向
 
 稀疏 LU 分解的修正单纯形法（扩大到上千规模）、覆盖割和树内割平面、更强的预处理、
-对偶值输出、MPS 文件支持。详见 PRD 的路线图。
+MPS 文件支持。详见 PRD 的路线图。
+
+## English
+
+**minicplex** is a small, dependency-free LP / MIP solver written in C++17, with a line-by-line Java 17 port that
+follows exactly the same computation path (same nodes, same simplex iterations, same `--trace` output). It reads and
+writes CPLEX LP files, offers a Concert-style modelling API, and prints a CPLEX-style branch-and-bound log.
+
+- **Engine:** bounded-variable dense-tableau simplex (composite phase 1, dual simplex warm starts, Bland anti-cycling),
+  presolve (bound propagation, big-M tightening), root Gomory mixed-integer cuts, reliability branching
+  (pseudo-costs + strong branching), solution polishing, shadow prices.
+- **Verified:** fuzzed against HiGHS and OR-Tools on thousands of random models, brute-force enumeration tests,
+  ASan/UBSan, CI on Linux and macOS.
+- **Built for learning:** `--trace` explains every pivot, cut and branching decision. The docs and code walkthrough are
+  in Chinese; the code and its comments are in English.
+
+```bash
+cmake -S . -B build && cmake --build build -j
+./build/minicplex examples/bakery.lp --trace
+java/build.sh && java -jar java/build/minicplex.jar examples/bakery.lp
+```
+
+Not affiliated with IBM. This is a learning project, not a CPLEX replacement; it targets models with a few hundred
+rows and columns.
 
 ## 许可证
 
-MIT
+[MIT](LICENSE)。欢迎提 issue 和 pull request，流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。

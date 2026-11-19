@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="240" viewBox="0 0 880 240" role="img" aria-label="minicplex">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="poly" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#818cf8" stop-opacity="0.38"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#c7d2fe"/>
+    </linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/>
+    </marker>
+  </defs>
+  <rect width="880" height="240" rx="20" fill="url(#bg)"/>
+  <!-- integer lattice -->
+  <g fill="#475569">
+    <circle cx="60" cy="190" r="2.4"/><circle cx="95" cy="190" r="2.4"/><circle cx="130" cy="190" r="2.4"/><circle cx="165" cy="190" r="2.4"/><circle cx="200" cy="190" r="2.4"/><circle cx="235" cy="190" r="2.4"/>
+    <circle cx="60" cy="155" r="2.4"/><circle cx="95" cy="155" r="2.4"/><circle cx="130" cy="155" r="2.4"/><circle cx="165" cy="155" r="2.4"/><circle cx="200" cy="155" r="2.4"/><circle cx="235" cy="155" r="2.4"/>
+    <circle cx="60" cy="120" r="2.4"/><circle cx="95" cy="120" r="2.4"/><circle cx="130" cy="120" r="2.4"/><circle cx="165" cy="120" r="2.4"/><circle cx="200" cy="120" r="2.4"/><circle cx="235" cy="120" r="2.4"/>
+    <circle cx="60" cy="85" r="2.4"/><circle cx="95" cy="85" r="2.4"/><circle cx="130" cy="85" r="2.4"/><circle cx="165" cy="85" r="2.4"/><circle cx="200" cy="85" r="2.4"/><circle cx="235" cy="85" r="2.4"/>
+    <circle cx="60" cy="50" r="2.4"/><circle cx="95" cy="50" r="2.4"/><circle cx="130" cy="50" r="2.4"/><circle cx="165" cy="50" r="2.4"/><circle cx="200" cy="50" r="2.4"/><circle cx="235" cy="50" r="2.4"/>
+  </g>
+  <!-- feasible polytope -->
+  <polygon points="60,190 60,98 112,52 196,64 238,140 214,190" fill="url(#poly)" stroke="#7dd3fc" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- integer points inside -->
+  <g fill="#e2e8f0">
+    <circle cx="95" cy="155" r="3.4"/><circle cx="130" cy="155" r="3.4"/><circle cx="165" cy="155" r="3.4"/><circle cx="200" cy="155" r="3.4"/>
+    <circle cx="95" cy="120" r="3.4"/><circle cx="130" cy="120" r="3.4"/><circle cx="165" cy="120" r="3.4"/><circle cx="200" cy="120" r="3.4"/>
+    <circle cx="95" cy="85" r="3.4"/><circle cx="130" cy="85" r="3.4"/><circle cx="165" cy="85" r="3.4"/>
+    <circle cx="60" cy="155" r="3.4"/><circle cx="60" cy="120" r="3.4"/><circle cx="95" cy="190" r="3.4"/><circle cx="130" cy="190" r="3.4"/>
+  </g>
+  <!-- simplex path along the vertices -->
+  <path d="M60,190 L60,98 L112,52 L196,64" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arr)"/>
+  <circle cx="60" cy="190" r="5" fill="#fbbf24"/>
+  <!-- gomory cut -->
+  <line x1="150" y1="40" x2="240" y2="112" stroke="#f472b6" stroke-width="2" stroke-dasharray="6 5"/>
+  <!-- integer optimum -->
+  <circle cx="165" cy="85" r="8" fill="none" stroke="#34d399" stroke-width="2.6"/>
+  <circle cx="165" cy="85" r="3.6" fill="#34d399"/>
+
+  <text x="292" y="112" font-family="'SF Mono','JetBrains Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="62" font-weight="700" fill="url(#word)" letter-spacing="1">minicplex</text>
+  <text x="296" y="150" font-family="-apple-system,'Segoe UI',Helvetica,Arial,'DejaVu Sans',sans-serif" font-size="21" fill="#94a3b8">A tiny LP / MIP solver you can read in an afternoon</text>
+  <g font-family="-apple-system,'Segoe UI',Helvetica,Arial,'DejaVu Sans',sans-serif" font-size="14" font-weight="600">
+    <rect x="296" y="170" width="92" height="28" rx="14" fill="#0c4a6e"/><text x="342" y="189" text-anchor="middle" fill="#7dd3fc">simplex</text>
+    <rect x="398" y="170" width="140" height="28" rx="14" fill="#3b0764"/><text x="468" y="189" text-anchor="middle" fill="#d8b4fe">branch &amp; bound</text>
+    <rect x="548" y="170" width="118" height="28" rx="14" fill="#500724"/><text x="607" y="189" text-anchor="middle" fill="#f9a8d4">Gomory cuts</text>
+    <rect x="676" y="170" width="150" height="28" rx="14" fill="#064e3b"/><text x="751" y="189" text-anchor="middle" fill="#6ee7b7">C++17 · Java 17</text>
+  </g>
+</svg>
