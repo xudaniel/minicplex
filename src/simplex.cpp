@@ -695,7 +695,8 @@ std::vector<Constraint> LPEngine::gomoryCuts(const std::vector<char>& isIntCol, 
         cands.push_back({std::move(pi), rhs, eff});
     }
 
-    std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.eff > b.eff; });
+    // stable_sort: ties keep row order, so results do not depend on the standard library (and match Java).
+    std::stable_sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.eff > b.eff; });
     std::vector<Constraint> out;
     std::vector<const Cand*> kept;
     for (const Cand& c : cands) {

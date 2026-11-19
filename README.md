@@ -3,12 +3,16 @@
 [![CI](https://github.com/xudaniel/minicplex/actions/workflows/ci.yml/badge.svg)](https://github.com/xudaniel/minicplex/actions/workflows/ci.yml)
 ![版本](https://img.shields.io/badge/版本-1.0.0-blue)
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-informational)
+![Java 17+](https://img.shields.io/badge/Java-17%2B-informational)
 ![依赖](https://img.shields.io/badge/依赖-零-success)
 ![许可证](https://img.shields.io/badge/许可证-MIT-lightgrey)
 
 一个用 **C++17 编写、零依赖的线性规划 / 混合整数规划（LP / MIP）求解器**。这是一个业余项目，目的是从内部
 理解 IBM ILOG CPLEX 这类求解器的工作原理。它能读取 CPLEX `.lp` 文件，提供类似 Concert 的 C++ 建模 API，
 并输出类似 CPLEX 的分支定界日志。
+
+同一个求解器还有一份**逐行移植的 Java 版**（[`java/`](java/)，Java 17+，同样零依赖）：同一道题，两个版本的
+最优解、节点数、单纯形迭代次数，乃至 `--trace` 打印的每一步都一模一样。见 [Java 版](#java-版)。
 
 > 与 IBM 无关。这是一个学习项目，不是 CPLEX 的替代品：它使用稠密单纯形表，适合中小规模模型
 >（几百行 / 几百列）。
@@ -114,6 +118,7 @@ flowchart TD
 | 灵敏度分析 | 线性规划的影子价格（对偶值）和既约成本：`Result::duals`、`Result::reducedCosts`，命令行 `--duals` |
 | 求解参数 | 相对 MIP 间隙、节点上限、时间上限、只求 LP 松弛；分支规则、割平面轮数、预处理开关 |
 | 输入输出 | CPLEX LP 格式读取（Minimize/Maximize、Subject To、Bounds、General、Binary、End）与写出 |
+| 语言 | C++17 版（主版本）和 Java 17 版（逐行移植，计算路径完全相同，CI 每次提交逐题核对） |
 | 求解状态 | Optimal（最优）、Infeasible（不可行）、Unbounded（无界）、InfeasibleOrUnbounded、NodeLimit、TimeLimit、IterationLimit |
 
 ## 编译
@@ -394,7 +399,7 @@ m.setObjective(3 * shortMath + 1 * shortEng, ObjSense::Minimize);
 | `examples/easy1_bakery.cpp` | 线性规划 | 面包店生产计划：最大利润 21 元（蛋糕 3 个、面包 1.5 个） |
 | `examples/easy2_projects.cpp` | 0-1 整数规划 | 预算 10 万选投资项目：最大收益 16 万（选 A、C、D） |
 | `examples/hard_production_plan.cpp` | 混合整数规划（复杂） | 3 产品 × 6 周生产排程：换线、最小批量、加班、仓储；最低成本 35,615 元（约 420 个节点，0.02 秒，与 HiGHS 结果一致） |
-| `examples/hard_staff_schedule.cpp` | 0-1 整数规划（复杂） | 餐厅 8 人一周排班：覆盖需求、老员工坐镇、晚班后不接早班、连续上班 ≤ 3 天、新人带教、两人不同班；最低成本 6,571 元（8 个节点，0.05 秒，与 HiGHS 结果一致） |
+| `examples/hard_staff_schedule.cpp` | 0-1 整数规划（复杂） | 餐厅 8 人一周排班：覆盖需求、老员工坐镇、晚班后不接早班、连续上班 ≤ 3 天、新人带教、两人不同班；最低成本 6,571 元（11 个节点，0.06 秒，与 HiGHS 结果一致） |
 
 ```bash
 ./build/easy1_bakery
@@ -426,6 +431,97 @@ m.setObjective(30 * chairs + 70 * tables, ObjSense::Maximize);
 Result r = solve(m);          // r.status、r.objective、r.x、r.nodes ……
 m.writeLP(std::cout);         // 导出为 CPLEX LP 格式
 ```
+
+## Java 版
+
+`java/` 目录是整个求解器的 Java 移植：单纯形内核、预处理、Gomory 割、可靠性分支、LP 文件读写、命令行、
+`--trace` 教学输出、基准和随机题工具、全部 15 个例子和测试，一个不少。Java 17 起可用，不依赖任何第三方库。
+
+### 构建与运行
+
+```bash
+java/build.sh                       # 只用 javac + jar，不需要 Maven、不需要联网；会顺便跑测试
+# 或者：mvn -f java/pom.xml package
+
+java -jar java/build/minicplex.jar examples/bakery.lp --trace     # 命令行，参数和 C++ 版完全一样
+java -cp java/build/minicplex.jar minicplex.examples.Basics01OneVariable
+java -cp java/build/minicplex.jar minicplex.tools.Bench bench/models
+```
+
+### 建模 API
+
+Java 没有运算符重载，所以 `2 * x + 3 * y <= 12` 写成链式调用 `LinExpr.of(2, x).plus(3, y).le(12)`。
+`LinExpr` 是不可变对象，`plus` 返回一个新表达式，循环里累加要写 `e = e.plus(...)`。
+
+```java
+import minicplex.*;
+
+Model m = new Model();
+Var chairs = m.addVar(0, Model.INF, VarType.INTEGER, "chairs");    // 椅子（整数）
+Var tables = m.addVar(0, Model.INF, VarType.INTEGER, "tables");    // 桌子（整数）
+m.addConstr(LinExpr.of(2, chairs).plus(5, tables).le(40), "wood");  // 木材
+m.addConstr(LinExpr.of(3, chairs).plus(2, tables).le(30), "labor"); // 工时
+m.addConstr(LinExpr.of(chairs).ge(tables), "mix");                  // 搭配
+m.setObjective(LinExpr.of(30, chairs).plus(70, tables), ObjSense.MAXIMIZE);
+
+Result r = Solver.solve(m);    // r.status、r.objective、r.value(chairs)、r.nodes ……
+System.out.print(m.toLP());    // 导出为 CPLEX LP 格式
+```
+
+| C++ | Java |
+|---|---|
+| `2 * x + 3 * y <= 12` | `LinExpr.of(2, x).plus(3, y).le(12)` |
+| `x >= y`、`x == 5` | `LinExpr.of(x).ge(y)`、`LinExpr.of(x).eq(5)` |
+| `e += 4 * v;` | `e = e.plus(4, v);` |
+| `INF` | `Model.INF` |
+| `VarType::Integer`、`ObjSense::Maximize` | `VarType.INTEGER`、`ObjSense.MAXIMIZE` |
+| `solve(m, p)` | `Solver.solve(m, p)` |
+| `r.x[v.id]` | `r.value(v)` 或 `r.x[v.id()]` |
+| `toString(r.status)` | `r.status`（`toString()` 输出和 C++ 一样，如 `Optimal`） |
+| `readLPFile(path)`、`m.writeLP(os)` | `LpReader.readFile(path)`、`m.toLP()` |
+| `checkFeasible(m, x)`、`evalObjective(m, x)` | `Solver.checkFeasible(m, x)`、`Solver.evalObjective(m, x)` |
+
+`Params` 的字段名、默认值和 C++ 完全相同（`relaxIntegrality`、`cutRounds`、`presolve`、`mipGap`、`trace` ……）。
+
+### 例子对照
+
+| C++ | Java（`java/examples/minicplex/examples/`） |
+|---|---|
+| `examples/basics/01_one_variable.cpp` … `10_infeasible.cpp` | `Basics01OneVariable.java` … `Basics10Infeasible.java` |
+| `easy1_bakery.cpp`、`easy2_projects.cpp` | `Easy1Bakery.java`、`Easy2Projects.java` |
+| `hard_production_plan.cpp`、`hard_staff_schedule.cpp` | `HardProductionPlan.java`、`HardStaffSchedule.java` |
+| `api_demo.cpp` | `ApiDemo.java` |
+
+中文注释和 C++ 版逐句对应，可以左右对照着读。
+
+### 怎么保证两个版本一样？
+
+“移植”最容易出的问题是：看起来一样，其实某个角落的舍入、某个平局的处理不一样，跑大题时悄悄走上另一条路。
+所以这里不满足于“答案一样”，而是要求**计算路径一样**：
+
+| 检查 | 结果 |
+|---|---|
+| 15 个例子的完整输出（除用时外）和导出的 `.lp` 文件 | 逐字相同 |
+| `--trace` 输出（每一次换基、每一个割平面、每一个节点） | 逐行相同 |
+| `bench/models` 13 个基准模型 | 状态、目标值、节点数、迭代次数全部相同 |
+| 2,000 道随机混合整数题（5 个种子） | 全部相同，节点数和迭代次数也相同 |
+| Java 版自己的测试（与 C++ 测试一一对应：暴力枚举 500 题 × 3 套参数、Gomory 割有效性、影子价格扰动核对……） | 40 项全部通过 |
+
+几个让两边“逐位一致”的细节：
+
+- **数字格式**：`Fmt.g` 精确模仿 C 的 `printf("%g")`，`--trace` 和日志里的数字才能逐字相同。
+- **取整**：C++ 的 `std::round` 是“四舍五入、0.5 远离零”，Java 的 `Math.round` 不是，所以用 `Solver.cround` 模仿前者。
+- **平局**：移植时发现，员工排班例子里两个效力完全相同的割平面，C++ 的 `std::sort`（不稳定排序）和 Java 的稳定排序挑出了不同的那个，
+  后面就走了不同的路（最优值相同，节点数 8 和 11）。现在两边都用稳定排序，节点队列也加了插入顺序作最后的平局规则。
+  这顺带修好了 C++ 版的一个隐患：以前换一个标准库（比如 macOS 的 libc++），搜索路径就可能不同。
+- **中文输出**：`Fmt.useUtf8Output()` 让控制台在任何系统语言下都按 UTF-8 输出。
+
+CI 每次提交都会在 JDK 17 和 21 上重新跑一遍：Java 测试、例子逐字对比、基准模型对比、300 道新随机题对比（要求节点数和迭代次数也相同）。
+
+### 速度
+
+同样的算法、同样的步数，Java 版在 `bench/models` 上总用时约 0.72 秒，C++ 版约 0.39 秒（JIT 预热也算在内）。
+对教学和中小模型来说，两个都够用。
 
 ## 工作原理
 
@@ -1125,7 +1221,7 @@ cur = 根节点；队列 open 为空
 
 几个细节：
 
-- **节点** = 一组上下界 + 父节点的界 + 深度 + 父节点的最优基 + 它是怎么分出来的（用于学习伪成本）。队列按界从小到大排，界相同时深度大的优先。
+- **节点** = 一组上下界 + 父节点的界 + 深度 + 父节点的最优基 + 它是怎么分出来的（用于学习伪成本）。队列按界从小到大排，界相同时深度大的优先，再相同时后放进去的优先（`seq` 编号）。最后这条保证搜索顺序完全确定：不依赖标准库里堆的实现细节，Linux、macOS 和 Java 版都走一模一样的路径。
 - **截断值**：当前最优整数解减去允许的间隙。如果目标函数只含整数变量且系数都是整数，最优值一定是整数，截断值可以更激进地设为 “最优整数解 − 1 + 1e-6”，节点的界也可以向上取整（`strengthen`）。
 - **根节点 LP 无界：** 按 CPLEX 的习惯报告 “InfeasibleOrUnbounded”，因为此时整数规划要么无界、要么不可行。
 - **解抛光：** `tryIncumbent` 把整数变量四舍五入后，先用宽松的容差（有连续变量时 1e-4）快速筛掉明显不行的取整；如果模型含连续变量，再固定整数变量、用一个全新的 LP 重新求连续部分，最后用 1e-7 的严格容差检查原始约束，通过才接受。返回值区分三种结果：接受、不比已有解好、不可行。这条规则来自对拍中抓到的一个真实 bug：大量强分支换基后，单纯形表有微小漂移，曾经让一个违反约束 3×10⁻⁵ 的“伪解”被接受（目标值 58.8，真实最优是 31.9）。
@@ -1177,6 +1273,7 @@ sib.branchVar = bj;
 sib.dir = goUp ? 0 : 1;
 sib.dist = goUp ? v - fl : ce - v;
 sib.parentObj = lpObj;
+sib.seq = ++nodeSeq;
 open.push(std::move(sib));
 
 if (goUp) cur.lb[bj] = ce; else cur.ub[bj] = fl;
@@ -1387,6 +1484,9 @@ cmake -S . -B build-asan -DMINICPLEX_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug \
 | `tools/fuzz_vs_highs.py` | 与 HiGHS 逐题对拍（需要 scipy） |
 | `tools/fuzz_vs_ortools.py` | 与 Google OR-Tools 逐题对拍（纯 LP 用 GLOP，整数题用 SCIP；不一致时再请 HiGHS 当裁判；纯 LP 题顺带对比迭代次数；需要 `pip install ortools`） |
 | `tools/bench_compare.py` | 与基线 CSV 对比：结果变了就失败，速度变化只打印 |
+| `java/build.sh` | 构建 Java 版并运行它的测试（`java -cp java/build/minicplex.jar minicplex.SolverTest`） |
+| `tools/compare_java_cpp.py` | 对比 C++ 版和 Java 版的 bench CSV；`--strict` 要求节点数、迭代次数也相同 |
+| `tools/compare_examples_java_cpp.sh` | 逐个运行两边的例子，逐字对比输出 |
 
 对拍示例：
 
@@ -1400,7 +1500,7 @@ python3 tools/fuzz_vs_ortools.py fuzz fuzz/ours.csv   # 第二个标准答案
 **OR-Tools 对拍的两个坑**（已在 `tools/verify_with_ortools.py` 里处理）：OR-Tools 的 MPSolver 没有“不可行或无界”这个状态，GLOP 预处理只能判断到这一步时会直接报“不可行”（见 OR-Tools 源码 `glop_utils.cc`），所以 GLOP 报不可行时会关掉预处理再解一次；LP 松弛无界的整数题，SCIP 可能一直搜下去，所以先解松弛，无界就直接判为“不可行或无界”。首次对拍的完整记录见 [docs/ortools-comparison.md](docs/ortools-comparison.md)。
 
 GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：Linux / macOS 编译与测试、Sanitizer 测试、
-500 道随机题与 HiGHS 对拍（每次换随机种子）、基准测试与基线对比。
+500 道随机题与 HiGHS 对拍（每次换随机种子）、基准测试与基线对比、Java 版（JDK 17 / 21）测试并与 C++ 版逐题逐步对比。
 
 ## 目录结构
 
@@ -1411,8 +1511,13 @@ src/       simplex.cpp  branch_and_bound.cpp  lp_reader.cpp  model.cpp  main.cpp
 examples/  basics/（01～05 入门、06～10 进阶建模技巧）  *.lp  api_demo.cpp  easy1/easy2/hard_* 例子
 tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
            verify_with_ortools.py  fuzz_vs_ortools.py  bench_compare.py
+           compare_java_cpp.py  compare_examples_java_cpp.sh
 bench/     models/（基准模型）  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
+java/      build.sh  pom.xml
+           src/main/java/minicplex/（求解器、命令行、tools/ 基准与生成器）
+           src/test/java/minicplex/SolverTest.java
+           examples/minicplex/examples/（15 个例子，与 C++ 一一对应）
 ```
 
 ## 后续方向

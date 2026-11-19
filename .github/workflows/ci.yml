@@ -68,3 +68,37 @@ jobs:
           python3 tools/bench_compare.py bench/baseline_v0.1.csv new.csv
           echo "== 与当前基线对比（防止性能和结果倒退） =="
           python3 tools/bench_compare.py bench/baseline.csv new.csv
+
+  java:
+    name: Java 版（JDK ${{ matrix.java }}）：测试 + 与 C++ 逐个对比
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ["17", "21"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - name: 构建 + 测试（只用 javac / jar）
+        run: java/build.sh
+      - name: 构建 + 测试（Maven）
+        run: mvn -B -q -f java/pom.xml package
+      - name: 构建 C++ 版
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j 4
+      - name: 例子输出逐字对比
+        run: tools/compare_examples_java_cpp.sh build java/build/minicplex.jar
+      - name: 基准模型对比（节点数、迭代次数都必须一样）
+        run: |
+          ./build/minicplex_bench bench/models --quiet --csv cpp.csv
+          java -cp java/build/minicplex.jar minicplex.tools.Bench bench/models --quiet --csv java.csv
+          python3 tools/compare_java_cpp.py cpp.csv java.csv --strict
+      - name: 随机题对比（每次提交换一个种子）
+        run: |
+          SEED=${{ github.run_number }}
+          ./build/minicplex_gen --kind mixed --count 300 --seed $SEED --out fuzz
+          ./build/minicplex_bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv cpp_fuzz.csv
+          java -cp java/build/minicplex.jar minicplex.tools.Bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv java_fuzz.csv
+          python3 tools/compare_java_cpp.py cpp_fuzz.csv java_fuzz.csv --strict

@@ -4,3 +4,4 @@ fuzz/
 *.lp.out
 __pycache__/
 /*.lp
+target/

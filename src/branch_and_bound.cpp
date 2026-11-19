@@ -70,6 +70,7 @@ struct Node {
     int dir = 0;          // 0 = down branch, 1 = up branch
     double dist = 0.0;    // distance the variable was moved (fractional part)
     double parentObj = 0.0;
+    long seq = 0;         // insertion order: final tie-break, so the search order is fully defined
 };
 
 // Pseudo-costs: average objective increase per unit change of a variable,
@@ -98,7 +99,8 @@ struct PseudoCosts {
 struct NodeCmp {
     bool operator()(const Node& a, const Node& b) const {
         if (a.bound != b.bound) return a.bound > b.bound;
-        return a.depth < b.depth;
+        if (a.depth != b.depth) return a.depth < b.depth;
+        return a.seq < b.seq;  // newest first
     }
 };
 
@@ -302,6 +304,7 @@ Result solve(const Model& M, const Params& P) {
 
     PseudoCosts pc(nv);
     std::priority_queue<Node, std::vector<Node>, NodeCmp> open;
+    long nodeSeq = 0;
     Node cur{lb, ub, -INF, 0, {}};
     bool haveCur = true;  // root: engine already holds bounds and the slack basis
 
@@ -398,7 +401,7 @@ Result solve(const Model& M, const Params& P) {
                 const double frac = std::min(f, 1.0 - f);
                 if (frac > P.intTol && (pc.cnt[0][j] < 1 || pc.cnt[1][j] < 1)) unrel.push_back({frac, j});
             }
-            std::sort(unrel.begin(), unrel.end(), [](auto& a, auto& b) { return a.first > b.first; });
+            std::stable_sort(unrel.begin(), unrel.end(), [](auto& a, auto& b) { return a.first > b.first; });
             if (unrel.size() > 8) unrel.resize(8);
             if (!unrel.empty()) {
                 const detail::Basis B = E.basis();
@@ -499,6 +502,7 @@ Result solve(const Model& M, const Params& P) {
         sib.dir = goUp ? 0 : 1;
         sib.dist = goUp ? v - fl : ce - v;
         sib.parentObj = lpObj;
+        sib.seq = ++nodeSeq;
         open.push(std::move(sib));
 
         if (goUp) cur.lb[bj] = ce; else cur.ub[bj] = fl;
