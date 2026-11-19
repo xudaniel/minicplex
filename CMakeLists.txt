@@ -7,6 +7,12 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# 不让编译器把 a*b+c 合成一条 FMA 指令：FMA 少一次舍入，结果和 Java 版、和不支持 FMA 的机器都会差最后一位，
+# 进而让单纯形走上另一条路（同一最优值，不同节点数）。关掉后，任何编译器 / CPU 上的计算路径都完全相同。
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  add_compile_options(-ffp-contract=off)
+endif()
+
 # 内存 / 未定义行为检查：cmake -DMINICPLEX_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug
 option(MINICPLEX_SANITIZE "Build with AddressSanitizer + UndefinedBehaviorSanitizer" OFF)
 if(MINICPLEX_SANITIZE)
