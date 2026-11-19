@@ -6,7 +6,7 @@
 
 <p>
 <a href="https://github.com/xudaniel/minicplex/actions/workflows/ci.yml"><img src="https://github.com/xudaniel/minicplex/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-<a href="https://github.com/xudaniel/minicplex/releases"><img src="https://img.shields.io/github/v/release/xudaniel/minicplex?label=%E7%89%88%E6%9C%AC&color=0ea5e9" alt="版本"></a>
+<a href="https://github.com/xudaniel/minicplex/releases"><img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.0.0-0ea5e9" alt="版本 1.0.0"></a>
 <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17">
 <img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
 <img src="https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-22c55e" alt="零依赖">
@@ -34,39 +34,41 @@
 
 <table>
 <tr>
-<td width="33%" valign="top">
+<td width="50%" valign="top">
 
 **🧮 完整的求解流程**<br>
-有界变量单纯形、对偶单纯形热启动、预处理、Gomory 割平面、可靠性分支、解抛光，一个现代 MIP 求解器的主干都在。
+有界变量单纯形、对偶单纯形热启动、预处理、Gomory 割平面、可靠性分支、解抛光：现代 MIP 求解器的主干都在。
 
 </td>
-<td width="33%" valign="top">
+<td width="50%" valign="top">
 
 **🔍 每一步都看得见**<br>
 `--trace` 用中文打印求解过程：谁进基、谁离基、为什么剪枝、为什么选这个变量分支。适合当教材。
 
 </td>
-<td width="33%" valign="top">
+</tr>
+<tr>
+<td width="50%" valign="top">
 
 **✅ 和权威求解器逐题对拍**<br>
 与 HiGHS、OR-Tools 对比了上万道随机题，结果全部一致，还顺带抓到了 HiGHS 自己的错误。
 
 </td>
-</tr>
-<tr>
-<td valign="top">
+<td width="50%" valign="top">
 
 **☕ C++ 和 Java 两个版本**<br>
 Java 版逐行移植，同一道题两边的节点数、迭代次数、每一步 trace 完全相同，CI 每次提交都会核对。
 
 </td>
-<td valign="top">
+</tr>
+<tr>
+<td width="50%" valign="top">
 
 **📚 从零开始的中文教程**<br>
 10 个由浅入深的入门例子、建模技巧速查表、练习题，以及逐函数的代码解析。
 
 </td>
-<td valign="top">
+<td width="50%" valign="top">
 
 **🪶 零依赖，小而可读**<br>
 不依赖任何第三方库，C++ 核心代码约 2,300 行（含头文件）。一个下午就能从 `main` 读到分支定界。

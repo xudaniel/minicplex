@@ -3,29 +3,29 @@
 <rect width="820" height="38" rx="14" fill="#1e293b"/><rect y="24" width="820" height="14" fill="#1e293b"/>
 <circle cx="24" cy="19" r="6.5" fill="#f87171"/><circle cx="46" cy="19" r="6.5" fill="#fbbf24"/><circle cx="68" cy="19" r="6.5" fill="#34d399"/>
 <text x="410.0" y="24" text-anchor="middle" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" fill="#94a3b8">minicplex — 3 products × 6 weeks, 60 variables</text>
-<g font-family="'SF Mono','JetBrains Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="13.5" xml:space="preserve">
-<text x="22" y="62" fill="#7dd3fc">$ ./build/minicplex bench/models/hard_production_plan.lp</text>
-<text x="22" y="81" fill="#f9a8d4">minicplex 1.0 | bench/models/hard_production_plan.lp</text>
-<text x="22" y="100" fill="#e2e8f0">  60 variables (24 integer), 72 constraints, minimize</text>
+<g font-family="'SF Mono','JetBrains Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="13.5" style="white-space:pre">
+<text x="22" y="62" fill="#7dd3fc">$ ./build/minicplex bench/models/hard_production_plan.lp</text>
+<text x="22" y="81" fill="#f9a8d4">minicplex 1.0 | bench/models/hard_production_plan.lp</text>
+<text x="22" y="100" fill="#e2e8f0"><tspan fill-opacity="0">.</tspan> 60 variables (24 integer), 72 constraints, minimize</text>
 <text x="22" y="119" fill="#e2e8f0"></text>
-<text x="22" y="138" fill="#c4b5fd">Presolve: 61 bounds tightened, 3 coefficients tightened, 9 rows removed</text>
-<text x="22" y="157" fill="#c4b5fd">Root cuts: 12 Gomory cuts kept, root bound 33395.1</text>
-<text x="22" y="176" fill="#94a3b8">     Node    Left       Objective    Best Integer      Best Bound      Gap</text>
-<text x="22" y="195" fill="#fbbf24">H      23      20         36612.3           37310         33832.7    9.32%</text>
-<text x="22" y="214" fill="#fbbf24">H      59      50           36635           36815         33967.9    7.73%</text>
-<text x="22" y="233" fill="#e2e8f0">      100      80         35282.9           36815           34105    7.36%</text>
-<text x="22" y="252" fill="#fbbf24">H     131     100         35160.4           36175         34312.1    5.15%</text>
-<text x="22" y="271" fill="#fbbf24">H     133     102           35555           36095         34312.1    4.94%</text>
-<text x="22" y="290" fill="#e2e8f0">      300     178         35561.7           36095         34842.5    3.47%</text>
-<text x="22" y="309" fill="#fbbf24">H     327     184         35657.5           35830         34973.2    2.39%</text>
-<text x="22" y="328" fill="#fbbf24">H     354     187         35758.7           35760         35090.7    1.87%</text>
-<text x="22" y="347" fill="#34d399">*     364     189           35715           35715         35139.3    1.61%</text>
-<text x="22" y="366" fill="#fbbf24">H     411     162         35432.5           35615         35381.8    0.65%</text>
-<text x="22" y="385" fill="#34d399">B&amp;B done: Optimal, 479 nodes, 1609 simplex iterations, 0.03 s</text>
+<text x="22" y="138" fill="#c4b5fd">Presolve: 61 bounds tightened, 3 coefficients tightened, 9 rows removed</text>
+<text x="22" y="157" fill="#c4b5fd">Root cuts: 12 Gomory cuts kept, root bound 33395.1</text>
+<text x="22" y="176" fill="#94a3b8"><tspan fill-opacity="0">.</tspan>    Node    Left       Objective    Best Integer      Best Bound      Gap</text>
+<text x="22" y="195" fill="#fbbf24">H      23      20         36612.3           37310         33832.7    9.32%</text>
+<text x="22" y="214" fill="#fbbf24">H      59      50           36635           36815         33967.9    7.73%</text>
+<text x="22" y="233" fill="#e2e8f0"><tspan fill-opacity="0">.</tspan>     100      80         35282.9           36815           34105    7.36%</text>
+<text x="22" y="252" fill="#fbbf24">H     131     100         35160.4           36175         34312.1    5.15%</text>
+<text x="22" y="271" fill="#fbbf24">H     133     102           35555           36095         34312.1    4.94%</text>
+<text x="22" y="290" fill="#e2e8f0"><tspan fill-opacity="0">.</tspan>     300     178         35561.7           36095         34842.5    3.47%</text>
+<text x="22" y="309" fill="#fbbf24">H     327     184         35657.5           35830         34973.2    2.39%</text>
+<text x="22" y="328" fill="#fbbf24">H     354     187         35758.7           35760         35090.7    1.87%</text>
+<text x="22" y="347" fill="#34d399">*     364     189           35715           35715         35139.3    1.61%</text>
+<text x="22" y="366" fill="#fbbf24">H     411     162         35432.5           35615         35381.8    0.65%</text>
+<text x="22" y="385" fill="#34d399">B&amp;B done: Optimal, 479 nodes, 1609 simplex iterations, 0.03 s</text>
 <text x="22" y="404" fill="#e2e8f0"></text>
-<text x="22" y="423" fill="#34d399">Status:       Optimal</text>
-<text x="22" y="442" fill="#e2e8f0">Objective:    35615</text>
-<text x="22" y="461" fill="#e2e8f0">Best bound:   35615   (gap 0.0000%)</text>
-<text x="22" y="480" fill="#e2e8f0">Nodes:        479</text>
-<text x="22" y="499" fill="#e2e8f0">Iterations:   1609</text>
+<text x="22" y="423" fill="#34d399">Status:       Optimal</text>
+<text x="22" y="442" fill="#e2e8f0">Objective:    35615</text>
+<text x="22" y="461" fill="#e2e8f0">Best bound:   35615   (gap 0.0000%)</text>
+<text x="22" y="480" fill="#e2e8f0">Nodes:        479</text>
+<text x="22" y="499" fill="#e2e8f0">Iterations:   1609</text>
 </g></svg>
