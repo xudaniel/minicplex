@@ -2,3 +2,4 @@ build/
 build-*/
 fuzz/
 *.lp.out
+__pycache__/
