@@ -1,41 +1,53 @@
 # minicplex
 
-A small, dependency-free **LP / MIP solver in C++17**, built as a side project to understand how
-solvers like IBM ILOG CPLEX work inside. It reads CPLEX `.lp` files, offers a Concert-style C++
-modelling API, and prints a CPLEX-like node log.
+一个用 **C++17 编写、零依赖的线性规划 / 混合整数规划（LP / MIP）求解器**。这是一个业余项目，目的是从内部
+理解 IBM ILOG CPLEX 这类求解器的工作原理。它能读取 CPLEX `.lp` 文件，提供类似 Concert 的 C++ 建模 API，
+并输出类似 CPLEX 的分支定界日志。
 
-> Not affiliated with IBM. It is a learning project, not a replacement for CPLEX: it uses a dense
-> tableau, so it is meant for small and medium models (hundreds of rows/columns).
+> 与 IBM 无关。这是一个学习项目，不是 CPLEX 的替代品：它使用稠密单纯形表，适合中小规模模型
+>（几百行 / 几百列）。
 
-## Features
+产品需求文档见 [docs/PRD.md](docs/PRD.md)。
 
-| Area | What's implemented |
+## 功能一览
+
+| 模块 | 已实现内容 |
 |---|---|
-| LP | Two-phase primal simplex (dense tableau), Dantzig pricing with Bland's rule fallback (anti-cycling) |
-| Bounds | Lower/upper bounds, free variables, negative bounds, fixed variables |
-| Constraints | `<=`, `>=`, `=`, negative right-hand sides, redundant rows |
-| MIP | Best-first branch and bound, most-fractional branching, rounding heuristic, integral-objective bound strengthening |
-| Controls | Relative MIP gap, node limit, time limit, LP relaxation mode |
-| I/O | CPLEX LP format reader (Minimize/Maximize, Subject To, Bounds, General, Binary, End) and writer |
-| Status | Optimal, Infeasible, Unbounded, InfeasibleOrUnbounded, NodeLimit, TimeLimit, IterationLimit |
+| 线性规划 | 两阶段原始单纯形法（稠密单纯形表）；Dantzig 定价规则，出现退化时自动切换 Bland 规则防止循环 |
+| 变量边界 | 上下界、自由变量、负边界、固定变量 |
+| 约束 | `<=`、`>=`、`=`，右端项为负，冗余约束 |
+| 整数规划 | 最优界优先的分支定界、最分数变量分支、取整启发式、整数目标函数的界加强 |
+| 求解参数 | 相对 MIP 间隙、节点上限、时间上限、只求 LP 松弛 |
+| 输入输出 | CPLEX LP 格式读取（Minimize/Maximize、Subject To、Bounds、General、Binary、End）与写出 |
+| 求解状态 | Optimal（最优）、Infeasible（不可行）、Unbounded（无界）、InfeasibleOrUnbounded、NodeLimit、TimeLimit、IterationLimit |
 
-## Build
+## 编译
 
 ```bash
 cmake -S . -B build
 cmake --build build -j
-ctest --test-dir build          # or ./build/minicplex_tests
+ctest --test-dir build          # 或 ./build/minicplex_tests
 ```
 
-## Command line
+## 命令行用法
 
 ```bash
 ./build/minicplex examples/facility.lp
-./build/minicplex --relax examples/knapsack.lp      # LP relaxation only
-./build/minicplex --gap 1e-4 --time 10 model.lp
+./build/minicplex --relax examples/knapsack.lp      # 只求 LP 松弛
+./build/minicplex --gap 1e-4 --time 10 model.lp     # 设定间隙和时间上限
 ```
 
-Example output:
+| 参数 | 说明 |
+|---|---|
+| `--relax` | 忽略整数约束，只求 LP 松弛 |
+| `--gap G` | 相对 MIP 间隙（默认 1e-6） |
+| `--nodes N` | 分支定界节点上限 |
+| `--time T` | 时间上限（秒） |
+| `--quiet` | 不打印节点日志 |
+| `--all` | 也打印取值为 0 的变量 |
+| `--write FILE` | 把读入的模型重新写成 LP 格式 |
+
+输出示例：
 
 ```
 minicplex 0.1 | examples/facility.lp
@@ -47,55 +59,54 @@ Best bound:   360   (gap 0.0000%)
 Nodes:        13
 ```
 
-## C++ API
+## C++ 建模 API
 
 ```cpp
 #include "solver.hpp"
 using namespace mcplex;
 
 Model m;
-Var chairs = m.addVar(0, INF, VarType::Integer, "chairs");
-Var tables = m.addVar(0, INF, VarType::Integer, "tables");
-m.addConstr(2 * chairs + 5 * tables <= 40, "wood");
-m.addConstr(3 * chairs + 2 * tables <= 30, "labor");
-m.addConstr(chairs >= tables, "mix");
+Var chairs = m.addVar(0, INF, VarType::Integer, "chairs");   // 椅子（整数）
+Var tables = m.addVar(0, INF, VarType::Integer, "tables");   // 桌子（整数）
+m.addConstr(2 * chairs + 5 * tables <= 40, "wood");          // 木材
+m.addConstr(3 * chairs + 2 * tables <= 30, "labor");         // 工时
+m.addConstr(chairs >= tables, "mix");                        // 搭配
 m.setObjective(30 * chairs + 70 * tables, ObjSense::Maximize);
 
-Result r = solve(m);          // r.status, r.objective, r.x, r.nodes ...
-m.writeLP(std::cout);         // export as CPLEX LP format
+Result r = solve(m);          // r.status、r.objective、r.x、r.nodes ……
+m.writeLP(std::cout);         // 导出为 CPLEX LP 格式
 ```
 
-## How it works
+## 工作原理
 
-1. **Standard form** (`src/simplex.cpp`): each variable is shifted by a finite bound
-   (`x = l + y` or `x = u - y`) or split if free (`x = y⁺ - y⁻`); finite ranges become rows;
-   slacks, surpluses and artificials are added so that `A y = b, y ≥ 0, b ≥ 0`.
-2. **Phase 1** minimises the sum of artificials (feasibility), then drives any leftover
-   artificials out of the basis. **Phase 2** optimises the real objective.
-3. **Branch and bound** (`src/branch_and_bound.cpp`) solves the LP relaxation at each node,
-   prunes by bound, branches on the most fractional integer variable and always explores the
-   node with the best bound first. A rounding heuristic finds early incumbents.
+1. **转为标准型**（`src/simplex.cpp`）：每个变量按其有限边界平移（`x = l + y` 或 `x = u - y`），
+   自由变量拆分为 `x = y⁺ - y⁻`；有限区间转为额外约束行；再加入松弛、剩余和人工变量，
+   得到 `A y = b, y ≥ 0, b ≥ 0`。
+2. **第一阶段**最小化人工变量之和（求可行解），再把残留的人工变量换出基；
+   **第二阶段**优化真正的目标函数。
+3. **分支定界**（`src/branch_and_bound.cpp`）：在每个节点求 LP 松弛，用界剪枝，
+   在最“分数”的整数变量上分支，并总是先探索界最好的节点；取整启发式用来尽早找到可行解。
 
-## Tests
+## 测试
 
-`tests/test_solver.cpp` checks textbook LPs, infeasible/unbounded detection, free variables,
-Beale's cycling example, a knapsack, LP read/write round-trips, and **500 random integer
-programs compared against brute-force enumeration**.
+`tests/test_solver.cpp` 覆盖：教科书 LP、不可行 / 无界判定、自由变量、Beale 循环反例、背包问题、
+LP 文件读写往返，以及 **500 个随机整数规划与暴力枚举结果逐一对比**（全部一致）。
 
-## Project layout
+## 目录结构
 
 ```
+docs/      PRD.md（产品需求文档）
 include/   model.hpp  solver.hpp  lp_reader.hpp
 src/       simplex.cpp  branch_and_bound.cpp  lp_reader.cpp  model.cpp  main.cpp
 examples/  *.lp  api_demo.cpp
 tests/     test_solver.cpp
 ```
 
-## Ideas for next steps
+## 后续方向
 
-Revised simplex with LU factorisation, dual simplex for warm-started B&B nodes, cutting planes
-(Gomory, cover cuts), presolve, pseudo-cost branching, MPS file support.
+带 LU 分解的修正单纯形法、用对偶单纯形热启动分支定界节点、割平面（Gomory 割、覆盖割）、
+预处理（presolve）、伪成本分支、MPS 文件支持。详见 PRD 的路线图。
 
-## License
+## 许可证
 
 MIT
