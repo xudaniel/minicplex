@@ -78,6 +78,49 @@ static void testBealeCycling() {  // cycles under naive Dantzig without anti-cyc
     CHECK(r.status == Status::Optimal && near(r.objective, -1.25));
 }
 
+static void testEngineEdgeCases() {
+    // no constraints at all: optimum at the bounds
+    Model a;
+    Var x = a.addVar(-2, 5), y = a.addVar(1, 3, VarType::Integer);
+    a.setObjective(x - 2 * y + 1);
+    Result r = solve(a);
+    CHECK(r.status == Status::Optimal && near(r.objective, -2 - 6 + 1));
+
+    // no constraints, unbounded direction
+    Model b;
+    Var u = b.addVar(0, INF);
+    b.setObjective(u, ObjSense::Maximize);
+    CHECK(solve(b).status == Status::Unbounded);
+
+    // every variable fixed
+    Model c;
+    Var p = c.addVar(3, 3), q = c.addVar(-1, -1);
+    c.addConstr(p + q >= 2);
+    c.setObjective(p - q);
+    r = solve(c);
+    CHECK(r.status == Status::Optimal && near(r.objective, 4));
+    Model c2;
+    Var p2 = c2.addVar(3, 3);
+    c2.addConstr(p2 >= 4);
+    c2.setObjective(p2);
+    CHECK(solve(c2).status == Status::Infeasible);
+
+    // boxed variables with negative costs (start on the upper bound), equality rows
+    Model d;
+    Var d1 = d.addVar(0, 4), d2 = d.addVar(0, 4), d3 = d.addVar(-INF, INF);
+    d.addConstr(d1 + d2 + d3 == 5);
+    d.addConstr(d3 >= -1);
+    d.setObjective(-d1 - d2 + 0.5 * d3);
+    r = solve(d);
+    CHECK(r.status == Status::Optimal && near(r.objective, -6.5));  // d1 = d2 = 4, d3 = -1
+
+    // inverted bounds after integer rounding: 0.2 <= x <= 0.8, x integer
+    Model e;
+    Var ei = e.addVar(0.2, 0.8, VarType::Integer);
+    e.setObjective(ei);
+    CHECK(solve(e).status == Status::Infeasible);
+}
+
 static void testKnapsack() {
     Model m;
     double val[] = {10, 13, 7, 8}, wt[] = {5, 6, 4, 3};
@@ -185,6 +228,7 @@ int main() {
     testInfeasibleUnbounded();
     testFreeAndEquality();
     testBealeCycling();
+    testEngineEdgeCases();
     testKnapsack();
     testReaderRoundTrip();
     testRandomVsBruteForce(500);

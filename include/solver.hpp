@@ -52,7 +52,7 @@ bool checkFeasible(const Model& model, const std::vector<double>& x, double tol 
 
 namespace detail {
 
-enum class LPStatus { Optimal, Infeasible, Unbounded, IterationLimit };
+enum class LPStatus { Optimal, Infeasible, Unbounded, IterationLimit, Cutoff };
 
 struct LPResult {
     LPStatus status = LPStatus::Infeasible;
@@ -61,8 +61,74 @@ struct LPResult {
     long iterations = 0;
 };
 
-// Minimise objSign * objective over the constraints of `model`, using the
-// given variable bounds (integrality ignored). Two-phase tableau simplex.
+// A simplex basis that can be saved and restored (warm start).
+struct Basis {
+    std::vector<int> head;          // basic variable of each row
+    std::vector<signed char> stat;  // status of every variable (structural + slack)
+};
+
+// Bounded-variable simplex engine on a dense tableau.
+//
+// Computational form:  A x - s = 0,  l <= x <= u,  rlo <= s <= rhi.
+// Every row has a slack s_i (its row activity), so the all-slack basis is
+// always a valid starting basis, and variable bounds never become rows.
+//   * primal simplex: composite phase 1 (minimise the sum of infeasibilities)
+//     followed by phase 2, with bound flips;
+//   * dual simplex: used whenever the basis is dual feasible, e.g. after a
+//     branching bound change, so a child node re-optimises in a few pivots;
+//   * basis save / restore for branch and bound (warm start).
+class LPEngine {
+public:
+    LPEngine(const Model& model, double objSign);
+
+    void setColBounds(int j, double lb, double ub);
+    void setAllColBounds(const std::vector<double>& lb, const std::vector<double>& ub);
+
+    // Minimise objSign * objective. Stops early with Cutoff once the (dual)
+    // objective provably reaches `cutoff`.
+    LPStatus solve(long maxIters, double cutoff = INF);
+
+    double objective() const;               // objSign * (c'x + c0)
+    std::vector<double> colValues() const;  // structural variables only
+    long iterations() const { return iters_; }
+
+    Basis basis() const { return {head_, stat_}; }
+    // Move to basis b. By default this pivots from the current tableau and
+    // only swaps the columns that differ; fromScratch rebuilds T from A.
+    void loadBasis(const Basis& b, bool fromScratch = false);
+
+private:
+    enum : signed char { kBasic = 0, kLower = 1, kUpper = 2, kFree = 3, kFixed = 4 };
+
+    int n_, m_, N_;
+    std::vector<double> A_;  // original constraint matrix, m x n (row major)
+    std::vector<double> c_, lb_, ub_;
+    double objConst_;
+    std::vector<double> T_;  // B^-1 [A | -I], m x N
+    std::vector<double> d_;  // reduced costs
+    std::vector<double> x_;  // values of all variables
+    std::vector<int> head_;
+    std::vector<signed char> stat_;
+    long iters_ = 0;
+    long pivotsSinceRefactor_ = 0;
+    long pivotsSinceRecompute_ = 0;
+    bool valuesDirty_ = true;
+    std::vector<int> nz_;
+
+    double& T(int i, int j) { return T_[static_cast<size_t>(i) * N_ + j]; }
+    double T(int i, int j) const { return T_[static_cast<size_t>(i) * N_ + j]; }
+    signed char defaultStatus(int j) const;
+    double nonbasicValue(int j) const;
+    void pivot(int r, int q);
+    void recomputeValues();
+    void recomputeReducedCosts();
+    double infeasibility(int v) const;
+    bool makeDualFeasible();
+    LPStatus primal(long maxIters);
+    LPStatus dual(long maxIters, double cutoff);
+};
+
+// Convenience wrapper: solve one LP from scratch.
 LPResult lpMin(const Model& model, const std::vector<double>& lb, const std::vector<double>& ub,
                double objSign, long maxIters);
 

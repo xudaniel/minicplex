@@ -63,4 +63,8 @@ jobs:
       - name: Run benchmark
         run: ./build/minicplex_bench bench/models --csv new.csv
       - name: Compare with baseline
-        run: python3 tools/bench_compare.py bench/baseline.csv new.csv
+        run: |
+          echo "== 与 v0.1 旧内核对比 =="
+          python3 tools/bench_compare.py bench/baseline_v0.1.csv new.csv
+          echo "== 与当前基线对比（防止性能和结果倒退） =="
+          python3 tools/bench_compare.py bench/baseline.csv new.csv

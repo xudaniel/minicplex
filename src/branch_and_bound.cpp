@@ -1,6 +1,12 @@
-// Best-first branch and bound on top of the simplex LP solver.
-//   * branching variable: most fractional integer variable
-//   * node selection: smallest LP bound first (ties: deepest first)
+// Branch and bound on top of the bounded simplex engine (LPEngine).
+//   * plunging: after branching, one child is solved immediately from the
+//     parent's tableau (warm start, dual simplex, usually a few pivots);
+//     the sibling is stored with the parent's basis and restored later
+//   * node selection when a plunge ends: smallest LP bound first
+//   * branching variable: most fractional integer variable; the plunge
+//     follows the rounding direction of the fractional value
+//   * pruning inside the LP: the dual simplex stops as soon as the node's
+//     bound reaches the incumbent (cutoff)
 //   * primal heuristic: round the LP solution and test feasibility
 //   * if the objective only involves integer variables with integer
 //     coefficients, node bounds are rounded up (stronger pruning)
@@ -56,6 +62,7 @@ struct Node {
     std::vector<double> lb, ub;
     double bound;  // lower bound (internal min sense) inherited from the parent
     int depth;
+    detail::Basis basis;  // parent's optimal basis (warm start)
 };
 
 struct NodeCmp {
@@ -89,22 +96,25 @@ Result solve(const Model& M, const Params& P) {
         }
     }
 
+    detail::LPEngine E(M, sgn);
+    E.setAllColBounds(lb, ub);
+
     // ---------------- pure LP ----------------
     if (ints.empty()) {
-        auto lp = detail::lpMin(M, lb, ub, sgn, maxIt);
-        R.lpIterations = lp.iterations;
+        const auto st = E.solve(maxIt);
+        R.lpIterations = E.iterations();
         R.seconds = elapsed();
-        switch (lp.status) {
+        switch (st) {
             case detail::LPStatus::Optimal:
                 R.status = Status::Optimal;
                 R.hasSolution = true;
-                R.x = lp.x;
-                R.objective = R.bestBound = sgn * lp.objective;
+                R.x = E.colValues();
+                R.objective = R.bestBound = sgn * E.objective();
                 R.gap = 0.0;
                 break;
             case detail::LPStatus::Infeasible: R.status = Status::Infeasible; break;
             case detail::LPStatus::Unbounded: R.status = Status::Unbounded; break;
-            case detail::LPStatus::IterationLimit: R.status = Status::IterationLimit; break;
+            default: R.status = Status::IterationLimit; break;
         }
         if (P.verbose)
             std::printf("LP solved: %s, %ld simplex iterations, %.3f s\n", toString(R.status),
@@ -130,6 +140,12 @@ Result solve(const Model& M, const Params& P) {
     bool incomplete = false;
     Status stop = Status::Optimal;
 
+    auto cutoff = [&]() {
+        if (incX.empty()) return INF;
+        double c = inc - P.mipGap * std::max(1.0, std::abs(inc));
+        if (objIntegral) c = std::min(c, inc - 1.0 + 1e-6);
+        return c;
+    };
     auto tryIncumbent = [&](std::vector<double> x) {
         for (int j : ints) x[j] = std::round(x[j]);
         if (!checkFeasible(M, x, 1e-6)) return false;
@@ -143,79 +159,114 @@ Result solve(const Model& M, const Params& P) {
     };
 
     std::priority_queue<Node, std::vector<Node>, NodeCmp> open;
-    open.push({lb, ub, -INF, 0});
+    Node cur{lb, ub, -INF, 0, {}};
+    bool haveCur = true;  // root: engine already holds bounds and the slack basis
 
-    if (P.verbose)
-        std::printf("%9s %7s %15s %15s %15s %8s\n", "Node", "Left", "Objective", "Best Integer",
-                    "Best Bound", "Gap");
-    auto logLine = [&](const char* mark, double nodeObj) {
-        const double bnd = open.empty() ? inc : std::min(open.top().bound, inc);
-        const double gap = std::isfinite(inc) ? std::abs(inc - bnd) / std::max(1e-10, std::abs(inc)) : INF;
-        std::printf("%1s%8ld %7zu %15.6g %15.6g %15.6g %7.2f%%\n", mark, R.nodes, open.size(),
-                    sgn * nodeObj, std::isfinite(inc) ? sgn * inc : NAN, sgn * bnd, 100 * gap);
+    auto bestBound = [&]() {
+        double b = inc;
+        if (!open.empty()) b = std::min(b, open.top().bound);
+        if (haveCur) b = std::min(b, cur.bound);
+        return b;
     };
 
-    while (!open.empty()) {
-        if (!incX.empty() && closeEnough(open.top().bound, inc)) break;
+    if (P.verbose)
+        std::printf("%9s %7s %15s %15s %15s %8s\n", "Node", "Left", "Objective", "Best Integer", "Best Bound",
+                    "Gap");
+    auto logLine = [&](const char* mark, double nodeObj) {
+        const double bnd = bestBound();
+        const double gap =
+            std::isfinite(inc) ? std::abs(inc - bnd) / std::max(1e-10, std::abs(inc)) : INF;
+        std::printf("%1s%8ld %7zu %15.6g %15.6g %15.6g %7.2f%%\n", mark, R.nodes, open.size(), sgn * nodeObj,
+                    std::isfinite(inc) ? sgn * inc : NAN, sgn * bnd, 100 * gap);
+    };
+
+    for (;;) {
+        if (!haveCur) {
+            if (open.empty()) break;
+            if (!incX.empty() && closeEnough(open.top().bound, inc)) break;
+            cur = open.top();
+            open.pop();
+            haveCur = true;
+            E.setAllColBounds(cur.lb, cur.ub);
+            E.loadBasis(cur.basis);
+        }
         if (R.nodes >= P.nodeLimit) { stop = Status::NodeLimit; break; }
         if (elapsed() > P.timeLimit) { stop = Status::TimeLimit; break; }
 
-        Node nd = open.top();
-        open.pop();
-        if (!incX.empty() && closeEnough(nd.bound, inc)) continue;
-
         ++R.nodes;
-        auto lp = detail::lpMin(M, nd.lb, nd.ub, sgn, maxIt);
-        R.lpIterations += lp.iterations;
+        const auto st = E.solve(maxIt, cutoff());
 
-        if (lp.status == detail::LPStatus::Infeasible) continue;
-        if (lp.status == detail::LPStatus::Unbounded) {
+        if (st == detail::LPStatus::Infeasible || st == detail::LPStatus::Cutoff) {
+            haveCur = false;
+            continue;
+        }
+        if (st == detail::LPStatus::Unbounded) {
             if (R.nodes == 1) {
                 R.status = Status::InfeasibleOrUnbounded;
+                R.lpIterations = E.iterations();
                 R.seconds = elapsed();
                 return R;
             }
             incomplete = true;  // should not happen: children are restrictions
+            haveCur = false;
             continue;
         }
-        if (lp.status == detail::LPStatus::IterationLimit) {
+        if (st == detail::LPStatus::IterationLimit) {
             incomplete = true;
+            haveCur = false;
             continue;
         }
 
-        const double nodeBound = strengthen(lp.objective);
-        if (!incX.empty() && closeEnough(nodeBound, inc)) continue;
+        const std::vector<double> x = E.colValues();
+        const double lpObj = E.objective();
+        const double nodeBound = strengthen(lpObj);
+        cur.bound = nodeBound;
+        if (!incX.empty() && closeEnough(nodeBound, inc)) {
+            haveCur = false;
+            continue;
+        }
 
         int bj = -1;
         double bestFrac = 0.0;
         for (int j : ints) {
-            const double f = lp.x[j] - std::floor(lp.x[j]);
+            const double f = x[j] - std::floor(x[j]);
             const double frac = std::min(f, 1.0 - f);
             if (frac > P.intTol && frac > bestFrac) {
                 bestFrac = frac;
                 bj = j;
             }
         }
-
         if (bj < 0) {  // LP solution is integral
-            if (tryIncumbent(lp.x) && P.verbose) logLine("*", lp.objective);
+            if (tryIncumbent(x) && P.verbose) logLine("*", lpObj);
+            haveCur = false;
             continue;
         }
-        if (tryIncumbent(lp.x) && P.verbose) logLine("H", lp.objective);
+        if (tryIncumbent(x)) {
+            if (P.verbose) logLine("H", lpObj);
+            if (closeEnough(nodeBound, inc)) {
+                haveCur = false;
+                continue;
+            }
+        }
 
-        const double v = lp.x[bj];
-        Node down{nd.lb, nd.ub, nodeBound, nd.depth + 1};
-        down.ub[bj] = std::floor(v);
-        Node up{std::move(nd.lb), std::move(nd.ub), nodeBound, nd.depth + 1};
-        up.lb[bj] = std::ceil(v);
-        open.push(std::move(down));
-        open.push(std::move(up));
+        // Branch: plunge into the child on the rounding side, store the sibling.
+        const double v = x[bj];
+        const double fl = std::floor(v), ce = std::ceil(v);
+        const bool goUp = (v - fl) >= 0.5;
+        Node sib{cur.lb, cur.ub, nodeBound, cur.depth + 1, E.basis()};
+        if (goUp) sib.ub[bj] = fl; else sib.lb[bj] = ce;
+        open.push(std::move(sib));
 
-        if (P.verbose && R.nodes % P.logEvery == 0) logLine("", lp.objective);
+        if (goUp) cur.lb[bj] = ce; else cur.ub[bj] = fl;
+        cur.depth += 1;
+        E.setColBounds(bj, cur.lb[bj], cur.ub[bj]);  // warm start: same tableau
+
+        if (P.verbose && R.nodes % P.logEvery == 0) logLine("", lpObj);
     }
 
     R.seconds = elapsed();
-    double bound = open.empty() ? inc : std::min(open.top().bound, inc);
+    R.lpIterations = E.iterations();
+    const double bound = bestBound();
     if (incX.empty()) {
         R.status = (stop != Status::Optimal) ? stop
                    : incomplete              ? Status::IterationLimit
@@ -230,8 +281,8 @@ Result solve(const Model& M, const Params& P) {
         R.gap = std::abs(inc - bound) / std::max(1e-10, std::abs(inc));
     }
     if (P.verbose)
-        std::printf("B&B done: %s, %ld nodes, %ld simplex iterations, %.3f s\n",
-                    toString(R.status), R.nodes, R.lpIterations, R.seconds);
+        std::printf("B&B done: %s, %ld nodes, %ld simplex iterations, %.3f s\n", toString(R.status), R.nodes,
+                    R.lpIterations, R.seconds);
     return R;
 }
 
