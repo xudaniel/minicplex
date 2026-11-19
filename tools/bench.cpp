@@ -27,6 +27,8 @@ int main(int argc, char** argv) {
         if (a == "--csv" && i + 1 < argc) csv = argv[++i];
         else if (a == "--gap" && i + 1 < argc) P.mipGap = std::stod(argv[++i]);
         else if (a == "--time" && i + 1 < argc) P.timeLimit = std::stod(argv[++i]);
+        else if (a == "--absgap" && i + 1 < argc) P.mipAbsGap = std::stod(argv[++i]);
+        else if (a == "--nodes" && i + 1 < argc) P.nodeLimit = std::stol(argv[++i]);
         else if (a == "--quiet") quiet = true;
         else if (a == "--branch" && i + 1 < argc)
             P.branching = std::string(argv[++i]) == "frac" ? Branching::MostFractional : Branching::PseudoCost;

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cmath>
+#include <string>
 #include <vector>
 
 #include "model.hpp"
@@ -32,9 +33,11 @@ struct Params {
     bool presolve = true;           // bound propagation + coefficient tightening
     double intTol = 1e-6;           // integrality tolerance (CPLEX EpInt)
     double mipGap = 1e-6;           // relative MIP gap (CPLEX EpGap)
+    double mipAbsGap = 1e-6;        // absolute MIP gap (CPLEX EpAGap)
     long nodeLimit = 10'000'000;
     double timeLimit = 1e30;        // seconds
     bool verbose = false;           // print a CPLEX-style node log
+    bool trace = false;             // print every simplex pivot and branching decision (teaching aid)
     long logEvery = 100;            // log every N nodes
 };
 
@@ -98,6 +101,7 @@ public:
     LPStatus solve(long maxIters, double cutoff = INF);
 
     double objective() const;               // objSign * (c'x + c0)
+    void setTrace(bool on) { trace_ = on; }
     std::vector<double> colValues() const;  // structural variables only
     long iterations() const { return iters_; }
 
@@ -120,12 +124,17 @@ private:
     std::vector<double> A_;  // original constraint matrix, m x n (row major)
     std::vector<double> c_, lb_, ub_;
     double objConst_;
+    double objSign_;
+    std::vector<std::string> names_;  // variable and slack names (for tracing)
+    bool trace_ = false;
     std::vector<double> T_;  // B^-1 [A | -I], m x N
     std::vector<double> d_;  // reduced costs
     std::vector<double> x_;  // values of all variables
     std::vector<int> head_;
     std::vector<signed char> stat_;
     long iters_ = 0;
+    std::string name(int j) const { return names_[j]; }
+    double realObjective() const { return objSign_ * objective(); }
     long pivotsSinceRefactor_ = 0;
     long pivotsSinceRecompute_ = 0;
     bool valuesDirty_ = true;

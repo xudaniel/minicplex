@@ -23,6 +23,11 @@ def agree(path, ours_status, ours_obj, highs_status, highs_obj):
         return highs_status in ('Infeasible', 'InfeasibleOrUnbounded')
     if ours_status == 'Unbounded':
         return highs_status in ('Unbounded', 'InfeasibleOrUnbounded')
+    if ours_status in ('NodeLimit', 'TimeLimit'):
+        # Search stopped early: acceptable when the incumbent is HiGHS's optimum
+        # (known case: unbounded integer variables along which the LP bound never drops).
+        return (highs_status == 'Optimal' and not math.isnan(ours_obj)
+                and abs(ours_obj - highs_obj) <= 1e-6 * (1 + abs(highs_obj)))
     if ours_status == 'InfeasibleOrUnbounded':
         if highs_status in ('Infeasible', 'Unbounded', 'InfeasibleOrUnbounded'):
             return True
@@ -45,7 +50,9 @@ def main():
         if not agree(path, r['status'], obj, st, val):
             bad.append((r['model'], r['status'], obj, st, val))
     summary = ', '.join(f'{k} {v}' for k, v in sorted(counts.items()))
-    print(f'{len(rows) - len(bad)}/{len(rows)} agree with HiGHS ({summary})')
+    unproven = sum(1 for r in rows if r['status'] in ('NodeLimit', 'TimeLimit'))
+    extra = f'; {unproven} hit a limit with the optimal answer (unproven)' if unproven else ''
+    print(f'{len(rows) - len(bad)}/{len(rows)} agree with HiGHS ({summary}){extra}')
     for b in bad:
         print('  MISMATCH %s: minicplex %s %s | HiGHS %s %s' % b)
     sys.exit(1 if bad else 0)

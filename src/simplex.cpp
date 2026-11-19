@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 #include "solver.hpp"
 
@@ -56,6 +57,10 @@ LPEngine::LPEngine(const Model& M, double objSign)
     }
     for (const auto& [k, v] : M.objective.terms) c_[k] += objSign * v;
     objConst_ = objSign * M.objective.constant;
+    objSign_ = objSign;
+    names_.resize(N_);
+    for (int j = 0; j < n_; ++j) names_[j] = M.vars[j].name;
+    for (int i = 0; i < m_; ++i) names_[n_ + i] = "s(" + M.constraints[i].name + ")";
 
     // All-slack starting basis.
     Basis b;
@@ -384,6 +389,16 @@ LPStatus LPEngine::primal(long maxIters) {
 
         const bool flip = tMax <= tBest;
         const double t = flip ? tMax : tBest;
+        if (trace_) {
+            std::printf("    第 %ld 步（%s）：%s 进基（从%s%s，既约成本 %.4g）", iters_ + 1,
+                        phase1 ? "原始单纯形·第一阶段" : "原始单纯形·第二阶段", name(q).c_str(),
+                        stat_[q] == kUpper ? "上界" : stat_[q] == kFree ? "0" : "下界", dir > 0 ? "增大" : "减小", price[q]);
+            if (flip)
+                std::printf("，走到另一侧边界（bound flip），步长 %.4g\n", t);
+            else
+                std::printf("，%s 离基停在%s %.4g，步长 %.4g\n", name(head_[r]).c_str(),
+                            target == lb_[head_[r]] ? "下界" : "上界", target, t);
+        }
         if (t != 0.0) {
             x_[q] += dir * t;
             for (int i = 0; i < m_; ++i) {
@@ -457,6 +472,9 @@ LPStatus LPEngine::dual(long maxIters, double cutoff) {
         }
         if (q < 0) return LPStatus::Infeasible;
 
+        if (trace_)
+            std::printf("    第 %ld 步（对偶单纯形）：%s = %.4g 越过%s %.4g，离基；%s 进基（比值 %.4g）\n", iters_ + 1,
+                        name(v).c_str(), x_[v], below ? "下界" : "上界", target, name(q).c_str(), bestRatio);
         const double delta = (x_[v] - target) / T(r, q);
         x_[q] += delta;
         for (int i = 0; i < m_; ++i) {
@@ -490,7 +508,17 @@ LPStatus LPEngine::solve(long maxIters, double cutoff) {
     if (valuesDirty_) recomputeValues();
 
     for (int round = 0; round < 4; ++round) {
-        LPStatus st = makeDualFeasible() ? dual(limit, cutoff) : primal(limit);
+        const bool dualOk = makeDualFeasible();
+        if (trace_)
+            std::printf("  [LP] 当前基%s → 用%s\n", dualOk ? "对偶可行" : "不是对偶可行",
+                        dualOk ? "对偶单纯形" : "原始单纯形");
+        LPStatus st = dualOk ? dual(limit, cutoff) : primal(limit);
+        if (trace_) {
+            const char* names[] = {"最优", "不可行", "无界", "达到迭代上限", "被截断（不可能比已有整数解更好）"};
+            std::printf("  [LP] 结果：%s", names[static_cast<int>(st)]);
+            if (st == LPStatus::Optimal || st == LPStatus::Cutoff) std::printf("，目标值 %.6g", realObjective());
+            std::printf("\n");
+        }
         if (st != LPStatus::Optimal) {
             if (st == LPStatus::Infeasible && round < 3) {
                 // confirm with fresh values before declaring infeasibility

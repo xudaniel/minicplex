@@ -61,7 +61,7 @@ bool presolve(Model& W, std::vector<double>& lb, std::vector<double>& ub, const 
     const double feasTol = 1e-6;
     auto tightenLb = [&](int k, double v) {
         if (isInt[k]) v = std::ceil(v - 1e-6);
-        else v -= 1e-7 * (1.0 + std::abs(v));  // stay safely outside round-off
+        else v -= 1e-9 * (1.0 + std::abs(v));  // stay safely outside round-off
         const double range = std::isfinite(ub[k]) && std::isfinite(lb[k]) ? ub[k] - lb[k] : INF;
         if (v > lb[k] + 1e-6 * (1.0 + std::abs(v)) &&
             (isInt[k] || !std::isfinite(lb[k]) || v - lb[k] > 1e-3 * std::max(1.0, range))) {
@@ -73,7 +73,7 @@ bool presolve(Model& W, std::vector<double>& lb, std::vector<double>& ub, const 
     };
     auto tightenUb = [&](int k, double v) {
         if (isInt[k]) v = std::floor(v + 1e-6);
-        else v += 1e-7 * (1.0 + std::abs(v));
+        else v += 1e-9 * (1.0 + std::abs(v));
         const double range = std::isfinite(ub[k]) && std::isfinite(lb[k]) ? ub[k] - lb[k] : INF;
         if (v < ub[k] - 1e-6 * (1.0 + std::abs(v)) &&
             (isInt[k] || !std::isfinite(ub[k]) || ub[k] - v > 1e-3 * std::max(1.0, range))) {

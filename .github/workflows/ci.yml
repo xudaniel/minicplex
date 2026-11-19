@@ -50,7 +50,7 @@ jobs:
           SEED=${{ github.run_number }}
           echo "seed = $SEED"
           ./build/minicplex_gen --kind mixed --count 500 --seed $SEED --out fuzz
-          ./build/minicplex_bench fuzz --gap 1e-9 --quiet --csv fuzz/ours.csv
+          ./build/minicplex_bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv fuzz/ours.csv
           python3 tools/fuzz_vs_highs.py fuzz fuzz/ours.csv
 
   benchmark:

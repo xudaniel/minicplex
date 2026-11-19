@@ -135,7 +135,7 @@ Result solve(const Model& M, const Params& P) {
         PM = M;
         detail::PresolveStats ps;
         const bool feasible = detail::presolve(PM, lb, ub, isIntCol, ps);
-        if (P.verbose)
+        if (P.verbose || P.trace)
             std::printf("Presolve: %d bounds tightened, %d coefficients tightened, %d rows removed%s\n",
                         ps.boundsTightened, ps.coefsTightened, ps.rowsRemoved, feasible ? "" : ", INFEASIBLE");
         if (!feasible) {
@@ -148,6 +148,7 @@ Result solve(const Model& M, const Params& P) {
 
     detail::LPEngine E(*LM, sgn);
     E.setAllColBounds(lb, ub);
+    E.setTrace(P.trace);
 
     // ---------------- pure LP ----------------
     if (ints.empty()) {
@@ -182,7 +183,7 @@ Result solve(const Model& M, const Params& P) {
         return std::ceil(b - objConst - 1e-6) + objConst;
     };
     auto closeEnough = [&](double bound, double inc) {
-        return inc - bound <= P.mipGap * std::max(1.0, std::abs(inc));
+        return inc - bound <= std::max(P.mipAbsGap, P.mipGap * std::max(1.0, std::abs(inc)));
     };
 
     double inc = INF;  // incumbent, internal min sense
@@ -192,7 +193,7 @@ Result solve(const Model& M, const Params& P) {
 
     auto cutoff = [&]() {
         if (incX.empty()) return INF;
-        double c = inc - P.mipGap * std::max(1.0, std::abs(inc));
+        double c = inc - std::max(P.mipAbsGap, P.mipGap * std::max(1.0, std::abs(inc)));
         if (objIntegral) c = std::min(c, inc - 1.0 + 1e-6);
         return c;
     };
@@ -201,27 +202,31 @@ Result solve(const Model& M, const Params& P) {
     // so a point that is only feasible thanks to round-off is never accepted.
     bool hasContinuous = false;
     for (int j = 0; j < nv; ++j) hasContinuous |= !M.isInteger(j) || P.relaxIntegrality;
-    auto tryIncumbent = [&](std::vector<double> x) {
+    // Returns 1 if accepted as the new incumbent, 0 if not better than the
+    // incumbent, -1 if rejected as infeasible.
+    auto tryIncumbent = [&](std::vector<double> x) -> int {
         for (int j : ints) x[j] = std::round(x[j]);
-        if (!checkFeasible(M, x, 1e-6)) return false;
-        if (sgn * evalObjective(M, x) >= inc - 1e-12) return false;
+        // Cheap filter. With continuous variables the polishing LP below
+        // decides feasibility, so the filter only removes hopeless roundings.
+        if (!checkFeasible(M, x, hasContinuous ? 1e-4 : 1e-6)) return -1;
+        if (sgn * evalObjective(M, x) >= inc + 1e-6 * (1.0 + std::abs(inc))) return 0;
         if (hasContinuous) {
             std::vector<double> plb(nv), pub(nv);
             for (int j = 0; j < nv; ++j) { plb[j] = M.vars[j].lb; pub[j] = M.vars[j].ub; }
             for (int j : ints) plb[j] = pub[j] = x[j];
             const auto pol = detail::lpMin(M, plb, pub, sgn, maxIt);
-            if (pol.status != detail::LPStatus::Optimal) return false;
+            if (pol.status != detail::LPStatus::Optimal) return -1;
             x = pol.x;
             for (int j : ints) x[j] = plb[j];
         }
-        if (!checkFeasible(M, x, 1e-7)) return false;
+        if (!checkFeasible(M, x, 1e-7)) return -1;
         const double v = sgn * evalObjective(M, x);
         if (v < inc - 1e-12) {
             inc = v;
             incX = std::move(x);
-            return true;
+            return 1;
         }
-        return false;
+        return 0;
     };
 
     // ---------------- root cutting planes ----------------
@@ -242,8 +247,19 @@ Result solve(const Model& M, const Params& P) {
             if (!fractional) break;
             auto cuts = E.gomoryCuts(isIntCol, std::max(5, std::min(20, W.numConstrs())));
             if (cuts.empty()) break;
+            const size_t nCuts = cuts.size();
             detail::Basis B = E.basis();
             for (auto& c : cuts) {
+                if (P.trace) {
+                    std::printf("[割平面] 新割 gmi%d：", W.numConstrs() - m0 + 1);
+                    bool first = true;
+                    for (const auto& [k, a] : c.coefs) {
+                        std::printf("%s%g %s", first ? "" : (a < 0 ? " - " : " + "), first ? a : std::abs(a),
+                                    M.vars[k].name.c_str());
+                        first = false;
+                    }
+                    std::printf(" ≥ %g\n", c.rhs);
+                }
                 B.head.push_back(nv + W.numConstrs());  // new slack starts basic
                 B.stat.push_back(0);
                 W.addConstr(std::move(c), "gmi" + std::to_string(W.numConstrs() - m0 + 1));
@@ -251,9 +267,13 @@ Result solve(const Model& M, const Params& P) {
             cutIters += E.iterations();
             E = detail::LPEngine(W, sgn);
             E.setAllColBounds(lb, ub);
+            E.setTrace(P.trace);
             E.loadBasis(B, true);
+            if (P.trace)
+                std::printf("[割平面] 第 %d 轮：加入 %zu 个 Gomory 割，重新求解根节点\n", round + 1, nCuts);
             if (E.solve(maxIt) != detail::LPStatus::Optimal) break;
             const double nobj = E.objective();
+            if (P.trace) std::printf("[割平面] 根节点的界：%.6g → %.6g\n", sgn * obj, sgn * nobj);
             const bool stalled = nobj - obj < 1e-4 * (1.0 + std::abs(obj));
             obj = nobj;
             if (stalled) break;
@@ -272,6 +292,7 @@ Result solve(const Model& M, const Params& P) {
             cutIters += E.iterations();
             E = detail::LPEngine(K, sgn);
             E.setAllColBounds(lb, ub);
+            E.setTrace(P.trace);
         }
         if (P.verbose && R.cuts > 0)
             std::printf("Root cuts: %d Gomory cuts kept, root bound %.6g\n", R.cuts, sgn * obj);
@@ -307,6 +328,7 @@ Result solve(const Model& M, const Params& P) {
             cur = open.top();
             open.pop();
             haveCur = true;
+            if (P.trace) std::printf("\n（下潜结束，从队列取出界最好的节点，恢复它保存的基）\n");
             E.setAllColBounds(cur.lb, cur.ub);
             E.loadBasis(cur.basis);
         }
@@ -314,9 +336,20 @@ Result solve(const Model& M, const Params& P) {
         if (elapsed() > P.timeLimit) { stop = Status::TimeLimit; break; }
 
         ++R.nodes;
+        if (P.trace) {
+            std::printf("\n[节点 %ld] 深度 %d", R.nodes, cur.depth);
+            if (cur.branchVar >= 0)
+                std::printf("，由 %s %s 分出来", M.vars[cur.branchVar].name.c_str(),
+                            cur.dir ? ("≥ " + std::to_string(static_cast<long>(cur.lb[cur.branchVar]))).c_str()
+                                    : ("≤ " + std::to_string(static_cast<long>(cur.ub[cur.branchVar]))).c_str());
+            std::printf("\n");
+        }
         const auto st = E.solve(maxIt, cutoff());
 
         if (st == detail::LPStatus::Infeasible || st == detail::LPStatus::Cutoff) {
+            if (P.trace)
+                std::printf("  剪枝：%s\n", st == detail::LPStatus::Infeasible ? "这种情况不可行"
+                                                                       : "这种情况最好也比已有整数解差");
             haveCur = false;
             continue;
         }
@@ -344,6 +377,7 @@ Result solve(const Model& M, const Params& P) {
         const double nodeBound = strengthen(lpObj);
         cur.bound = nodeBound;
         if (!incX.empty() && closeEnough(nodeBound, inc)) {
+            if (P.trace) std::printf("  剪枝：界 %.6g 不比已有整数解 %.6g 好\n", sgn * nodeBound, sgn * inc);
             haveCur = false;
             continue;
         }
@@ -366,6 +400,7 @@ Result solve(const Model& M, const Params& P) {
             if (unrel.size() > 8) unrel.resize(8);
             if (!unrel.empty()) {
                 const detail::Basis B = E.basis();
+                E.setTrace(false);
                 for (const auto& [fr, j] : unrel) {
                     (void)fr;
                     const double v = x[j], fl = std::floor(v), ce = std::ceil(v);
@@ -390,11 +425,18 @@ Result solve(const Model& M, const Params& P) {
                     }
                     sbVar.push_back(j);
                     sbGain.push_back(g);
+                    if (P.trace) {
+                        auto fmt = [&](double v) { return v >= kHuge ? std::string("剪掉") : std::to_string(v).substr(0, 6); };
+                        std::printf("  强分支试算 %s = %.4g：向下目标变差 %s，向上变差 %s\n", M.vars[j].name.c_str(), x[j],
+                                    fmt(g[0]).c_str(), fmt(g[1]).c_str());
+                    }
                     if (g[0] >= kHuge && g[1] >= kHuge) { pruneNode = true; break; }
                 }
             }
         }
+        E.setTrace(P.trace);
         if (pruneNode) {  // both children are infeasible or cut off
+            if (P.trace) std::printf("  剪枝：强分支发现某个变量两侧都不可行或被截断\n");
             haveCur = false;
             continue;
         }
@@ -420,11 +462,24 @@ Result solve(const Model& M, const Params& P) {
             }
         }
         if (bj < 0) {  // LP solution is integral
-            if (tryIncumbent(x) && P.verbose) logLine("*", lpObj);
+            const int res = tryIncumbent(x);
+            const bool better = res == 1;
+            if (P.trace) {
+                if (res == 1) std::printf("  LP 解全是整数，成为新的最优整数解：%g\n", sgn * inc);
+                else if (res == 0) std::printf("  LP 解全是整数，但不比已有整数解好\n");
+                else std::printf("  LP 解全是整数，但严格检查不可行（只在数值误差范围内成立），放弃\n");
+            }
+            if (better && P.verbose) logLine("*", lpObj);
             haveCur = false;
             continue;
         }
-        if (tryIncumbent(x)) {
+        if (tryIncumbent(x) == 1) {
+            if (P.trace) {
+                std::printf("  取整启发式：把 LP 解四舍五入后得到可行的整数解（");
+                for (int j = 0, k = 0; j < nv; ++j)
+                    if (M.isInteger(j)) std::printf("%s%s = %g", k++ ? "，" : "", M.vars[j].name.c_str(), incX[j]);
+                std::printf("），新的最优整数解：%g\n", sgn * inc);
+            }
             if (P.verbose) logLine("H", lpObj);
             if (closeEnough(nodeBound, inc)) {
                 haveCur = false;
@@ -452,6 +507,10 @@ Result solve(const Model& M, const Params& P) {
         cur.parentObj = lpObj;
         E.setColBounds(bj, cur.lb[bj], cur.ub[bj]);  // warm start: same tableau
 
+        if (P.trace)
+            std::printf("  分支：%s = %.4g 不是整数 → 先走 %s %s %.0f（下潜，接着用当前单纯形表），%s %s %.0f 放进队列\n",
+                        M.vars[bj].name.c_str(), v, M.vars[bj].name.c_str(), goUp ? "≥" : "≤", goUp ? ce : fl,
+                        M.vars[bj].name.c_str(), goUp ? "≤" : "≥", goUp ? fl : ce);
         if (P.verbose && R.nodes % P.logEvery == 0) logLine("", lpObj);
     }
 

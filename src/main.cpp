@@ -17,6 +17,7 @@ static void usage() {
         "usage: minicplex [options] model.lp\n"
         "  --relax         solve the LP relaxation only\n"
         "  --gap G         relative MIP gap (default 1e-6)\n"
+        "  --absgap G      absolute MIP gap (default 1e-6)\n"
         "  --nodes N       node limit\n"
         "  --time T        time limit in seconds\n"
         "  --quiet         no node log\n"
@@ -24,7 +25,8 @@ static void usage() {
         "  --write FILE    write the parsed model back out in LP format\n"
         "  --branch R      branching rule: pc (pseudo-cost, default) | frac (most fractional)\n"
         "  --cuts K        rounds of root Gomory cuts (default 2, 0 = off)\n"
-        "  --no-presolve   skip presolve");
+        "  --no-presolve   skip presolve\n"
+        "  --trace         print every simplex pivot and branching decision (for learning)");
 }
 
 int main(int argc, char** argv) {
@@ -41,6 +43,7 @@ int main(int argc, char** argv) {
         if (a == "-h" || a == "--help") { usage(); return 0; }
         else if (a == "--relax") P.relaxIntegrality = true;
         else if (a == "--gap") P.mipGap = std::atof(next());
+        else if (a == "--absgap") P.mipAbsGap = std::atof(next());
         else if (a == "--nodes") P.nodeLimit = std::atol(next());
         else if (a == "--time") P.timeLimit = std::atof(next());
         else if (a == "--quiet") P.verbose = false;
@@ -48,6 +51,7 @@ int main(int argc, char** argv) {
         else if (a == "--branch") P.branching = std::string(next()) == "frac" ? Branching::MostFractional : Branching::PseudoCost;
         else if (a == "--cuts") P.cutRounds = std::atoi(next());
         else if (a == "--no-presolve") P.presolve = false;
+        else if (a == "--trace") { P.trace = true; P.verbose = false; }
         else if (a == "--write") writePath = next();
         else if (!a.empty() && a[0] == '-') { usage(); return 2; }
         else path = a;

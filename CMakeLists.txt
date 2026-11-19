@@ -48,8 +48,11 @@ add_test(NAME unit_tests COMMAND minicplex_tests)
 foreach(ex api_demo easy1_bakery easy2_projects hard_production_plan hard_staff_schedule)
   add_test(NAME example_${ex} COMMAND ${ex})
 endforeach()
-foreach(lp production knapsack facility mixed)
+foreach(lp production knapsack facility mixed bakery)
   add_test(NAME cli_${lp} COMMAND minicplex --quiet ${CMAKE_SOURCE_DIR}/examples/${lp}.lp)
 endforeach()
+# --trace 跟踪输出（学习用）也要能正常运行
+add_test(NAME cli_trace COMMAND minicplex --trace ${CMAKE_SOURCE_DIR}/examples/bakery.lp)
+add_test(NAME cli_trace_plain COMMAND minicplex --trace --no-presolve --cuts 0 --branch frac ${CMAKE_SOURCE_DIR}/examples/bakery.lp)
 # 基准模型全部能解且解可行
 add_test(NAME bench_models COMMAND minicplex_bench --quiet ${CMAKE_SOURCE_DIR}/bench/models)

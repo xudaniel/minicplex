@@ -135,6 +135,7 @@ ctest --test-dir build          # 或 ./build/minicplex_tests
 |---|---|
 | `--relax` | 忽略整数约束，只求 LP 松弛 |
 | `--gap G` | 相对 MIP 间隙（默认 1e-6） |
+| `--absgap G` | 绝对 MIP 间隙（默认 1e-6，对应 CPLEX 的 EpAGap） |
 | `--nodes N` | 分支定界节点上限 |
 | `--time T` | 时间上限（秒） |
 | `--quiet` | 不打印节点日志 |
@@ -143,6 +144,7 @@ ctest --test-dir build          # 或 ./build/minicplex_tests
 | `--branch pc\|frac` | 分支规则：`pc` 可靠性 / 伪成本分支（默认），`frac` 最分数变量 |
 | `--cuts K` | 根节点 Gomory 割的轮数（默认 2，0 为关闭） |
 | `--no-presolve` | 关闭预处理 |
+| `--trace` | 打印每一次换基和每一个分支决定（学习用，见[代码解析](#代码解析)） |
 
 输出示例：
 
@@ -160,6 +162,7 @@ Nodes:        13
 
 | 文件 | 类型 | 内容 |
 |---|---|---|
+| `examples/bakery.lp` | 整数规划 | 面包店整数版（配合 `--trace` 看完整求解过程）：最大利润 20 元（4 个蛋糕） |
 | `examples/easy1_bakery.cpp` | 线性规划 | 面包店生产计划：最大利润 21 元（蛋糕 3 个、面包 1.5 个） |
 | `examples/easy2_projects.cpp` | 0-1 整数规划 | 预算 10 万选投资项目：最大收益 16 万（选 A、C、D） |
 | `examples/hard_production_plan.cpp` | 混合整数规划（复杂） | 3 产品 × 6 周生产排程：换线、最小批量、加班、仓储；最低成本 35,615 元（约 5,500 个节点，0.3 秒，与 HiGHS 结果一致） |
@@ -221,7 +224,30 @@ v1.0 内核与早期 v0.1 内核的对比（`bench/` 中 13 个模型，同一�
 
 > 这一节是给程序员看的。只想了解原理，看前面的[大白话版](#用大白话讲-minicplex先看这里)就够了。每个小节开头的“**一句话**”是这一节的大白话总结。
 
-这一节按“数据怎么流动”的顺序，逐个文件讲清楚 minicplex 是怎么工作的。核心代码（`include/` + `src/`）约 2,100 行，其中最重要的是 `src/simplex.cpp`（单纯形内核）和 `src/branch_and_bound.cpp`（分支定界）。
+这一节按“数据怎么流动”的顺序，逐个文件讲清楚 minicplex 是怎么工作的。核心代码（`include/` + `src/`）约 2,200 行，其中最重要的是 `src/simplex.cpp`（单纯形内核）和 `src/branch_and_bound.cpp`（分支定界）。
+
+### 0. 怎么读这份代码
+
+**推荐顺序**（从外到内，每一步都能单独看懂）：
+
+| 步骤 | 文件 | 重点看什么 | 约多少行 |
+|---|---|---|---|
+| 1 | `examples/easy1_bakery.cpp` | 用户怎么建模、怎么调用 `solve()` | 35 |
+| 2 | `include/model.hpp` | `Var`、`LinExpr`、`Constraint` 三个数据结构 | 150 |
+| 3 | `include/solver.hpp` | `Params`、`Result`，以及 `LPEngine` 的成员变量 | 172 |
+| 4 | `src/simplex.cpp` | 依次看 `pivot` → `primal` → `dual` → `solve` → `loadBasis` | 710 |
+| 5 | `src/branch_and_bound.cpp` | `solve()` 从上到下：预处理 → 割平面 → 主循环 | 533 |
+| 6 | `src/presolve.cpp`、`src/lp_reader.cpp` | 相对独立，最后看 | 472 |
+
+**边读边跑：** 命令行加 `--trace`，求解器会把每一次换基、每一个分支决定都打印出来。读代码时对照着看，最容易理解：
+
+```bash
+./build/minicplex --trace examples/bakery.lp                                      # 默认设置
+./build/minicplex --trace --no-presolve --cuts 0 --branch frac examples/bakery.lp  # 只看最基本的分支定界
+./build/minicplex --trace --relax examples/bakery.lp                              # 只看单纯形法
+```
+
+下文所有“实例”都是这几条命令的真实输出，例子用的是前面大白话版里的面包店（[`examples/bakery.lp`](examples/bakery.lp)）。
 
 ### 1. 整体结构
 
@@ -243,11 +269,41 @@ flowchart LR
 | [`include/model.hpp`](include/model.hpp) | 150 | 建模层：`Var`、`LinExpr`、`Constraint`、`Model`，运算符重载 |
 | [`src/model.cpp`](src/model.cpp) | 90 | 把模型写成 CPLEX LP 格式（`Model::writeLP`） |
 | [`src/lp_reader.cpp`](src/lp_reader.cpp) | 307 | 读取 CPLEX LP 文件：词法分析 + 递归下降语法分析 |
-| [`include/solver.hpp`](include/solver.hpp) | 164 | 对外接口 `solve` / `Params` / `Result`，以及内部的 `LPEngine` |
-| [`src/simplex.cpp`](src/simplex.cpp) | 682 | 有界变量单纯形：原始单纯形、对偶单纯形、基的保存与恢复；Gomory 割的生成 |
+| [`include/solver.hpp`](include/solver.hpp) | 172 | 对外接口 `solve` / `Params` / `Result`，以及内部的 `LPEngine` |
+| [`src/simplex.cpp`](src/simplex.cpp) | 710 | 有界变量单纯形：原始单纯形、对偶单纯形、基的保存与恢复；Gomory 割的生成 |
 | [`src/presolve.cpp`](src/presolve.cpp) | 165 | 预处理：边界传播、大 M 系数收紧、删除冗余行 |
-| [`src/branch_and_bound.cpp`](src/branch_and_bound.cpp) | 480 | 求解总流程：预处理 → 根节点割 → 分支定界（可靠性分支、下潜、热启动、剪枝、解抛光），以及 LP 直接求解 |
-| [`src/main.cpp`](src/main.cpp) | 85 | 命令行程序 `minicplex` |
+| [`src/branch_and_bound.cpp`](src/branch_and_bound.cpp) | 533 | 求解总流程：预处理 → 根节点割 → 分支定界（可靠性分支、下潜、热启动、剪枝、解抛光），以及 LP 直接求解 |
+| [`src/main.cpp`](src/main.cpp) | 93 | 命令行程序 `minicplex` |
+
+**一次求解的调用链：**
+
+```mermaid
+sequenceDiagram
+    participant CLI as main.cpp
+    participant RD as lp_reader.cpp
+    participant S as solve()
+    participant PS as presolve.cpp
+    participant E as LPEngine
+    CLI->>RD: readLPFile("bakery.lp")
+    RD-->>CLI: Model（变量、约束、目标）
+    CLI->>S: solve(model, params)
+    S->>S: 整数变量边界取整
+    S->>PS: presolve(模型副本, lb, ub)
+    PS-->>S: 收紧后的边界和约束
+    S->>E: 构造：全松弛变量基
+    S->>E: solve() 求根节点 LP
+    loop 最多 2 轮
+        S->>E: gomoryCuts()
+        S->>E: 加新行、重建、对偶单纯形热启动
+    end
+    loop 分支定界，直到队列为空
+        S->>E: setColBounds()（下潜）或 loadBasis()（出队）
+        S->>E: solve(截断值)
+        E-->>S: 最优 / 不可行 / 被截断
+        S->>S: 剪枝，或 tryIncumbent()，或选变量分支
+    end
+    S-->>CLI: Result（状态、目标值、解、节点数）
+```
 
 ### 2. 建模层：`model.hpp`
 
@@ -269,6 +325,28 @@ class LinExpr {
 
 **0-1 变量** 在 `addVar` 时把边界截到 [0, 1]。写 LP 文件时，如果 0-1 变量的边界被改过（例如员工请假被固定为 0），就改用 `General` 加显式边界写出，避免信息丢失（这是 v1.0 修复的 bug）。
 
+**举例：** `m.addConstr(2 * chairs + 5 * tables <= 40)` 的执行过程是：
+1. `2 * chairs` 先把 `Var` 隐式变成 `LinExpr{chairs: 1}`，再乘 2，得到 `{chairs: 2}`。
+2. `+ 5 * tables` 合并成 `{chairs: 2, tables: 5}`。
+3. `<= 40` 调用 `makeConstraint`：左边减右边得到 `{chairs: 2, tables: 5}` 和常数 −40，常数移到右边，最终是 `2·chairs + 5·tables ≤ 40`。
+
+<details>
+<summary>📄 源码：makeConstraint：把 “左边 ≤ 右边” 整理成标准形状（<code>include/model.hpp</code>）</summary>
+
+```cpp
+inline Constraint makeConstraint(const LinExpr& lhs, Sense s, const LinExpr& rhs) {
+    LinExpr d = lhs - rhs;
+    Constraint c;
+    for (const auto& [k, v] : d.terms)
+        if (v != 0.0) c.coefs[k] = v;
+    c.sense = s;
+    c.rhs = -d.constant;
+    return c;
+}
+```
+
+</details>
+
 ### 3. LP 文件读取：`lp_reader.cpp`
 
 **一句话：** 读懂 CPLEX 格式的题目文件，就像把一篇文章拆成单词、再按语法理解。
@@ -285,6 +363,22 @@ class LinExpr {
 - **约束的右边只允许一个带符号的常数。** 如果允许表达式，`c1: x + y <= 4` 换行后紧跟的下一条约束开头（例如 `x - y >= 1`）会被误读成 `4 x`。
 - **Bounds 支持全部常见写法：** `x free`、`x <= 5`、`x >= -2`、`x = 3`、`-1 <= x <= 4`、`-inf <= x <= 9`。写成 `v <= x` 时方向要反过来理解（是下界）。
 - 出错时报告行号，例如 `LP parse error (line 3): dangling sign`。
+
+**举例：** 约束行 `flour: 6 cake + 4 bread <= 24` 被切成这些记号：
+
+| 记号 | 类型 | 行首？ |
+|---|---|---|
+| `flour` | 标识符 | 是 |
+| `:` | 运算符 | |
+| `6` | 数字 | |
+| `cake` | 标识符 | |
+| `+` | 运算符 | |
+| `4` | 数字 | |
+| `bread` | 标识符 | |
+| `<=` | 运算符 | |
+| `24` | 数字 | |
+
+语法分析看到“标识符 + 冒号”就知道这是约束名，然后 `parseExpr` 逐项读取 `[符号] [系数] 变量`，遇到 `<=` 停下，最后读右边的带符号常数。第一次出现的变量名会自动创建成 [0, +∞) 的连续变量，和 CPLEX 的默认规则一致。
 
 ### 4. 单纯形内核：`simplex.cpp`
 
@@ -352,6 +446,42 @@ class LinExpr {
 
 标准的高斯-约当消元：第 r 行除以主元 T[r][q]，再从其他所有行（包括既约成本行 d）中消去第 q 列。有一个小优化：先把第 r 行的非零位置记进 `nz_`，后面每一行只更新这些位置。约束矩阵通常比较稀疏，这能省下大量乘法。
 
+
+<details>
+<summary>📄 源码：pivot()：一次换基（<code>src/simplex.cpp</code>）</summary>
+
+```cpp
+void LPEngine::pivot(int r, int q) {
+    double* pr = &T_[static_cast<size_t>(r) * N_];
+    const double inv = 1.0 / pr[q];
+    nz_.clear();
+    for (int j = 0; j < N_; ++j) {
+        if (pr[j] == 0.0) continue;
+        pr[j] *= inv;
+        nz_.push_back(j);
+    }
+    pr[q] = 1.0;
+    for (int i = 0; i < m_; ++i) {
+        if (i == r) continue;
+        double* pi = &T_[static_cast<size_t>(i) * N_];
+        const double f = pi[q];
+        if (f == 0.0) continue;
+        for (int j : nz_) pi[j] -= f * pr[j];
+        pi[q] = 0.0;
+    }
+    const double f = d_[q];
+    if (f != 0.0) {
+        for (int j : nz_) d_[j] -= f * pr[j];
+        d_[q] = 0.0;
+    }
+    head_[r] = q;
+    ++pivotsSinceRefactor_;
+    ++pivotsSinceRecompute_;
+}
+```
+
+</details>
+
 #### 4.4 `primal()`：原始单纯形
 
 **一句话：** 先找一个合法的角，再一步步爬到最高点。
@@ -375,6 +505,126 @@ class LinExpr {
 
 第一阶段找不到改进方向 → **不可行**；第二阶段比值检验没有上限 → **无界**。
 
+
+<details>
+<summary>📄 源码：primal() 中的定价（选进基变量）（<code>src/simplex.cpp</code>）</summary>
+
+```cpp
+// Pricing.
+const bool bland = degenerate > kBlandAfter;
+int q = -1, dir = 0;
+double best = 0.0;
+for (int j = 0; j < N_; ++j) {
+    const signed char s = stat_[j];
+    if (s == kBasic || s == kFixed) continue;
+    const double dj = price[j];
+    int dj_dir = 0;
+    if ((s == kLower || s == kFree) && dj < -kDualTol) dj_dir = +1;
+    else if ((s == kUpper || s == kFree) && dj > kDualTol) dj_dir = -1;
+    if (!dj_dir) continue;
+    if (std::abs(dj) > best) {
+        best = std::abs(dj);
+        q = j;
+        dir = dj_dir;
+        if (bland) break;
+    }
+}
+if (q < 0) return phase1 ? LPStatus::Infeasible : LPStatus::Optimal;
+```
+
+</details>
+
+<details>
+<summary>📄 源码：primal() 中的比值检验与更新（<code>src/simplex.cpp</code>）</summary>
+
+```cpp
+// Ratio test. alpha_i = change of basic i per unit step of x_q.
+double tMax = (std::isfinite(lb_[q]) && std::isfinite(ub_[q])) ? ub_[q] - lb_[q] : INF;
+int r = -1;
+double tBest = INF, aBest = 0.0, target = 0.0;
+for (int i = 0; i < m_; ++i) {
+    const double alpha = -T(i, q) * dir;
+    if (std::abs(alpha) < kPivotTol) continue;
+    const int v = head_[i];
+    const double xv = x_[v];
+    double t, tg;
+    const double inf = phase1 ? infeasibility(v) : 0.0;
+    if (inf > 0.0 && xv < lb_[v]) {         // below: stops when it reaches lb
+        if (alpha <= 0) continue;
+        t = (lb_[v] - xv) / alpha;
+        tg = lb_[v];
+    } else if (inf > 0.0) {                 // above: stops when it reaches ub
+        if (alpha >= 0) continue;
+        t = (ub_[v] - xv) / alpha;
+        tg = ub_[v];
+    } else if (alpha > 0) {
+        if (!std::isfinite(ub_[v])) continue;
+        t = (ub_[v] - xv) / alpha;
+        tg = ub_[v];
+    } else {
+        if (!std::isfinite(lb_[v])) continue;
+        t = (lb_[v] - xv) / alpha;
+        tg = lb_[v];
+    }
+    if (t < 0) t = 0;
+    bool take = r < 0 || t < tBest - 1e-12;
+    if (!take && t <= tBest + 1e-12)
+        take = bland ? v < head_[r] : std::abs(alpha) > aBest;
+    if (take) {
+        r = i;
+        tBest = t;
+        aBest = std::abs(alpha);
+        target = tg;
+    }
+}
+if (r < 0 && !std::isfinite(tMax))
+    return phase1 ? LPStatus::IterationLimit : LPStatus::Unbounded;  // phase 1 cannot be unbounded
+
+const bool flip = tMax <= tBest;
+const double t = flip ? tMax : tBest;
+if (t != 0.0) {
+    x_[q] += dir * t;
+    for (int i = 0; i < m_; ++i) {
+        const double a = T(i, q);
+        if (a != 0.0) x_[head_[i]] -= a * dir * t;
+    }
+}
+++iters_;
+degenerate = (t <= 1e-12) ? degenerate + 1 : 0;
+if (flip) {
+    stat_[q] = (dir > 0) ? kUpper : kLower;
+    x_[q] = nonbasicValue(q);
+    continue;
+}
+const int leave = head_[r];
+x_[leave] = target;
+stat_[leave] = (lb_[leave] == ub_[leave]) ? kFixed : (target == lb_[leave] ? kLower : kUpper);
+pivot(r, q);
+stat_[q] = kBasic;
+```
+
+</details>
+
+**实例：面包店的 LP 版（允许做半个）**
+
+```
+  [LP] 当前基不是对偶可行 → 用原始单纯形
+    第 1 步（原始单纯形·第二阶段）：cake 进基（从下界增大，既约成本 -5），s(flour) 离基停在上界 24，步长 4
+    第 2 步（原始单纯形·第二阶段）：bread 进基（从下界增大，既约成本 -0.6667），s(labor) 离基停在上界 6，步长 1.5
+  [LP] 结果：最优，目标值 21
+```
+
+内部统一做最小化，所以“最大化 5·蛋糕 + 4·面包”在内部是“最小化 −5·蛋糕 − 4·面包”，跟踪里的既约成本也是负的。逐步看：
+
+| 步骤 | 发生了什么 | 数字从哪来 |
+|---|---|---|
+| 起点 | 全松弛变量基：蛋糕 = 面包 = 0，两个松弛变量（面粉用量、人工用量）都是 0 | 初始 T = [−A \| I] |
+| 第 1 步定价 | 既约成本是 (−5, −4)，蛋糕的 −5 最负，选蛋糕进基、往上增 | Dantzig 规则 |
+| 第 1 步比值检验 | 每多做 1 个蛋糕，面粉用量 +6、人工 +1。面粉最多 24 → 能走 4 步；人工最多 6 → 能走 6 步。取较小的 4 | 面粉先碰到上界，`s(flour)` 离基 |
+| 第 1 步之后 | 蛋糕 = 4。面包的既约成本变成 −4 + 5 × 4/6 = −0.667：多做 1 个面包要少做 4/6 个蛋糕，净赚 0.667 | `pivot` 同时更新了 d |
+| 第 2 步 | 面包进基。蛋糕 = 4 − (4/6)·面包，人工 = 蛋糕 + 2·面包 ≤ 6，解出面包最多 1.5 | 人工先碰到上界，`s(labor)` 离基 |
+| 结束 | 再没有负的既约成本 → 最优：3 个蛋糕 + 1.5 个面包，利润 21 | |
+
 #### 4.5 `dual()`：对偶单纯形
 
 **一句话：** 条件稍微改了一点，原来的最优点“出界”了，用最少的步数把它拉回来。
@@ -389,6 +639,57 @@ class LinExpr {
 **为什么分支定界离不开它：** 分支只是收紧某个基变量的边界。既约成本 d 和边界无关，所以父节点的最优基对子节点仍然对偶可行，只是这个基变量越界了。对偶单纯形通常几步就能修好，不用从头求解。
 
 **截断剪枝：** 对偶可行时，当前目标值 c·x 是这个子问题最优值的下界（弱对偶），而且每步只会变大。所以 `dual()` 每步检查一次：一旦超过 `cutoff`（当前最好整数解），立即返回 `Cutoff`，这个节点不用再算下去。
+
+
+<details>
+<summary>📄 源码：dual()：选离基行、选进基列（<code>src/simplex.cpp</code>）</summary>
+
+```cpp
+// Leaving row: the most infeasible basic variable.
+const bool bland = degenerate > kBlandAfter;
+int r = -1;
+double worst = 0.0;
+for (int i = 0; i < m_; ++i) {
+    const double inf = infeasibility(head_[i]);
+    if (inf <= 0.0) continue;
+    if (bland ? (r < 0 || head_[i] < head_[r]) : inf > worst) {
+        worst = inf;
+        r = i;
+    }
+}
+if (r < 0) return LPStatus::Optimal;
+
+const int v = head_[r];
+const bool below = x_[v] < lb_[v];
+const double target = below ? lb_[v] : ub_[v];
+
+// Entering column: keep reduced costs dual feasible (min |d_j / a_rj|).
+int q = -1;
+double bestRatio = INF, bestA = 0.0;
+for (int j = 0; j < N_; ++j) {
+    const signed char s = stat_[j];
+    if (s == kBasic || s == kFixed) continue;
+    const double a = T(r, j);
+    if (std::abs(a) < kPivotTol) continue;
+    // x_v changes by -a per unit increase of x_j.
+    const int dirNeeded = below ? (a < 0 ? +1 : -1) : (a > 0 ? +1 : -1);
+    if (dirNeeded > 0 && s == kUpper) continue;
+    if (dirNeeded < 0 && s == kLower) continue;
+    const double ratio = std::abs(d_[j]) / std::abs(a);
+    bool take = q < 0 || ratio < bestRatio - 1e-12;
+    if (!take && ratio <= bestRatio + 1e-12) take = bland ? j < q : std::abs(a) > bestA;
+    if (take) {
+        q = j;
+        bestRatio = ratio;
+        bestA = std::abs(a);
+    }
+}
+if (q < 0) return LPStatus::Infeasible;
+```
+
+</details>
+
+**实例：** 在下面 5.4 的分支过程中，节点 2 给面包加了“≥ 2”的下界。父节点的最优基原样保留，面包仍是基变量，值是 1.5，越过了新下界 2，于是对偶单纯形把它推回 2（离基），让面粉的松弛变量进基。**只用 1 步**就得到新最优解 (2, 2)，利润 18。如果从头求解，至少要 2 步，而且大题上差距会放大到几十倍。
 
 #### 4.6 `solve()`：总调度
 
@@ -408,6 +709,42 @@ class LinExpr {
 ```
 
 `makeDualFeasible()` 利用了一个简单事实：既约成本和边界无关。上下界都有限的非基变量，如果 dⱼ 符号不对，就把它翻到另一侧边界。只有一侧无界的变量翻不过去，这时才退回原始单纯形。
+
+
+<details>
+<summary>📄 源码：solve() 中的复核（含按原始矩阵检查漂移）（<code>src/simplex.cpp</code>）</summary>
+
+```cpp
+// Verify optimality on freshly computed values (and, every so often,
+// freshly computed reduced costs) to catch accumulated round-off.
+const bool refreshD = pivotsSinceRefactor_ > 50;
+if (pivotsSinceRecompute_ > 0) recomputeValues();
+if (refreshD) recomputeReducedCosts();
+bool clean = true;
+for (int i = 0; i < m_ && clean; ++i) clean = infeasibility(head_[i]) == 0.0;
+// Guard against round-off in T: the slack values must agree with the
+// row activities computed from the original matrix.
+for (int i = 0; i < m_ && clean; ++i) {
+    double act = 0.0;
+    const double* a = &A_[static_cast<size_t>(i) * n_];
+    for (int k = 0; k < n_; ++k)
+        if (a[k] != 0.0) act += a[k] * x_[k];
+    if (std::abs(act - x_[n_ + i]) > 1e-9 * (1.0 + std::abs(act))) clean = false;
+}
+for (int j = 0; j < N_ && clean; ++j) {
+    const signed char s = stat_[j];
+    if (s == kBasic || s == kFixed) continue;
+    if ((s == kLower || s == kFree) && d_[j] < -1e-7) clean = false;
+    if ((s == kUpper || s == kFree) && d_[j] > 1e-7) clean = false;
+}
+if (clean) {
+    if (std::isfinite(cutoff) && objective() >= cutoff) return LPStatus::Cutoff;
+    return LPStatus::Optimal;
+}
+loadBasis(basis(), true);  // numerical trouble: refactor and continue
+```
+
+</details>
 
 #### 4.7 `loadBasis()`：基的保存与恢复
 
@@ -457,6 +794,41 @@ flowchart LR
 - **大 M 系数收紧：** 对 0-1 变量 xₖ，如果它取“宽松”的那个值时，这一行永远不可能紧，就把系数减小同样的余量。例如 `x ≤ 1000·y` 且 x ≤ 20 时，会自动变成 `x ≤ 20·y`。LP 松弛因此变紧，但不会去掉任何整数解。
 - **删除冗余行**（怎么取值都满足的约束）；发现永远不可能满足的行时直接判定不可行。
 
+**实例：** 面包店的预处理收紧了 3 个边界。面粉 6·蛋糕 + 4·面包 ≤ 24 推出蛋糕 ≤ 4、面包 ≤ 6；人工 蛋糕 + 2·面包 ≤ 6 又推出面包 ≤ 3。有了有限的上界，求解器就可以把两个变量一开始放在上界（因为它们的利润为正），基对偶可行，直接用对偶单纯形开始求解（见 5.5）。
+
+<details>
+<summary>📄 源码：presolve() 中的大 M 系数收紧（<code>src/presolve.cpp</code>）</summary>
+
+```cpp
+// Coefficient tightening on binaries (written as  s * row <= s * rhs).
+if (c.sense != Sense::EQ) {
+    const double s = (c.sense == Sense::LE) ? 1.0 : -1.0;
+    for (auto& [k, a] : c.coefs) {
+        if (!isInt[k] || lb[k] != 0.0 || ub[k] != 1.0) continue;
+        // maximum of s*row
+        const Activity U = s > 0 ? maxActivity(c.coefs, lb, ub) : [&] {
+            Activity t = minActivity(c.coefs, lb, ub);
+            t.fin = -t.fin;
+            return t;
+        }();
+        if (U.inf) break;
+        const double ck = s * a, b = s * c.rhs;
+        const double d = ck > 0 ? b - (U.fin - ck) : b - (U.fin + ck);
+        if (d <= 1e-6 * (1.0 + std::abs(b))) continue;
+        if (ck > 0) {
+            a = s * (ck - d);
+            c.rhs = s * (b - d);
+        } else {
+            a = s * (ck + d);
+        }
+        ++st.coefsTightened;
+        changed = true;
+    }
+}
+```
+
+</details>
+
 #### 5.2 根节点 Gomory 混合整数割（`LPEngine::gomoryCuts`）
 
 **一句话：** 自动推出几条“整数方案一定满足”的新规则，切掉没用的区域。
@@ -472,6 +844,31 @@ flowchart LR
 - **过滤：** 按“效力”（违反量 ÷ 系数范数）排序，去掉几乎平行的割，以及系数跨度超过 10⁶ 的数值危险割。
 
 每轮加入的割变成新的约束行，新松弛变量放进基里，用对偶单纯形热启动重新求解。界不再明显提高时停止，最后只保留在根节点 LP 上是紧的割。
+
+
+<details>
+<summary>📄 源码：gomoryCuts() 中的系数公式和代回原变量（<code>src/simplex.cpp</code>）</summary>
+
+```cpp
+if (isInt[j] && isIntegral(bnd)) {
+    const double fj = a - std::floor(a);
+    g = (fj <= f0) ? fj / f0 : (1.0 - fj) / (1.0 - f0);
+} else {
+    g = (a >= 0) ? a / f0 : -a / (1.0 - f0);
+}
+if (g == 0.0) continue;
+// g * y_j  with  y_j = x_j - l_j  or  u_j - x_j
+const double coef = atLower ? g : -g;
+rhs += atLower ? g * bnd : -g * bnd;
+```
+
+</details>
+
+**实例：** 面包店根节点 LP 的解是 (3, 1.5)。面包是基变量而且值 1.5 不是整数，从面包所在的那一行生成的割是
+
+> −2·蛋糕 − 2·面包 ≥ −8，也就是 **蛋糕 + 面包 ≤ 4**
+
+所有整数方案都满足它，例如 (4, 0)、(3, 1)、(2, 2)、(0, 3)；但 LP 的 (3, 1.5) 加起来是 4.5，被切掉了。加上这条后再求 LP，最优点变成 (4, 0)，利润 20，正好是整数，**根节点就解决了，一次分支都不用**。
 
 #### 5.3 分支定界主循环
 
@@ -503,14 +900,238 @@ cur = 根节点；队列 open 为空
 - **节点** = 一组上下界 + 父节点的界 + 深度 + 父节点的最优基 + 它是怎么分出来的（用于学习伪成本）。队列按界从小到大排，界相同时深度大的优先。
 - **截断值**：当前最优整数解减去允许的间隙。如果目标函数只含整数变量且系数都是整数，最优值一定是整数，截断值可以更激进地设为 “最优整数解 − 1 + 1e-6”，节点的界也可以向上取整（`strengthen`）。
 - **根节点 LP 无界：** 按 CPLEX 的习惯报告 “InfeasibleOrUnbounded”，因为此时整数规划要么无界、要么不可行。
-- **解抛光：** `tryIncumbent` 把整数变量四舍五入后，如果模型含连续变量，就固定整数变量、用一个全新的 LP 重新求连续部分，再用 1e-7 的容差检查原始约束，通过才接受。这条规则来自对拍中抓到的一个真实 bug：大量强分支换基后，单纯形表有微小漂移，曾经让一个违反约束 3×10⁻⁵ 的“伪解”被接受（目标值 58.8，真实最优是 31.9）。
+- **解抛光：** `tryIncumbent` 把整数变量四舍五入后，先用宽松的容差（有连续变量时 1e-4）快速筛掉明显不行的取整；如果模型含连续变量，再固定整数变量、用一个全新的 LP 重新求连续部分，最后用 1e-7 的严格容差检查原始约束，通过才接受。返回值区分三种结果：接受、不比已有解好、不可行。这条规则来自对拍中抓到的一个真实 bug：大量强分支换基后，单纯形表有微小漂移，曾经让一个违反约束 3×10⁻⁵ 的“伪解”被接受（目标值 58.8，真实最优是 31.9）。
 - **单纯形表漂移防护：** `solve()` 判定最优前，还会用原始矩阵重新计算每一行的取值，与松弛变量对比；不一致就从头重建单纯形表。
 
 **两个实验结论：**
 - 取出队列里的节点时，也可以不恢复父节点的基，直接从当前的基开始做对偶单纯形（它对任何节点都对偶可行）。实测迭代多了约 3.5 倍，因为父节点的基离子节点的最优解近得多。
 - 割平面轮数：0、1、2、3、5、10 轮都试过。背包题上割平面基本没有帮助，生产排程类的题帮助很大。2 轮在两类题上最平衡。
 
-### 6. 设计取舍与局限
+<details>
+<summary>📄 源码：可靠性分支的打分（<code>src/branch_and_bound.cpp</code>）</summary>
+
+```cpp
+// Branching variable: pseudo-cost product score, or most fractional.
+int bj = -1;
+double bestScore = -1.0, bestFrac = 0.0;
+for (int j : ints) {
+    const double f = x[j] - std::floor(x[j]);
+    const double frac = std::min(f, 1.0 - f);
+    if (frac <= P.intTol) continue;
+    double score = frac;
+    if (P.branching == Branching::PseudoCost) {
+        double down = pc.get(j, 0) * f, up = pc.get(j, 1) * (1.0 - f);
+        for (size_t k = 0; k < sbVar.size(); ++k)
+            if (sbVar[k] == j) { down = sbGain[k][0]; up = sbGain[k][1]; }
+        score = std::max(down, 1e-6) * std::max(up, 1e-6);
+    }
+    if (score > bestScore * (1 + 1e-9) || (score >= bestScore * (1 - 1e-9) && frac > bestFrac)) {
+        bestScore = score;
+        bestFrac = frac;
+        bj = j;
+    }
+}
+```
+
+</details>
+
+<details>
+<summary>📄 源码：分支：下潜 + 兄弟节点入队（<code>src/branch_and_bound.cpp</code>）</summary>
+
+```cpp
+// Branch: plunge into the child on the rounding side, store the sibling.
+const double v = x[bj];
+const double fl = std::floor(v), ce = std::ceil(v);
+const bool goUp = (v - fl) >= 0.5;
+Node sib{cur.lb, cur.ub, nodeBound, cur.depth + 1, E.basis()};
+if (goUp) sib.ub[bj] = fl; else sib.lb[bj] = ce;
+sib.branchVar = bj;
+sib.dir = goUp ? 0 : 1;
+sib.dist = goUp ? v - fl : ce - v;
+sib.parentObj = lpObj;
+open.push(std::move(sib));
+
+if (goUp) cur.lb[bj] = ce; else cur.ub[bj] = fl;
+cur.depth += 1;
+cur.branchVar = bj;
+cur.dir = goUp ? 1 : 0;
+cur.dist = goUp ? ce - v : v - fl;
+cur.parentObj = lpObj;
+E.setColBounds(bj, cur.lb[bj], cur.ub[bj]);  // warm start: same tableau
+```
+
+</details>
+
+<details>
+<summary>📄 源码：tryIncumbent()：取整 + 抛光 + 严格检查（<code>src/branch_and_bound.cpp</code>）</summary>
+
+```cpp
+// Accept a candidate only after "polishing": fix the integer variables at
+// their rounded values and re-solve the continuous part with a fresh LP,
+// so a point that is only feasible thanks to round-off is never accepted.
+bool hasContinuous = false;
+for (int j = 0; j < nv; ++j) hasContinuous |= !M.isInteger(j) || P.relaxIntegrality;
+// Returns 1 if accepted as the new incumbent, 0 if not better than the
+// incumbent, -1 if rejected as infeasible.
+auto tryIncumbent = [&](std::vector<double> x) -> int {
+    for (int j : ints) x[j] = std::round(x[j]);
+    // Cheap filter. With continuous variables the polishing LP below
+    // decides feasibility, so the filter only removes hopeless roundings.
+    if (!checkFeasible(M, x, hasContinuous ? 1e-4 : 1e-6)) return -1;
+    if (sgn * evalObjective(M, x) >= inc + 1e-6 * (1.0 + std::abs(inc))) return 0;
+    if (hasContinuous) {
+        std::vector<double> plb(nv), pub(nv);
+        for (int j = 0; j < nv; ++j) { plb[j] = M.vars[j].lb; pub[j] = M.vars[j].ub; }
+        for (int j : ints) plb[j] = pub[j] = x[j];
+        const auto pol = detail::lpMin(M, plb, pub, sgn, maxIt);
+        if (pol.status != detail::LPStatus::Optimal) return -1;
+        x = pol.x;
+        for (int j : ints) x[j] = plb[j];
+    }
+    if (!checkFeasible(M, x, 1e-7)) return -1;
+    const double v = sgn * evalObjective(M, x);
+    if (v < inc - 1e-12) {
+        inc = v;
+        incX = std::move(x);
+        return 1;
+    }
+    return 0;
+};
+```
+
+</details>
+
+#### 5.4 实例：只用分支定界解面包店（关掉预处理和割平面）
+
+```
+[节点 1] 深度 0
+  [LP] 当前基不是对偶可行 → 用原始单纯形
+    第 1 步（原始单纯形·第二阶段）：cake 进基（从下界增大，既约成本 -5），s(flour) 离基停在上界 24，步长 4
+    第 2 步（原始单纯形·第二阶段）：bread 进基（从下界增大，既约成本 -0.6667），s(labor) 离基停在上界 6，步长 1.5
+  [LP] 结果：最优，目标值 21
+  分支：bread = 1.5 不是整数 → 先走 bread ≥ 2（下潜，接着用当前单纯形表），bread ≤ 1 放进队列
+
+[节点 2] 深度 1，由 bread ≥ 2 分出来
+  [LP] 当前基对偶可行 → 用对偶单纯形
+    第 3 步（对偶单纯形）：bread = 1.5 越过下界 2，离基；s(flour) 进基（比值 6）
+  [LP] 结果：最优，目标值 18
+  LP 解全是整数，成为新的最优整数解：18
+
+（下潜结束，从队列取出界最好的节点，恢复它保存的基）
+
+[节点 3] 深度 1，由 bread ≤ 1 分出来
+  [LP] 当前基对偶可行 → 用对偶单纯形
+    第 4 步（对偶单纯形）：bread = 1.5 越过上界 1，离基；s(labor) 进基（比值 0.6667）
+  [LP] 结果：最优，目标值 20.6667
+  取整启发式：把 LP 解四舍五入后得到可行的整数解（cake = 3，bread = 1），新的最优整数解：19
+  分支：cake = 3.333 不是整数 → 先走 cake ≤ 3（下潜，接着用当前单纯形表），cake ≥ 4 放进队列
+
+[节点 4] 深度 2，由 cake ≤ 3 分出来
+  [LP] 当前基对偶可行 → 用对偶单纯形
+    第 5 步（对偶单纯形）：cake = 3.333 越过上界 3，离基；s(flour) 进基（比值 5）
+  [LP] 结果：被截断（不可能比已有整数解更好），目标值 19
+  剪枝：这种情况最好也比已有整数解差
+
+（下潜结束，从队列取出界最好的节点，恢复它保存的基）
+
+[节点 5] 深度 2，由 cake ≥ 4 分出来
+  [LP] 当前基对偶可行 → 用对偶单纯形
+    第 6 步（对偶单纯形）：cake = 3.333 越过下界 4，离基；bread 进基（比值 1）
+  [LP] 结果：最优，目标值 20
+  LP 解全是整数，成为新的最优整数解：20
+```
+
+| 节点 | 发生了什么 | 为什么 |
+|---|---|---|
+| 1 | 根节点 LP：(3, 1.5)，利润 21 | 面包 = 1.5 不是整数，分成“面包 ≥ 2”和“面包 ≤ 1”。1.5 的小数部分 ≥ 0.5，所以先往上走（下潜），另一侧连同当前的基放进队列 |
+| 2 | 面包 ≥ 2：对偶单纯形 1 步得到 (2, 2)，利润 18，是整数 | 第一个整数解，记下来 |
+| — | 下潜结束，取出队列里界最好的节点 | 恢复它保存的基（就是节点 1 的最优基） |
+| 3 | 面包 ≤ 1：LP 为 (3.33, 1)，利润 20.67 | 四舍五入得到 (3, 1)，可行，利润 19，比 18 好，更新。然后对蛋糕分支，3.33 的小数部分 < 0.5，先往下走 |
+| 4 | 蛋糕 ≤ 3：LP 最多 19 | 已有 19，这里不可能更好，对偶单纯形一达到截断值就停下，直接剪掉 |
+| 5 | 蛋糕 ≥ 4：LP 为 (4, 0)，利润 20，是整数 | 新的最优整数解。队列已空，证明 20 是最优 |
+
+一共 5 个节点、6 次单纯形迭代。注意节点 2 到 5 每个都只用了 1 步：这就是热启动的效果。
+
+#### 5.5 实例：默认设置解面包店
+
+```
+Presolve: 3 bounds tightened, 0 coefficients tightened, 0 rows removed
+  [LP] 当前基对偶可行 → 用对偶单纯形
+    第 1 步（对偶单纯形）：s(flour) = 36 越过上界 24，离基；cake 进基（比值 0.8333）
+    第 2 步（对偶单纯形）：s(labor) = 8 越过上界 6，离基；bread 进基（比值 0.5）
+  [LP] 结果：最优，目标值 21
+[割平面] 新割 gmi1：-2 cake - 2 bread ≥ -8
+[割平面] 第 1 轮：加入 1 个 Gomory 割，重新求解根节点
+  [LP] 当前基对偶可行 → 用对偶单纯形
+    第 1 步（对偶单纯形）：s(gmi1) = -9 越过下界 -8，离基；s(labor) 进基（比值 1）
+  [LP] 结果：最优，目标值 20
+[割平面] 根节点的界：21 → 20
+
+[节点 1] 深度 0
+  [LP] 当前基对偶可行 → 用对偶单纯形
+    第 1 步（对偶单纯形）：s(flour) = 36 越过上界 24，离基；cake 进基（比值 0.8333）
+    第 2 步（对偶单纯形）：s(labor) = 8 越过上界 6，离基；bread 进基（比值 0.5）
+    第 3 步（对偶单纯形）：s(gmi1) = -9 越过下界 -8，离基；s(labor) 进基（比值 1）
+  [LP] 结果：最优，目标值 20
+  LP 解全是整数，成为新的最优整数解：20
+```
+
+预处理先把边界收紧（5.1），根节点直接用对偶单纯形（2 步）。一个 Gomory 割把界从 21 压到 20（5.2），根节点 LP 解就是整数，**1 个节点就结束了**。节点 1 之所以重新求解了一次，是因为割平面阶段结束后，只保留紧的割，并重建了一个干净的引擎。
+
+### 6. 不变式与数值安全
+
+求解器的正确性建立在下面这些“任何时候都成立”的关系上。改代码时，先想清楚会不会破坏它们：
+
+| 不变式 | 含义 | 在哪里维护 | 在哪里检查 |
+|---|---|---|---|
+| x_B = −Σ T[:, j]·xⱼ | 基变量的值由非基变量算出 | `primal`/`dual` 每步的增量更新 | `recomputeValues` |
+| dⱼ = cⱼ − Σ c_B(i)·T[i][j] | 既约成本和单纯形表一致 | `pivot` 同步更新 d | `recomputeReducedCosts`（复核时、每 50 次换基后） |
+| sᵢ = aᵢ·x | 松弛变量等于这一行的取值 | 隐含在 T 里 | `solve()` 用原始矩阵 A 直接核对 |
+| 非基变量停在合法位置 | 停下界要求下界有限，停上界要求上界有限 | `setColBounds`、`loadBasis`、`solve` 开头 | `defaultStatus` 兜底 |
+| 进入 `dual()` 时对偶可行 | 所有既约成本符号正确 | `makeDualFeasible` 翻边界 | `dual()` 的选列规则一直保持它 |
+| 节点的界 ≤ 子树里任何整数解 | 剪枝正确的前提 | LP 松弛 + `strengthen` | 对拍、暴力枚举测试 |
+| 接受的整数解严格可行 | 不靠误差“蒙混过关” | `tryIncumbent` 抛光 | `checkFeasible(…, 1e-7)` |
+| 割平面不切掉整数解 | 割必须对所有整数可行点成立 | `gomoryCuts` 的公式 | `testGomoryCutsAreValid` 对每个整数点检验 |
+
+### 7. 复杂度与内存
+
+记 n = 变量数，m = 约束数，N = n + m。
+
+| 操作 | 复杂度 | 说明 |
+|---|---|---|
+| `pivot` | O(m · 主元行非零数) ≤ O(m·N) | 用 `nz_` 只更新非零列 |
+| 原始单纯形一步 | O(N) 定价 + O(m) 比值检验 + 一次 `pivot` | 第一阶段还要 O(越界行数 × N) 构造代价 |
+| 对偶单纯形一步 | O(m) 选行 + O(N) 选列 + 一次 `pivot` | |
+| `loadBasis`（增量） | 不同列数 × O(m·N) | 下潜结束后通常只差几列 |
+| `loadBasis`（从头） | 基中结构变量数 × O(m·N) | 每 max(200, 2m) 次换基做一次 |
+| 复核（`recompute*`、按 A 核对） | O(m·N) | 每次 `solve()` 结束时 |
+| 单纯形表内存 | m·N 个 double | 200 行 × 450 列 ≈ 0.7 MB |
+| 每个队列节点 | 2n 个边界 + m 个整数 + N 个字节 | 保存父节点的基用于热启动 |
+
+### 8. 想改代码？从这里下手
+
+| 想做的事 | 改哪里 | 怎么验证 |
+|---|---|---|
+| 新增一种割平面 | 仿照 `LPEngine::gomoryCuts` 写一个返回 `std::vector<Constraint>`（≥ 形式）的函数，在 `branch_and_bound.cpp` 的割平面循环里调用 | 仿照 `testGomoryCutsAreValid` 写有效性测试；用 `--cuts` 做 A/B 对比 |
+| 新增一种分支规则 | `Branching` 枚举加一项，在“Branching variable”打分循环里加分支 | `--branch` 开关 + `bench_compare.py` 比较节点数 |
+| 支持新的文件格式（如 MPS） | 新写一个 `readXXX()` 返回 `Model`，不要碰求解器；`main.cpp` 按扩展名选择 | 读出来再 `writeLP`，和原模型比较求解结果 |
+| 新增一个求解参数 | `Params` 加字段 → `main.cpp` 和 `tools/bench.cpp` 加开关 → README 参数表 | |
+| 改动单纯形内核 | `simplex.cpp`，注意第 6 节的不变式 | 务必跑完整检查清单（下面） |
+
+**每次改动的检查清单：**
+
+```bash
+cmake --build build -j && ctest --test-dir build                     # 单元测试 + 冒烟测试
+cmake -S . -B build-asan -DMINICPLEX_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug \
+  && cmake --build build-asan -j && ctest --test-dir build-asan      # 内存检查
+./build/minicplex_gen --kind mixed --count 400 --seed 1 --out fuzz \
+  && ./build/minicplex_bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv fuzz/ours.csv \
+  && python3 tools/fuzz_vs_highs.py fuzz fuzz/ours.csv                # 与 HiGHS 对拍
+./build/minicplex_bench bench/models --csv new.csv \
+  && python3 tools/bench_compare.py bench/baseline.csv new.csv        # 结果和速度对比
+```
+
+### 9. 设计取舍与局限
 
 **一句话：** 每个设计选择都有代价，这里说清楚换来了什么、付出了什么。
 
@@ -523,6 +1144,7 @@ cur = 根节点；队列 open 为空
 | 可靠性分支（含强分支） | 节点数明显减少（评测集少 28%，生产排程少 94%） | 每次强分支都要试算，小模型上单个节点更贵 |
 | 只在根节点加 Gomory 割 | 割全局有效，实现简单 | 树内不再加割；背包类题帮助有限 |
 | 预处理不删除变量 | 不需要把解变换回原模型 | 少了一些更激进的化简（如变量替换、对偶推理） |
+| 只在根节点加割 | 简单 | 整数变量无界、而且 LP 的界沿某条射线保持不变时，分支定界可能永远证明不完最优（通常早已找到最优解，最终状态是 NodeLimit）。对拍中 6,000 道题里遇到过 1 道 |
 
 后续路线（见 PRD）：v1.1 还剩对偶值输出、覆盖割、MPS 读取等；v2.0 改为稀疏 LU 分解的修正单纯形，届时恢复基和换基都会便宜很多。
 
@@ -541,7 +1163,7 @@ cur = 根节点；队列 open 为空
 
 ```bash
 ./build/minicplex_gen --kind mixed --count 400 --seed 1 --out fuzz
-./build/minicplex_bench fuzz --gap 1e-9 --quiet --csv fuzz/ours.csv
+./build/minicplex_bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv fuzz/ours.csv
 python3 tools/fuzz_vs_highs.py fuzz fuzz/ours.csv
 ```
 
