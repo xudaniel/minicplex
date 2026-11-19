@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    name: 编译 + 测试 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  sanitizers:
+    name: AddressSanitizer + UBSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMINICPLEX_SANITIZE=ON
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  fuzz-vs-highs:
+    name: 与 HiGHS 对拍（随机混合整数题）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install scipy
+        run: pip install numpy scipy
+      - name: Build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j 4
+      - name: Fuzz (每次提交用不同的随机种子)
+        run: |
+          SEED=${{ github.run_number }}
+          echo "seed = $SEED"
+          ./build/minicplex_gen --kind mixed --count 500 --seed $SEED --out fuzz
+          ./build/minicplex_bench fuzz --gap 1e-9 --quiet --csv fuzz/ours.csv
+          python3 tools/fuzz_vs_highs.py fuzz fuzz/ours.csv
+
+  benchmark:
+    name: 基准测试（与基线比对）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j 4
+      - name: Run benchmark
+        run: ./build/minicplex_bench bench/models --csv new.csv
+      - name: Compare with baseline
+        run: python3 tools/bench_compare.py bench/baseline.csv new.csv

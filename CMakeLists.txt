@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.14)
-project(minicplex VERSION 0.1 LANGUAGES CXX)
+project(minicplex VERSION 0.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# 内存 / 未定义行为检查：cmake -DMINICPLEX_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug
+option(MINICPLEX_SANITIZE "Build with AddressSanitizer + UndefinedBehaviorSanitizer" OFF)
+if(MINICPLEX_SANITIZE)
+  add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all)
+  add_link_options(-fsanitize=address,undefined)
 endif()
 
 add_library(minicplex_lib
@@ -18,22 +25,30 @@ target_compile_options(minicplex_lib PRIVATE -Wall -Wextra)
 add_executable(minicplex src/main.cpp)
 target_link_libraries(minicplex PRIVATE minicplex_lib)
 
-add_executable(api_demo examples/api_demo.cpp)
-target_link_libraries(api_demo PRIVATE minicplex_lib)
+# 例子
+foreach(ex api_demo easy1_bakery easy2_projects hard_production_plan hard_staff_schedule)
+  add_executable(${ex} examples/${ex}.cpp)
+  target_link_libraries(${ex} PRIVATE minicplex_lib)
+endforeach()
 
-add_executable(easy1_bakery examples/easy1_bakery.cpp)
-target_link_libraries(easy1_bakery PRIVATE minicplex_lib)
+# 工具：随机模型生成器、批量求解 / 基准
+add_executable(minicplex_gen tools/gen_random.cpp)
+target_link_libraries(minicplex_gen PRIVATE minicplex_lib)
+add_executable(minicplex_bench tools/bench.cpp)
+target_link_libraries(minicplex_bench PRIVATE minicplex_lib)
 
-add_executable(easy2_projects examples/easy2_projects.cpp)
-target_link_libraries(easy2_projects PRIVATE minicplex_lib)
-
+# 测试
 enable_testing()
 add_executable(minicplex_tests tests/test_solver.cpp)
 target_link_libraries(minicplex_tests PRIVATE minicplex_lib)
-add_test(NAME minicplex_tests COMMAND minicplex_tests)
+add_test(NAME unit_tests COMMAND minicplex_tests)
 
-add_executable(hard_production_plan examples/hard_production_plan.cpp)
-target_link_libraries(hard_production_plan PRIVATE minicplex_lib)
-
-add_executable(hard_staff_schedule examples/hard_staff_schedule.cpp)
-target_link_libraries(hard_staff_schedule PRIVATE minicplex_lib)
+# 冒烟测试：每个例子都要能跑通（退出码 0）
+foreach(ex api_demo easy1_bakery easy2_projects hard_production_plan hard_staff_schedule)
+  add_test(NAME example_${ex} COMMAND ${ex})
+endforeach()
+foreach(lp production knapsack facility mixed)
+  add_test(NAME cli_${lp} COMMAND minicplex --quiet ${CMAKE_SOURCE_DIR}/examples/${lp}.lp)
+endforeach()
+# 基准模型全部能解且解可行
+add_test(NAME bench_models COMMAND minicplex_bench --quiet ${CMAKE_SOURCE_DIR}/bench/models)
