@@ -33,7 +33,8 @@ foreach(ex api_demo easy1_bakery easy2_projects hard_production_plan hard_staff_
 endforeach()
 
 # 入门例子（examples/basics）
-set(BASICS 01_one_variable 02_two_variables 03_must_be_whole 04_yes_or_no 05_minimize)
+set(BASICS 01_one_variable 02_two_variables 03_must_be_whole 04_yes_or_no 05_minimize
+           06_shadow_price 07_fixed_cost 08_min_max 09_absolute_value 10_infeasible)
 foreach(ex ${BASICS})
   add_executable(basics_${ex} examples/basics/${ex}.cpp)
   target_link_libraries(basics_${ex} PRIVATE minicplex_lib)

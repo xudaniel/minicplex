@@ -258,6 +258,35 @@ double LPEngine::objective() const {
     return v;
 }
 
+// Sensitivity information from the current (optimal) basis, recomputed from T
+// so it does not depend on the incrementally updated d_.
+//   reduced cost  d_j = c_j - sum_i c_B(i) T[i][j]
+//   shadow price of row i = reduced cost of its slack s_i: the slack's column
+//   in [A | -I] is -e_i, so d_{s_i} = y_i, the dual value of the row.
+// Both are converted to the model's objective sense (objSign_).
+std::vector<double> LPEngine::rowDuals() const {
+    std::vector<double> y(m_, 0.0);
+    for (int k = 0; k < m_; ++k) {
+        const int j = n_ + k;
+        if (stat_[j] == kBasic) continue;  // non-binding row: price 0
+        double d = c_[j];
+        for (int i = 0; i < m_; ++i) d -= c_[head_[i]] * T(i, j);
+        y[k] = std::abs(d) < 1e-12 ? 0.0 : objSign_ * d;
+    }
+    return y;
+}
+
+std::vector<double> LPEngine::colReducedCosts() const {
+    std::vector<double> r(n_, 0.0);
+    for (int j = 0; j < n_; ++j) {
+        if (stat_[j] == kBasic) continue;
+        double d = c_[j];
+        for (int i = 0; i < m_; ++i) d -= c_[head_[i]] * T(i, j);
+        r[j] = std::abs(d) < 1e-12 ? 0.0 : objSign_ * d;
+    }
+    return r;
+}
+
 std::vector<double> LPEngine::colValues() const { return std::vector<double>(x_.begin(), x_.begin() + n_); }
 
 // > 0: amount by which variable v violates its bounds.

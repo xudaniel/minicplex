@@ -22,6 +22,7 @@ static void usage() {
         "  --time T        time limit in seconds\n"
         "  --quiet         no node log\n"
         "  --all           print zero-valued variables too\n"
+        "  --duals         LP: print shadow prices of constraints and reduced costs\n"
         "  --write FILE    write the parsed model back out in LP format\n"
         "  --branch R      branching rule: pc (pseudo-cost, default) | frac (most fractional)\n"
         "  --cuts K        rounds of root Gomory cuts (default 2, 0 = off)\n"
@@ -34,6 +35,7 @@ int main(int argc, char** argv) {
     P.verbose = true;
     std::string path, writePath;
     bool printAll = false;
+    bool printDuals = false;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         auto next = [&]() -> const char* {
@@ -48,6 +50,7 @@ int main(int argc, char** argv) {
         else if (a == "--time") P.timeLimit = std::atof(next());
         else if (a == "--quiet") P.verbose = false;
         else if (a == "--all") printAll = true;
+        else if (a == "--duals") printDuals = true;
         else if (a == "--branch") P.branching = std::string(next()) == "frac" ? Branching::MostFractional : Branching::PseudoCost;
         else if (a == "--cuts") P.cutRounds = std::atoi(next());
         else if (a == "--no-presolve") P.presolve = false;
@@ -86,6 +89,20 @@ int main(int argc, char** argv) {
                 if (std::abs(v) < 1e-9) v = 0.0;
                 if (v != 0.0 || printAll) std::printf("%-20s %16.10g\n", M.vars[j].name.c_str(), v);
             }
+        }
+        if (printDuals && !R.duals.empty()) {
+            std::printf("\n%-20s %14s %14s %16s\n", "Constraint", "Activity", "RHS", "Shadow price");
+            for (int i = 0; i < M.numConstrs(); ++i) {
+                const auto& c = M.constraints[i];
+                double act = 0.0;
+                for (const auto& [k, a] : c.coefs) act += a * R.x[k];
+                std::printf("%-20s %14.8g %14.8g %16.8g\n", c.name.c_str(), act, c.rhs, R.duals[i]);
+            }
+            std::printf("\n%-20s %14s %16s\n", "Variable", "Value", "Reduced cost");
+            for (int j = 0; j < M.numVars(); ++j)
+                std::printf("%-20s %14.8g %16.8g\n", M.vars[j].name.c_str(), R.x[j], R.reducedCosts[j]);
+        } else if (printDuals) {
+            std::printf("\n(shadow prices are only defined for LPs; use --relax for the LP relaxation)\n");
         }
         return R.hasSolution ? 0 : 1;
     } catch (const std::exception& e) {

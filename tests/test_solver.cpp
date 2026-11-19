@@ -209,6 +209,64 @@ static void testGomoryCutsAreValid() {
     CHECK(allValid);
 }
 
+static void testShadowPrices() {
+    // Bakery LP: by hand, flour is worth 0.75 per kg and labour 0.5 per hour.
+    Model m;
+    Var cake = m.addVar(), bread = m.addVar();
+    m.addConstr(6 * cake + 4 * bread <= 24, "flour");
+    m.addConstr(cake + 2 * bread <= 6, "labor");
+    m.setObjective(5 * cake + 4 * bread, ObjSense::Maximize);
+    Result r = solve(m);
+    CHECK(r.duals.size() == 2 && near(r.duals[0], 0.75) && near(r.duals[1], 0.5));
+    CHECK(r.reducedCosts.size() == 2 && near(r.reducedCosts[0], 0) && near(r.reducedCosts[1], 0));
+
+    // Finite differences: moving a right-hand side by +-delta must change the
+    // optimum by dual * delta (checked where the LP is locally non-degenerate).
+    std::mt19937 rng(4242);
+    auto ri = [&](int a, int b) { return std::uniform_int_distribution<int>(a, b)(rng); };
+    int compared = 0;
+    bool allOk = true;
+    for (int t = 0; t < 60; ++t) {
+        Model M;
+        const int n = 6;
+        for (int j = 0; j < n; ++j) M.addVar(ri(-3, 0), ri(4, 12));
+        for (int i = 0; i < 5; ++i) {
+            LinExpr e;
+            for (int j = 0; j < n; ++j) e += ri(-5, 5) * Var{j};
+            const int s = ri(0, 2), b = ri(-6, 10);
+            M.addConstr(s == 0 ? (e <= b) : s == 1 ? (e >= b) : (e == b));
+        }
+        LinExpr obj;
+        for (int j = 0; j < n; ++j) obj += ri(-6, 6) * Var{j};
+        M.setObjective(obj, ri(0, 1) ? ObjSense::Maximize : ObjSense::Minimize);
+        Result base = solve(M);
+        if (base.status != Status::Optimal) continue;
+        for (int i = 0; i < M.numConstrs(); ++i) {
+            const double delta = 1e-4;
+            Model up = M, dn = M;
+            up.constraints[i].rhs += delta;
+            dn.constraints[i].rhs -= delta;
+            Result ru = solve(up), rd = solve(dn);
+            if (ru.status != Status::Optimal || rd.status != Status::Optimal) continue;
+            const double gu = (ru.objective - base.objective) / delta;
+            const double gd = (base.objective - rd.objective) / delta;
+            if (std::abs(gu - gd) > 1e-6 * (1 + std::abs(gu))) continue;  // kink: dual not unique
+            ++compared;
+            if (std::abs(gu - base.duals[i]) > 1e-5 * (1 + std::abs(gu))) allOk = false;
+        }
+    }
+    std::cout << "  shadow prices: " << compared << " rows checked by finite differences\n";
+    CHECK(compared > 50);
+    CHECK(allOk);
+
+    // MIPs have no duals.
+    Model q;
+    Var z = q.addVar(0, 5, VarType::Integer);
+    q.addConstr(2 * z <= 7);
+    q.setObjective(z, ObjSense::Maximize);
+    CHECK(solve(q).duals.empty());
+}
+
 static void testKnapsack() {
     Model m;
     double val[] = {10, 13, 7, 8}, wt[] = {5, 6, 4, 3};
@@ -322,6 +380,7 @@ int main() {
     testFreeAndEquality();
     testBealeCycling();
     testEngineEdgeCases();
+    testShadowPrices();
     testPresolve();
     testGomoryCutsAreValid();
     testKnapsack();

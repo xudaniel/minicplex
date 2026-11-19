@@ -160,6 +160,8 @@ Result solve(const Model& M, const Params& P) {
                 R.status = Status::Optimal;
                 R.hasSolution = true;
                 R.x = E.colValues();
+                R.duals = E.rowDuals();
+                R.reducedCosts = E.colReducedCosts();
                 R.objective = R.bestBound = sgn * E.objective();
                 R.gap = 0.0;
                 break;

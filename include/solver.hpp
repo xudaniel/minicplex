@@ -48,6 +48,11 @@ struct Result {
     double bestBound = std::nan("");
     double gap = std::nan("");      // relative gap of incumbent vs bound
     std::vector<double> x;          // values, indexed like Model::vars
+    // LP only (no integer variables, or relaxIntegrality): sensitivity information,
+    // in the objective sense of the model.
+    std::vector<double> duals;         // shadow price of each constraint: change of the optimal
+                                       // objective per unit increase of its right-hand side
+    std::vector<double> reducedCosts;  // reduced cost of each variable (0 for basic variables)
     long nodes = 0;
     long lpIterations = 0;
     int cuts = 0;                   // Gomory cuts kept after the root cut loop
@@ -103,6 +108,8 @@ public:
     double objective() const;               // objSign * (c'x + c0)
     void setTrace(bool on) { trace_ = on; }
     std::vector<double> colValues() const;  // structural variables only
+    std::vector<double> rowDuals() const;         // shadow prices, model's objective sense
+    std::vector<double> colReducedCosts() const;  // reduced costs, model's objective sense
     long iterations() const { return iters_; }
 
     Basis basis() const { return {head_, stat_}; }
