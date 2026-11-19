@@ -34,3 +34,6 @@ add_test(NAME minicplex_tests COMMAND minicplex_tests)
 
 add_executable(hard_production_plan examples/hard_production_plan.cpp)
 target_link_libraries(hard_production_plan PRIVATE minicplex_lib)
+
+add_executable(hard_staff_schedule examples/hard_staff_schedule.cpp)
+target_link_libraries(hard_staff_schedule PRIVATE minicplex_lib)

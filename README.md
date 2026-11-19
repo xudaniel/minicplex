@@ -59,18 +59,26 @@ Best bound:   360   (gap 0.0000%)
 Nodes:        13
 ```
 
-## 两个入门例子
+## 例子
 
 | 文件 | 类型 | 内容 |
 |---|---|---|
 | `examples/easy1_bakery.cpp` | 线性规划 | 面包店生产计划：最大利润 21 元（蛋糕 3 个、面包 1.5 个） |
 | `examples/easy2_projects.cpp` | 0-1 整数规划 | 预算 10 万选投资项目：最大收益 16 万（选 A、C、D） |
 | `examples/hard_production_plan.cpp` | 混合整数规划（复杂） | 3 产品 × 6 周生产排程：换线、最小批量、加班、仓储；最低成本 35,615 元（约 5,300 个节点，0.5 秒，与 HiGHS 结果一致） |
+| `examples/hard_staff_schedule.cpp` | 0-1 整数规划（复杂） | 餐厅 8 人一周排班：覆盖需求、老员工坐镇、晚班后不接早班、连续上班 ≤ 3 天、新人带教、两人不同班；最低成本 6,571 元（239 个节点，0.8 秒，与 HiGHS 结果一致） |
 
 ```bash
 ./build/easy1_bakery
 ./build/easy2_projects
 ./build/hard_production_plan
+./build/hard_staff_schedule
+```
+
+复杂例子运行后会导出 `.lp` 文件，可以用 HiGHS 独立验算（需要 Python + scipy）：
+
+```bash
+python3 tools/verify_with_highs.py build/hard_staff_schedule.lp
 ```
 
 ## C++ 建模 API
@@ -112,7 +120,8 @@ LP 文件读写往返，以及 **500 个随机整数规划与暴力枚举结果�
 docs/      PRD.md（产品需求文档）
 include/   model.hpp  solver.hpp  lp_reader.hpp
 src/       simplex.cpp  branch_and_bound.cpp  lp_reader.cpp  model.cpp  main.cpp
-examples/  *.lp  api_demo.cpp
+examples/  *.lp  api_demo.cpp  easy1/easy2/hard_* 例子
+tools/     verify_with_highs.py（用 HiGHS 验算）
 tests/     test_solver.cpp
 ```
 

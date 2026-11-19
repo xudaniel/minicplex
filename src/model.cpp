@@ -52,9 +52,14 @@ void Model::writeLP(std::ostream& os) const {
         writeTerms(os, *this, c.coefs, 0.0);
         os << ' ' << senseStr(c.sense) << ' ' << num(c.rhs) << '\n';
     }
+    // A binary whose bounds were tightened (e.g. fixed to 0) is written as a
+    // general integer with explicit bounds, so no information is lost.
+    auto plainBinary = [](const VarInfo& v) {
+        return v.type == VarType::Binary && v.lb == 0.0 && v.ub == 1.0;
+    };
     os << "Bounds\n";
     for (const auto& v : vars) {
-        if (v.type == VarType::Binary) continue;
+        if (plainBinary(v)) continue;
         if (v.lb == 0.0 && v.ub == INF) continue;
         if (v.lb == -INF && v.ub == INF)
             os << ' ' << v.name << " free\n";
@@ -67,14 +72,14 @@ void Model::writeLP(std::ostream& os) const {
     }
     bool any = false;
     for (const auto& v : vars)
-        if (v.type == VarType::Integer) {
+        if (v.type == VarType::Integer || (v.type == VarType::Binary && !plainBinary(v))) {
             if (!any) os << "General\n";
             any = true;
             os << ' ' << v.name << '\n';
         }
     any = false;
     for (const auto& v : vars)
-        if (v.type == VarType::Binary) {
+        if (plainBinary(v)) {
             if (!any) os << "Binary\n";
             any = true;
             os << ' ' << v.name << '\n';
