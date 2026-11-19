@@ -14,12 +14,16 @@
 </p>
 
 <p>
+<a href="README.en.md">English</a> · <b>简体中文</b>
+</p>
+
+<p>
 <a href="#30-秒上手"><b>30 秒上手</b></a> ·
 <a href="#用大白话讲-minicplex先看这里">大白话原理</a> ·
 <a href="#例子">例子</a> ·
 <a href="#代码解析">代码解析</a> ·
 <a href="#java-版">Java 版</a> ·
-<a href="#english">English</a>
+<a href="docs/PRD.md">PRD</a>
 </p>
 
 </div>
@@ -71,7 +75,7 @@ Java 版逐行移植，同一道题两边的节点数、迭代次数、每一步
 <td width="50%" valign="top">
 
 **🪶 零依赖，小而可读**<br>
-不依赖任何第三方库，C++ 核心代码约 2,300 行（含头文件）。一个下午就能从 `main` 读到分支定界。
+不依赖任何第三方库，C++ 核心代码约 2,200 行。一个下午就能从 `main` 读到分支定界。
 
 </td>
 </tr>
@@ -150,7 +154,7 @@ flowchart LR
 每一个方框在[代码解析](#代码解析)里都有对应的源码讲解。
 
 > 与 IBM 无关。这是一个学习项目，不是 CPLEX 的替代品：它使用稠密单纯形表，适合中小规模模型
->（几百行 / 几百列）。产品需求文档见 [docs/PRD.md](docs/PRD.md)，更新记录见 [CHANGELOG.md](CHANGELOG.md)，
+>（几百行 / 几百列）。产品需求文档见 [docs/PRD.md](docs/PRD.md)（[English](docs/PRD.en.md)），更新记录见 [CHANGELOG.md](CHANGELOG.md)，
 > 发布说明见 [docs/releases](docs/releases/)。
 
 ## 用大白话讲 minicplex（先看这里）
@@ -1607,9 +1611,9 @@ cmake -S . -B build-asan -DMINICPLEX_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug \
 | 可靠性分支（含强分支） | 节点数明显减少（评测集少 28%，生产排程少 94%） | 每次强分支都要试算，小模型上单个节点更贵 |
 | 只在根节点加 Gomory 割 | 割全局有效，实现简单 | 树内不再加割；背包类题帮助有限 |
 | 预处理不删除变量 | 不需要把解变换回原模型 | 少了一些更激进的化简（如变量替换、对偶推理） |
-| 只在根节点加割 | 简单 | 整数变量无界、而且 LP 的界沿某条射线保持不变时，分支定界可能永远证明不完最优（通常早已找到最优解，最终状态是 NodeLimit）。对拍中 6,000 道题里遇到过 1 道 |
+| 不专门处理无界整数方向 | 简单 | 整数变量无界、而且 LP 的界沿某条射线保持不变时，分支定界可能永远证明不完最优（通常早已找到最优解，最终状态是 NodeLimit）。对拍中 6,000 道题里遇到过 1 道 |
 
-后续路线（见 PRD）：v1.1 还剩对偶值输出、覆盖割、MPS 读取等；v2.0 改为稀疏 LU 分解的修正单纯形，届时恢复基和换基都会便宜很多。
+后续路线（见 PRD）：v1.1 还剩覆盖割、MPS 读取等；v2.0 改为稀疏 LU 分解的修正单纯形，届时恢复基和换基都会便宜很多。
 
 ## 开发与测试
 
@@ -1645,7 +1649,7 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：L
 ## 目录结构
 
 ```
-docs/      PRD.md（产品需求文档）  ortools-comparison.md（与 OR-Tools 对拍记录）
+docs/      PRD.md / PRD.en.md（产品需求文档，中 / 英）  ortools-comparison.md（与 OR-Tools 对拍记录）
            releases/（发布说明）  assets/（logo 和演示图）
 include/   model.hpp  solver.hpp  lp_reader.hpp
 src/       simplex.cpp  branch_and_bound.cpp  presolve.cpp  lp_reader.cpp  model.cpp  main.cpp
@@ -1666,29 +1670,6 @@ java/      build.sh  pom.xml
 
 稀疏 LU 分解的修正单纯形法（扩大到上千规模）、覆盖割和树内割平面、更强的预处理、
 MPS 文件支持。详见 PRD 的路线图。
-
-## English
-
-**minicplex** is a small, dependency-free LP / MIP solver written in C++17, with a line-by-line Java 17 port that
-follows exactly the same computation path (same nodes, same simplex iterations, same `--trace` output). It reads and
-writes CPLEX LP files, offers a Concert-style modelling API, and prints a CPLEX-style branch-and-bound log.
-
-- **Engine:** bounded-variable dense-tableau simplex (composite phase 1, dual simplex warm starts, Bland anti-cycling),
-  presolve (bound propagation, big-M tightening), root Gomory mixed-integer cuts, reliability branching
-  (pseudo-costs + strong branching), solution polishing, shadow prices.
-- **Verified:** fuzzed against HiGHS and OR-Tools on thousands of random models, brute-force enumeration tests,
-  ASan/UBSan, CI on Linux and macOS.
-- **Built for learning:** `--trace` explains every pivot, cut and branching decision. The docs and code walkthrough are
-  in Chinese; the code and its comments are in English.
-
-```bash
-cmake -S . -B build && cmake --build build -j
-./build/minicplex examples/bakery.lp --trace
-java/build.sh && java -jar java/build/minicplex.jar examples/bakery.lp
-```
-
-Not affiliated with IBM. This is a learning project, not a CPLEX replacement; it targets models with a few hundred
-rows and columns.
 
 ## 许可证
 
