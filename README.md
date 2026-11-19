@@ -1157,6 +1157,7 @@ cmake -S . -B build-asan -DMINICPLEX_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug \
 | `minicplex_gen` | 随机生成模型（`mixed` 混合整数、`mkp` 多维背包、`lp` 线性规划） |
 | `minicplex_bench` | 批量求解目录下的 `.lp`，输出结果表 / CSV，并检查解是否可行 |
 | `tools/fuzz_vs_highs.py` | 与 HiGHS 逐题对拍（需要 scipy） |
+| `tools/fuzz_vs_ortools.py` | 与 Google OR-Tools 逐题对拍（纯 LP 用 GLOP，整数题用 SCIP；不一致时再请 HiGHS 当裁判；纯 LP 题顺带对比迭代次数；需要 `pip install ortools`） |
 | `tools/bench_compare.py` | 与基线 CSV 对比：结果变了就失败，速度变化只打印 |
 
 对拍示例：
@@ -1165,7 +1166,10 @@ cmake -S . -B build-asan -DMINICPLEX_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug \
 ./build/minicplex_gen --kind mixed --count 400 --seed 1 --out fuzz
 ./build/minicplex_bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv fuzz/ours.csv
 python3 tools/fuzz_vs_highs.py fuzz fuzz/ours.csv
+python3 tools/fuzz_vs_ortools.py fuzz fuzz/ours.csv   # 第二个标准答案
 ```
+
+**OR-Tools 对拍的两个坑**（已在 `tools/verify_with_ortools.py` 里处理）：OR-Tools 的 MPSolver 没有“不可行或无界”这个状态，GLOP 预处理只能判断到这一步时会直接报“不可行”（见 OR-Tools 源码 `glop_utils.cc`），所以 GLOP 报不可行时会关掉预处理再解一次；LP 松弛无界的整数题，SCIP 可能一直搜下去，所以先解松弛，无界就直接判为“不可行或无界”。首次对拍的完整记录见 [docs/ortools-comparison.md](docs/ortools-comparison.md)。
 
 GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：Linux / macOS 编译与测试、Sanitizer 测试、
 500 道随机题与 HiGHS 对拍（每次换随机种子）、基准测试与基线对比。
@@ -1173,11 +1177,12 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：L
 ## 目录结构
 
 ```
-docs/      PRD.md（产品需求文档）
+docs/      PRD.md（产品需求文档）  ortools-comparison.md（与 OR-Tools 对拍记录）
 include/   model.hpp  solver.hpp  lp_reader.hpp
 src/       simplex.cpp  branch_and_bound.cpp  lp_reader.cpp  model.cpp  main.cpp
 examples/  *.lp  api_demo.cpp  easy1/easy2/hard_* 例子
-tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py  bench_compare.py
+tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
+           verify_with_ortools.py  fuzz_vs_ortools.py  bench_compare.py
 bench/     models/（基准模型）  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
 ```
