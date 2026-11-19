@@ -32,6 +32,13 @@ foreach(ex api_demo easy1_bakery easy2_projects hard_production_plan hard_staff_
   target_link_libraries(${ex} PRIVATE minicplex_lib)
 endforeach()
 
+# 入门例子（examples/basics）
+set(BASICS 01_one_variable 02_two_variables 03_must_be_whole 04_yes_or_no 05_minimize)
+foreach(ex ${BASICS})
+  add_executable(basics_${ex} examples/basics/${ex}.cpp)
+  target_link_libraries(basics_${ex} PRIVATE minicplex_lib)
+endforeach()
+
 # 工具：随机模型生成器、批量求解 / 基准
 add_executable(minicplex_gen tools/gen_random.cpp)
 target_link_libraries(minicplex_gen PRIVATE minicplex_lib)
@@ -50,6 +57,9 @@ foreach(ex api_demo easy1_bakery easy2_projects hard_production_plan hard_staff_
 endforeach()
 foreach(lp production knapsack facility mixed bakery)
   add_test(NAME cli_${lp} COMMAND minicplex --quiet ${CMAKE_SOURCE_DIR}/examples/${lp}.lp)
+endforeach()
+foreach(ex ${BASICS})
+  add_test(NAME basics_${ex} COMMAND basics_${ex})
 endforeach()
 # --trace 跟踪输出（学习用）也要能正常运行
 add_test(NAME cli_trace COMMAND minicplex --trace ${CMAKE_SOURCE_DIR}/examples/bakery.lp)

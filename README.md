@@ -160,13 +160,110 @@ Nodes:        13
 
 ## 例子
 
+例子分三级：**入门**（每个只学一个新概念）→ **简单** → **复杂**。第一次用，建议从入门例子按顺序看。
+
+### 入门例子（从最简单开始）
+
+都在 [`examples/basics/`](examples/basics/)，每个 30～50 行，中文逐行注释。编译后这样运行：
+
+```bash
+./build/basics_01_one_variable
+./build/basics_02_two_variables
+./build/basics_03_must_be_whole
+./build/basics_04_yes_or_no
+./build/basics_05_minimize
+```
+
+| 例子 | 问题 | 答案 | 新学到什么 |
+|---|---|---|---|
+| 01 一个变量 | 10 元钱，苹果 2 元一个，最多买几个？ | 5 个 | 最基本的四步 |
+| 02 两个变量 | 苹果 2 元、香蕉 1 元，10 元钱、袋子装 7 个，苹果 3 分、香蕉 2 分，怎么买分最高？ | 3 个苹果 + 4 根香蕉，17 分 | 多条限制同时起作用 |
+| 03 必须是整数 | 面包店：允许做半个和必须整数，答案有什么不同？ | 整数最优是 4 个蛋糕，赚 20 元 | 整数规划；四舍五入不一定最优 |
+| 04 选或不选 | 周末 8 小时、4 件事，爬山和读书不能都选，选哪几件最开心？ | 看电影 + 爬山，开心值 15 | 0-1 变量；“不能同时选”怎么写 |
+| 05 求最小 | 牛奶 3 元、鸡蛋 1 元，蛋白质至少 30 克、钙至少 600 毫克，怎么最省钱？ | 2 杯牛奶 + 3 个鸡蛋，9 元 | 最小化；“至少”用 ≥ |
+
+#### 01 一个变量：最基本的四步
+
+所有模型都是这四步：**建模型 → 建变量 → 加限制 → 定目标**，然后求解。
+
+```cpp
+Model m;                                                         // 1. 建一个空模型
+Var apples = m.addVar(0, INF, VarType::Continuous, "apples");    // 2. 变量：买几个苹果，最少 0 个
+m.addConstr(2 * apples <= 10, "money");                          // 3. 限制：2 元 × 个数 ≤ 10 元
+m.setObjective(apples, ObjSense::Maximize);                      // 4. 目标：越多越好
+Result r = solve(m);                                             // 求解
+std::cout << r.x[apples.id];                                     // 读答案：5
+```
+
+- `addVar(下限, 上限, 类型, 名字)`：`INF` 表示没有上限。
+- `r.x[变量.id]` 是这个变量的答案，`r.objective` 是目标值，`r.status` 是状态（`Optimal` 表示找到了最优解）。
+- 加上 `--trace` 运行，能看到求解器只走了 1 步就到最优：苹果数从 0 往上增，直到钱花完（5 个）。
+
+#### 02 两个变量：多条限制一起起作用
+
+```cpp
+m.addConstr(2 * apple + 1 * banana <= 10, "money");          // 钱
+m.addConstr(apple + banana <= 7, "bag");                     // 袋子
+m.setObjective(3 * apple + 2 * banana, ObjSense::Maximize);  // 总分
+```
+
+结果：3 个苹果 + 4 根香蕉，17 分，**钱刚好花完、袋子刚好装满**。最优解往往卡在好几条限制的“边上”，这正是大白话版里说的“最好的方案在角上”。
+
+#### 03 必须是整数：四舍五入不一定最优
+
+```cpp
+Var cake = m.addVar(0, INF, VarType::Integer, "cake");   // Integer = 必须是整数
+...
+Params relaxed;
+relaxed.relaxIntegrality = true;   // 先暂时允许小数，比较一下
+```
+
+程序会打印三行：
+
+```
+允许做半个：蛋糕 3，面包 1.5，赚 21 元
+直接去掉小数：蛋糕 3，面包 1，赚 19 元
+整数最优解：  蛋糕 4，面包 0，赚 20 元
+```
+
+直接把小数去掉只能赚 19 元，真正的整数最优是 20 元，而且是一个完全不同的方案（不做面包）。这就是整数规划需要分支定界的原因，求解过程见[代码解析的 5.4 节](#54-实例只用分支定界解面包店关掉预处理和割平面)。
+
+#### 04 选或不选：0-1 变量
+
+```cpp
+pick.push_back(m.addVar(0, 1, VarType::Binary, ...));   // Binary：只能是 0（不选）或 1（选）
+m.addConstr(time <= 8, "hours");                        // 总时间 ≤ 8 小时
+m.addConstr(pick[1] + pick[3] <= 1, "not_both");        // 爬山 + 读书 ≤ 1：最多选一个
+```
+
+常见规则的写法：
+
+| 规则 | 写法 |
+|---|---|
+| A 和 B 不能都选 | A + B ≤ 1 |
+| A 和 B 至少选一个 | A + B ≥ 1 |
+| 选了 A 就必须选 B | A ≤ B |
+| A、B、C 正好选两个 | A + B + C = 2 |
+
+#### 05 求最小：花最少的钱
+
+```cpp
+m.addConstr(8 * milk + 6 * egg >= 30, "protein");      // “至少”用 >=
+m.addConstr(300 * milk + 30 * egg >= 600, "calcium");
+m.setObjective(3 * milk + 1 * egg, ObjSense::Minimize);  // 求最小用 Minimize
+```
+
+结果：2 杯牛奶 + 3 个鸡蛋，9 元。蛋白质 34 克、钙 690 毫克，都满足要求。
+
+### 简单和复杂例子
+
 | 文件 | 类型 | 内容 |
 |---|---|---|
 | `examples/bakery.lp` | 整数规划 | 面包店整数版（配合 `--trace` 看完整求解过程）：最大利润 20 元（4 个蛋糕） |
 | `examples/easy1_bakery.cpp` | 线性规划 | 面包店生产计划：最大利润 21 元（蛋糕 3 个、面包 1.5 个） |
 | `examples/easy2_projects.cpp` | 0-1 整数规划 | 预算 10 万选投资项目：最大收益 16 万（选 A、C、D） |
-| `examples/hard_production_plan.cpp` | 混合整数规划（复杂） | 3 产品 × 6 周生产排程：换线、最小批量、加班、仓储；最低成本 35,615 元（约 5,500 个节点，0.3 秒，与 HiGHS 结果一致） |
-| `examples/hard_staff_schedule.cpp` | 0-1 整数规划（复杂） | 餐厅 8 人一周排班：覆盖需求、老员工坐镇、晚班后不接早班、连续上班 ≤ 3 天、新人带教、两人不同班；最低成本 6,571 元（19 个节点，0.02 秒，与 HiGHS 结果一致） |
+| `examples/hard_production_plan.cpp` | 混合整数规划（复杂） | 3 产品 × 6 周生产排程：换线、最小批量、加班、仓储；最低成本 35,615 元（约 420 个节点，0.02 秒，与 HiGHS 结果一致） |
+| `examples/hard_staff_schedule.cpp` | 0-1 整数规划（复杂） | 餐厅 8 人一周排班：覆盖需求、老员工坐镇、晚班后不接早班、连续上班 ≤ 3 天、新人带教、两人不同班；最低成本 6,571 元（8 个节点，0.05 秒，与 HiGHS 结果一致） |
 
 ```bash
 ./build/easy1_bakery
@@ -232,7 +329,7 @@ v1.0 内核与早期 v0.1 内核的对比（`bench/` 中 13 个模型，同一�
 
 | 步骤 | 文件 | 重点看什么 | 约多少行 |
 |---|---|---|---|
-| 1 | `examples/easy1_bakery.cpp` | 用户怎么建模、怎么调用 `solve()` | 35 |
+| 1 | `examples/basics/01～05` | 用户怎么建模、怎么调用 `solve()`（先跑一遍 `./build/basics_01_one_variable --trace`，只有 1 步） | 每个 30～50 |
 | 2 | `include/model.hpp` | `Var`、`LinExpr`、`Constraint` 三个数据结构 | 150 |
 | 3 | `include/solver.hpp` | `Params`、`Result`，以及 `LPEngine` 的成员变量 | 172 |
 | 4 | `src/simplex.cpp` | 依次看 `pivot` → `primal` → `dual` → `solve` → `loadBasis` | 710 |
@@ -1180,7 +1277,7 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：L
 docs/      PRD.md（产品需求文档）  ortools-comparison.md（与 OR-Tools 对拍记录）
 include/   model.hpp  solver.hpp  lp_reader.hpp
 src/       simplex.cpp  branch_and_bound.cpp  lp_reader.cpp  model.cpp  main.cpp
-examples/  *.lp  api_demo.cpp  easy1/easy2/hard_* 例子
+examples/  basics/（5 个入门例子）  *.lp  api_demo.cpp  easy1/easy2/hard_* 例子
 tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
            verify_with_ortools.py  fuzz_vs_ortools.py  bench_compare.py
 bench/     models/（基准模型）  baseline.csv  baseline_v0.1.csv
