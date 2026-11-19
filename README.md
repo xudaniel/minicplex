@@ -1,5 +1,11 @@
 # minicplex
 
+[![CI](https://github.com/xudaniel/minicplex/actions/workflows/ci.yml/badge.svg)](https://github.com/xudaniel/minicplex/actions/workflows/ci.yml)
+![版本](https://img.shields.io/badge/版本-1.0.0-blue)
+![C++17](https://img.shields.io/badge/C%2B%2B-17-informational)
+![依赖](https://img.shields.io/badge/依赖-零-success)
+![许可证](https://img.shields.io/badge/许可证-MIT-lightgrey)
+
 一个用 **C++17 编写、零依赖的线性规划 / 混合整数规划（LP / MIP）求解器**。这是一个业余项目，目的是从内部
 理解 IBM ILOG CPLEX 这类求解器的工作原理。它能读取 CPLEX `.lp` 文件，提供类似 Concert 的 C++ 建模 API，
 并输出类似 CPLEX 的分支定界日志。
@@ -7,7 +13,7 @@
 > 与 IBM 无关。这是一个学习项目，不是 CPLEX 的替代品：它使用稠密单纯形表，适合中小规模模型
 >（几百行 / 几百列）。
 
-产品需求文档见 [docs/PRD.md](docs/PRD.md)。
+产品需求文档见 [docs/PRD.md](docs/PRD.md)，版本更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 功能一览
 
@@ -112,9 +118,9 @@ m.writeLP(std::cout);         // 导出为 CPLEX LP 格式
    放进队列。下潜结束后取界最好的节点，从当前单纯形表增量换到它保存的基，再用对偶单纯形求解。
    对偶目标值单调上升，一旦超过当前最优整数解就立即停止（截断剪枝）。
 
-v0.2 内核与 v0.1 的对比（`bench/` 中 13 个模型，同一台机器）：
+v1.0 内核与早期 v0.1 内核的对比（`bench/` 中 13 个模型，同一台机器）：
 
-| | v0.1（两阶段稠密单纯形，每个节点从零求解） | v0.2（有界单纯形 + 对偶热启动） |
+| | v0.1（两阶段稠密单纯形，每个节点从零求解） | v1.0（有界单纯形 + 对偶热启动） |
 |---|---|---|
 | 单纯形迭代总数 | 777,609 | 40,804（少 95%） |
 | 总用时 | 2.78 秒 | 约 0.6 秒（快约 4.5 倍） |

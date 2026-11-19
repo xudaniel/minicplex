@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 
     try {
         Model M = readLPFile(path);
-        std::printf("minicplex 0.2 | %s\n", path.c_str());
+        std::printf("minicplex 1.0 | %s\n", path.c_str());
         std::printf("  %d variables (%d integer), %d constraints, %s\n\n", M.numVars(),
                     M.numIntegers(), M.numConstrs(),
                     M.objSense == ObjSense::Maximize ? "maximize" : "minimize");
