@@ -645,6 +645,8 @@ bench/     models/  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
 java/      build.sh  pom.xml  src/main/java/minicplex/  src/test/java/  examples/  tutorial/ (Java course)
 python/    minicplex/ (solver package)  pyproject.toml  examples/  tests/  tutorial/ (Python course)
+learning/  hash-fourier/ (unrelated to the solver: SHA-256, FNV-1a, DFT and FFT in plain C, plus an
+           interactive mini-course; Chinese only)
 ```
 
 ## Roadmap
