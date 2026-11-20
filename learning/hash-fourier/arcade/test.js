@@ -35,3 +35,4 @@ const fig8=Array.from({length:120},(_,i)=>{const t=2*Math.PI*i/120;return [0.5+0
 ok('figure-8 → goal 2', A.circleGoals(A.epicycles(A.resample(fig8,256).pts)).join()==='false,false,true');
 const ep=A.epicycles(A.resample(fig8,256).pts); ok('fidelity monotone, ends at 100', ep.fid.every((v,i)=>i===0||v>=ep.fid[i-1]-1e-9)&&ep.fid[ep.fid.length-1]>99.999);
 console.log(fail?'FAILURES '+fail:'ALL OK');
+process.exit(fail?1:0);

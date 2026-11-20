@@ -646,7 +646,8 @@ tests/     test_solver.cpp
 java/      build.sh  pom.xml  src/main/java/minicplex/  src/test/java/  examples/  tutorial/ (Java course)
 python/    minicplex/ (solver package)  pyproject.toml  examples/  tests/  tutorial/ (Python course)
 learning/  hash-fourier/ (unrelated to the solver: SHA-256, FNV-1a, DFT and FFT in plain C, plus an
-           interactive mini-course, Chinese only; arcade/ has four Fourier games and two hash games in English and Chinese)
+           interactive mini-course, Chinese only; arcade/ has four Fourier games and two hash games in English and Chinese;
+           online at https://xudaniel.github.io/minicplex/hash-fourier/)
 ```
 
 ## Roadmap

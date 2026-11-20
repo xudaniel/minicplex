@@ -2,6 +2,8 @@ name: 网页版 Python 课
 
 # 生成 https://xudaniel.github.io/minicplex/python/ ：课文 + 编辑器 + 在浏览器里运行判分（Pyodide）。
 # 每次都先在真浏览器里把 20 课的答案和练习跑一遍，通过了才发布（只有 main 分支发布）。
+# 同一个网站还带上 https://xudaniel.github.io/minicplex/hash-fourier/ ：Hash 与傅里叶的互动课和两个游戏厅
+# （learning/hash-fourier/ 里的几个单文件网页，核对脚本通过了才复制进去）。
 on:
   push:
     branches: [main]
@@ -40,6 +42,16 @@ jobs:
           sleep 1
           python python/tutorial/web/test_site.py http://localhost:8765/python/ _site/python/course.json
           python python/tutorial/web/test_site.py http://localhost:8765/python/en/ _site/python/en/course.json
+      - name: 加入 Hash 与傅里叶的互动课和游戏厅（先跑核对脚本）
+        run: |
+          cd learning/hash-fourier
+          node tests/course_test.js course/index.html
+          node arcade/test.js arcade/index.html
+          node arcade/hash_test.js arcade/hash.html
+          mkdir -p ../../_site/hash-fourier/course ../../_site/hash-fourier/arcade
+          cp index.html ../../_site/hash-fourier/
+          cp course/index.html ../../_site/hash-fourier/course/
+          cp arcade/index.html arcade/hash.html ../../_site/hash-fourier/arcade/
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site

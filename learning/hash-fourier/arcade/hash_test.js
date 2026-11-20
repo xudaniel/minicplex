@@ -26,3 +26,4 @@ ok('birthday: 365 slots', Math.abs(A.expectedThrows(365)-24.6)<0.1, A.expectedTh
 ok('pctOff', A.pctOff(25,20)===25 && A.pctOff(16,20)===20);
 const hg=A.histogram([1,2,3,10,40],8); ok('histogram', hg.counts.reduce((a,b)=>a+b,0)===5 && hg.max>=41, JSON.stringify(hg));
 console.log(fail?'FAILURES '+fail:'ALL OK');
+process.exit(fail?1:0);

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>搅乱，与分开</title>
+<meta name="description" content="手写 Hash 和傅里叶变换：一门互动课，两个游戏厅。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+<style>
+/* Layout: the front door. One column on graph paper: the title, the two signature
+   pictures (scrambled bits, a wave being built), then three numbered doors in the
+   order they are best walked through. Vermilion = hash, teal = Fourier, as inside. */
+:root {
+  --paper: #EDF0F4;
+  --grid: #DCE2EA;
+  --card: #FBFCFD;
+  --ink: #141B2B;
+  --muted: #586377;
+  --line: #C5CDD8;
+  --off: #E1E6ED;
+  --hot: #D93A22;
+  --wave: #0B7A85;
+  --f-display: "ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0C111D; --grid: #151C2C; --card: #141B2B; --ink: #E7ECF5;
+    --muted: #95A1B8; --line: #2B3650; --off: #1F2940; --hot: #FF6A48; --wave: #42C4CE;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0C111D; --grid: #151C2C; --card: #141B2B; --ink: #E7ECF5;
+  --muted: #95A1B8; --line: #2B3650; --off: #1F2940; --hot: #FF6A48; --wave: #42C4CE;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.65;
+}
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 18px; }
+h1, h2 { font-family: var(--f-display); font-weight: 400; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 0; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+#langBtn { height: 32px; padding: 0 10px; font: inherit; font-size: 13px; color: inherit; background: transparent; border: 1.5px solid var(--line); border-radius: 3px; cursor: pointer; }
+
+.top { padding: 24px 0 0; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: clamp(60px, 19vw, 120px); line-height: .98; letter-spacing: .02em; }
+h1.en { font-size: clamp(44px, 12vw, 84px); line-height: 1.02; }
+h1 .a { color: var(--hot); }
+h1 .b { color: var(--wave); }
+.lead { max-width: 34em; font-size: 17px; }
+
+.pics { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 6px; }
+.pic { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pic .cap { font-family: var(--f-mono); font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.bits { display: grid; grid-template-columns: repeat(32, 1fr); gap: 1.5px; }
+.bits i { aspect-ratio: 1; background: var(--off); border-radius: 1px; }
+.bits i.on { background: var(--hot); }
+canvas { display: block; width: 100%; }
+@media (max-width: 480px) { .pics { grid-template-columns: 1fr; } }
+
+.doors { list-style: none; margin: 44px 0 0; padding: 0; display: flex; flex-direction: column; border-top: 3px solid var(--ink); }
+.door { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 16px; align-items: start; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.door .no { font-family: var(--f-mono); font-weight: 600; font-size: 15px; border: 1.5px solid var(--c); color: var(--c); border-radius: 3px; padding: 0 7px; margin-top: 6px; }
+.door h2 { font-size: 32px; line-height: 1.2; }
+.door h2 a { text-decoration: none; }
+.door h2 a:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
+.door .what { grid-column: 2 / 3; }
+.door .meta { grid-column: 2 / 3; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 2px 14px; }
+.door .meta b { color: var(--ink); font-family: var(--f-mono); font-weight: 600; }
+.go { grid-row: 1 / 3; grid-column: 3; align-self: center; display: inline-block; padding: 9px 16px; background: var(--c); color: #fff; border-radius: 4px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.door[data-k="course"] { --c: var(--ink); }
+.door[data-k="course"] .go { color: var(--paper); }
+.door[data-k="hash"] { --c: var(--hot); }
+.door[data-k="fourier"] { --c: var(--wave); }
+@media (max-width: 480px) {
+  .door { grid-template-columns: auto 1fr; }
+  .go { grid-row: auto; grid-column: 2 / 3; justify-self: start; margin-top: 6px; }
+}
+
+.more { margin: 36px 0 0; padding: 0 0 56px; display: flex; flex-direction: column; gap: 10px; }
+.more h2 { font-size: 26px; }
+.more ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.more code { font-family: var(--f-mono); font-size: 14px; }
+.more .fine { font-size: 13px; color: var(--muted); max-width: 44em; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<div class="bar">
+  <span class="eyebrow" data-i18n="eyebrow"></span>
+  <button type="button" id="langBtn"></button>
+</div>
+
+<header class="top">
+  <h1 id="title"></h1>
+  <p class="lead" data-i18n="lead"></p>
+  <div class="pics">
+    <div class="pic">
+      <div class="bits" id="bits" aria-hidden="true"></div>
+      <span class="cap" data-i18n="capBits"></span>
+    </div>
+    <div class="pic">
+      <canvas id="wave" style="height:66px" aria-hidden="true"></canvas>
+      <span class="cap" data-i18n="capWave"></span>
+    </div>
+  </div>
+</header>
+
+<ol class="doors">
+  <li class="door" data-k="course">
+    <span class="no">1</span>
+    <h2><a href="course/index.html" data-i18n="d1title"></a></h2>
+    <a class="go" href="course/index.html" data-i18n="open"></a>
+    <p class="what" data-i18n="d1what"></p>
+    <p class="meta"><span data-i18n="d1meta"></span><b id="p-course"></b></p>
+  </li>
+  <li class="door" data-k="hash">
+    <span class="no">2</span>
+    <h2><a href="arcade/hash.html" data-i18n="d2title"></a></h2>
+    <a class="go" href="arcade/hash.html" data-i18n="open"></a>
+    <p class="what" data-i18n="d2what"></p>
+    <p class="meta"><span data-i18n="d2meta"></span><b id="p-hash"></b></p>
+  </li>
+  <li class="door" data-k="fourier">
+    <span class="no">3</span>
+    <h2><a href="arcade/index.html" data-i18n="d3title"></a></h2>
+    <a class="go" href="arcade/index.html" data-i18n="open"></a>
+    <p class="what" data-i18n="d3what"></p>
+    <p class="meta"><span data-i18n="d3meta"></span><b id="p-fourier"></b></p>
+  </li>
+</ol>
+
+<section class="more">
+  <h2 data-i18n="srcTitle"></h2>
+  <p data-i18n="srcLead"></p>
+  <ul>
+    <li><a href="https://github.com/xudaniel/minicplex/blob/main/learning/hash-fourier/hash_demo.c"><code>hash_demo.c</code></a> <span data-i18n="src1"></span></li>
+    <li><a href="https://github.com/xudaniel/minicplex/blob/main/learning/hash-fourier/simple_hash.c"><code>simple_hash.c</code></a> <span data-i18n="src2"></span></li>
+    <li><a href="https://github.com/xudaniel/minicplex/blob/main/learning/hash-fourier/fourier.c"><code>fourier.c</code></a> <span data-i18n="src3"></span></li>
+    <li><a href="https://github.com/xudaniel/minicplex/blob/main/learning/hash-fourier/fft.c"><code>fft.c</code></a> <span data-i18n="src4"></span></li>
+  </ul>
+  <p><a href="https://github.com/xudaniel/minicplex/tree/main/learning/hash-fourier" data-i18n="srcAll"></a></p>
+  <p class="fine" data-i18n="fine"></p>
+</section>
+
+</main>
+<script>
+const TXT = {
+  zh: {
+    langBtn: 'EN', eyebrow: '一门课 · 两个游戏厅',
+    title: '<span class="a">搅乱</span>，<br>与<span class="b">分开</span>',
+    lead: 'Hash 把一句话搅成一串指纹，再也回不去。傅里叶把混在一起的波一根一根分出来，还能原样拼回去。这里有一门能动手的小课和两个游戏厅，背后是几个只用 stdio.h 写成的 C 文件。',
+    capBits: 'SHA-256(「搅乱，与分开」) 的 256 位',
+    capWave: '四个正弦波叠出来的近似方波',
+    open: '打开',
+    d1title: '互动课', d1what: '八个实验，每个先猜再动手：指纹、雪崩、六十四轮、撞车，然后是混音、探针、对半拆、回得去吗。',
+    d1meta: '八个实验 · 中文',
+    d2title: '哈希游戏厅', d2what: '挖矿：给一句话换编号，直到指纹开头有足够多位 0。撞车赌局：下注平均扔多少句会撞车。',
+    d2meta: '两个游戏 · 六颗星 · 中文 / English',
+    d3title: '傅里叶游戏厅', d3what: '调音、认谱、寻频、画圆：用眼睛、耳朵和手，把藏在波形里的频率找出来。',
+    d3meta: '四个游戏 · 十二颗星 · 中文 / English',
+    pNone: '还没开始', pQuiz: '先猜 {n}/8', pStars: '★ {n}/{m}',
+    srcTitle: '背后的 C 代码', srcLead: '页面里的算法都是照着这几个文件用 JavaScript 重写的，发布前有脚本逐项核对。',
+    src1: '手写 SHA-256，带逐轮追踪', src2: '十行的 FNV-1a', src3: '傅里叶变换的直白写法（DFT）', src4: '快速傅里叶变换（FFT）',
+    srcAll: '全部文件和说明在 GitHub 上',
+    fine: '进度只存在这个浏览器里。这些是 minicplex 仓库里的学习材料，和求解器本身无关。'
+  },
+  en: {
+    langBtn: '中文', eyebrow: 'ONE COURSE · TWO ARCADES',
+    title: '<span class="a">Scramble</span>,<br>and <span class="b">Separate</span>',
+    lead: 'A hash scrambles a sentence into a fingerprint, and there is no way back. A Fourier transform pulls a tangle of waves apart one by one, and can put them back exactly. Here is a small hands-on course and two arcades, all built on a few C files that use nothing but stdio.h.',
+    capBits: 'The 256 bits of SHA-256("搅乱，与分开")',
+    capWave: 'Four sine waves stacked into a near-square wave',
+    open: 'Open',
+    d1title: 'The course', d1what: 'Eight experiments, each one guess-first then hands-on: fingerprint, avalanche, sixty-four rounds, collisions, then mixing, probing, halving and whether you can go back.',
+    d1meta: 'Eight experiments · Chinese only',
+    d2title: 'Hash Arcade', d2what: 'Dig: change a number until the fingerprint starts with enough zero bits. Crash Bet: wager how many throws it takes before two fingerprints collide.',
+    d2meta: 'Two games · six stars · 中文 / English',
+    d3title: 'Fourier Arcade', d3what: 'Tune, Snap, Hunt and Circles: find the frequencies hidden in a wave by eye, by ear and by hand.',
+    d3meta: 'Four games · twelve stars · 中文 / English',
+    pNone: 'not started', pQuiz: 'guesses {n}/8', pStars: '★ {n}/{m}',
+    srcTitle: 'The C code behind it', srcLead: 'Every algorithm on these pages is a JavaScript rewrite of these files, and test scripts check them before each release.',
+    src1: 'SHA-256 by hand, with a round-by-round trace', src2: 'FNV-1a in ten lines', src3: 'the plain Fourier transform (DFT)', src4: 'the fast Fourier transform (FFT)',
+    srcAll: 'All files and notes on GitHub',
+    fine: 'Progress is saved in this browser only. These are learning materials in the minicplex repository; they are unrelated to the solver itself.'
+  }
+};
+const KEY = 'hash-fourier-hub-v1';
+let lang = 'zh';
+try { const v = localStorage.getItem(KEY); if (v === 'en' || v === 'zh') lang = v; } catch (e) {}
+const $ = id => document.getElementById(id);
+function tr(k, vars) { let s = TXT[lang][k] || TXT.zh[k] || k; if (vars) for (const x in vars) s = s.split('{' + x + '}').join(vars[x]); return s; }
+function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+/* the real SHA-256 of the title, as computed by hash_demo.c */
+const TITLE_HASH = '357818872fa66d71f2d46d95bdafe191c8ab2f2e910550f1d85645125773d6f6';
+function buildBits() {
+  const box = $('bits');
+  for (let i = 0; i < 256; i++) {
+    const nib = parseInt(TITLE_HASH[i >> 2], 16), el = document.createElement('i');
+    if ((nib >> (3 - (i & 3))) & 1) el.className = 'on';
+    box.appendChild(el);
+  }
+}
+const WAVE = [[1, 1], [3, 0.35], [5, 0.2], [7, 0.14]];
+function drawWave() {
+  const cv = $('wave'), dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = cv.clientWidth || 300, h = cv.clientHeight || 66;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+  const mid = h / 2, y = v => mid - v / 1.25 * (h / 2 - 4);
+  c.strokeStyle = tok('--line'); c.lineWidth = 1; c.beginPath(); c.moveTo(0, mid + .5); c.lineTo(w, mid + .5); c.stroke();
+  c.beginPath();
+  for (let i = 0; i <= 400; i++) {
+    const t = i / 400 * 2; let v = 0;
+    for (const p of WAVE) v += p[1] * Math.sin(2 * Math.PI * p[0] * t);
+    i ? c.lineTo(i / 400 * w, y(v)) : c.moveTo(0, y(v));
+  }
+  c.strokeStyle = tok('--wave'); c.lineWidth = 2.5; c.lineJoin = 'round'; c.stroke();
+}
+
+/* progress saved by the three pages (same site, same browser) */
+function progress() {
+  const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+  const stars = (o, m) => { if (!o || !o.stars) return tr('pNone'); let n = 0; for (const g in o.stars) if (Array.isArray(o.stars[g])) n += o.stars[g].filter(Boolean).length; return n ? tr('pStars', { n, m }) : tr('pNone'); };
+  const c = read('hash-fourier-course-v1');
+  const answered = c && c.quiz && typeof c.quiz === 'object' ? Object.keys(c.quiz).length : 0;
+  $('p-course').textContent = answered ? tr('pQuiz', { n: Math.min(8, answered) }) : tr('pNone');
+  $('p-hash').textContent = stars(read('hash-arcade-v1'), 6);
+  $('p-fourier').textContent = stars(read('fourier-arcade-v1'), 12);
+}
+function apply() {
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.title = lang === 'zh' ? '搅乱，与分开' : 'Scramble, and Separate';
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  const h1 = $('title'); h1.innerHTML = tr('title'); h1.classList.toggle('en', lang === 'en');
+  $('langBtn').textContent = tr('langBtn');
+  progress(); drawWave();
+}
+buildBits();
+$('langBtn').addEventListener('click', () => { lang = lang === 'zh' ? 'en' : 'zh'; try { localStorage.setItem(KEY, lang); } catch (e) {} apply(); });
+apply();
+let timer = 0;
+window.addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(drawWave, 120); });
+window.addEventListener('pageshow', progress);
+try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawWave); } catch (e) {}
+try { new MutationObserver(drawWave).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+</script>
+</body>
+</html>
