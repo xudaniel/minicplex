@@ -9,6 +9,7 @@
 <a href="https://github.com/xudaniel/minicplex/releases"><img src="https://img.shields.io/badge/release-1.0.0-0ea5e9" alt="Release 1.0.0"></a>
 <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17">
 <img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
+<a href="java/tutorial/README.md"><img src="https://img.shields.io/badge/Java%20course-20%20lessons-f59e0b" alt="Java course: 20 lessons"></a>
 <img src="https://img.shields.io/badge/dependencies-none-22c55e" alt="No dependencies">
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-64748b" alt="MIT"></a>
 </p>
@@ -23,6 +24,7 @@
 <a href="#examples">Examples</a> ·
 <a href="#code-tour">Code tour</a> ·
 <a href="#java-version">Java version</a> ·
+<a href="#learn-java-with-minicplex"><b>Learn Java</b></a> ·
 <a href="docs/PRD.en.md">PRD</a>
 </p>
 
@@ -32,6 +34,8 @@
 writes CPLEX `.lp` files, offers a Concert-style modelling API and prints a CPLEX-style branch-and-bound log. It
 was written to understand solvers like IBM ILOG CPLEX **from the inside**: the code is short and heavily commented,
 and `--trace` shows every simplex pivot, every cut and every branching decision.
+It is also the textbook for a **Java course** that takes complete beginners from their first `println` to reading
+the solver's own code.
 
 <p align="center"><img src="docs/assets/demo.svg" alt="minicplex solving a production-planning MIP" width="760"></p>
 
@@ -74,8 +78,8 @@ CI checks this on every commit.
 <td width="50%" valign="top">
 
 **📚 Tutorial-grade examples**<br>
-Ten graded examples from "one variable" to elastic constraints, a modelling cheat sheet, exercises, a
-function-by-function code walkthrough, and a [Java course](java/tutorial/README.md) (in Chinese): 8 zero-basics lessons plus 12 main lessons.
+Ten graded modelling examples from "one variable" to elastic constraints, a modelling cheat sheet, exercises with
+answers, and a function-by-function code walkthrough.
 
 </td>
 <td width="50%" valign="top">
@@ -83,6 +87,21 @@ function-by-function code walkthrough, and a [Java course](java/tutorial/README.
 **🪶 Small, readable, zero dependencies**<br>
 No third-party libraries. The C++ core is about 2,200 lines, so you can read from `main` to branch-and-bound in an
 afternoon.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**🎓 Learn Java from zero**<br>
+20 lessons (in Chinese): 8 zero-basics lessons, then classes, collections, lambdas, exceptions and testing, taught
+with the solver's real code. Every lesson has a self-grading exercise.
+
+</td>
+<td width="50%" valign="top">
+
+**🖥️ Feels like CPLEX**<br>
+Reads and writes CPLEX `.lp` files, prints a CPLEX-style node log, and reports shadow prices for LPs (`--duals`).
 
 </td>
 </tr>
@@ -99,6 +118,7 @@ cmake -S . -B build && cmake --build build -j
 ./build/minicplex examples/bakery.lp            # solve a small bakery MIP
 ./build/minicplex examples/bakery.lp --trace    # watch it, step by step
 ctest --test-dir build                          # run the test suite
+java/build.sh && java/tutorial/run.sh A01       # learning Java? run the first exercise (JDK 17+ only)
 ```
 
 `examples/bakery.lp` is a tiny model in CPLEX LP format: a bakery makes cakes (profit 5) and loaves of bread
@@ -154,6 +174,27 @@ Result r = Solver.solve(m);   // r.objective == 20
 If half a cake were allowed (an LP), the best plan would be 3 cakes and 1.5 loaves for a profit of 21. With whole
 units only (a MIP), the optimum is 4 cakes and no bread, profit 20. Rounding the LP answer down gives only 19, which
 is why integer programming needs branch-and-bound.
+
+## Learn Java with minicplex
+
+[`java/tutorial/`](java/tutorial/README.md) is a Java course in two stages, written in Chinese. Every lesson has an
+exercise that grades itself when you run it (✅ right, ❌ wrong, ⏳ not written yet), plus a reference solution.
+
+| Stage | What it covers | For | Per lesson |
+|---|---|---|---|
+| **Basics A1–A8** | Printing, variables and arithmetic, decisions, loops, methods, arrays, strings; a small fruit-shopping project that ends by checking its answer against the solver | People who have never written code | 10–20 minutes |
+| **Lessons 1–12** | Compiling and packages, floating-point error, classes, immutability, records and enums, collections, lambdas and priority queues, exceptions, string processing, testing; a course-planner project | People who know a little programming | 30–60 minutes |
+
+The main lessons take every example from the solver itself, for instance "why does `LinExpr` return a new object
+every time?" or "how does branch-and-bound order its node queue?", so learners finish able to read a complete,
+real project, not just the syntax.
+
+```bash
+java/build.sh                  # build once (about 10 s, no Maven, no network)
+java/tutorial/run.sh A01       # first beginner exercise
+java/tutorial/run.sh 01        # first main-lesson exercise
+java/tutorial/run.sh all       # see how far you have got
+```
 
 ## How it works
 
@@ -357,12 +398,7 @@ Java has no operator overloading, so expressions are built fluently:
 
 `Params` has the same fields and defaults in both languages.
 
-**Learn Java with minicplex.** [`java/tutorial/`](java/tutorial/README.md) is a Java course (in Chinese). Complete
-beginners start with eight 10–20 minute lessons, A1 to A8 (printing, variables, decisions, loops, methods, arrays,
-strings, and a small fruit-shopping project that ends by checking its answer against the solver). The 12 main lessons
-then teach one language feature per lesson — arrays, classes, immutability, records and enums, collections,
-lambdas and comparators, exceptions, string processing, testing — using real excerpts from this code base. Every
-lesson has a self-grading exercise (`java/tutorial/run.sh 01`) and a reference solution that CI runs on every commit.
+**Learning Java?** See [Learn Java with minicplex](#learn-java-with-minicplex): 20 lessons with self-grading exercises.
 
 ### Same answers, same path
 

@@ -9,6 +9,7 @@
 <a href="https://github.com/xudaniel/minicplex/releases"><img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.0.0-0ea5e9" alt="版本 1.0.0"></a>
 <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17">
 <img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
+<a href="java/tutorial/README.md"><img src="https://img.shields.io/badge/Java%20%E8%AF%BE-20%20%E8%8A%82-f59e0b" alt="Java 课 20 节"></a>
 <img src="https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-22c55e" alt="零依赖">
 <a href="LICENSE"><img src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-64748b" alt="MIT"></a>
 </p>
@@ -23,7 +24,7 @@
 <a href="#例子">例子</a> ·
 <a href="#代码解析">代码解析</a> ·
 <a href="#java-版">Java 版</a> ·
-<a href="java/tutorial/README.md"><b>用它学 Java</b></a> ·
+<a href="#用它学-java"><b>用它学 Java</b></a> ·
 <a href="docs/PRD.md">PRD</a>
 </p>
 
@@ -32,6 +33,7 @@
 **minicplex** 是一个零依赖的 LP / MIP 求解器，C++17 写成，另有一份逐行移植的 Java 版。它能读写 CPLEX `.lp` 文件，
 提供类似 Concert 的建模 API，打印类似 CPLEX 的分支定界日志。写它是为了**从内部看懂** IBM ILOG CPLEX 这类求解器：
 代码不长，注释详细，加上 `--trace` 就能看到单纯形的每一次换基、每一个割平面、每一次分支。
+它同时是一门 **Java 课**的教材：从没写过代码的人，也能从打印第一行字一路学到读懂这个求解器。
 
 <p align="center"><img src="docs/assets/demo.svg" alt="minicplex 求解一个生产排程整数规划" width="760"></p>
 
@@ -69,14 +71,28 @@ Java 版逐行移植，同一道题两边的节点数、迭代次数、每一步
 <tr>
 <td width="50%" valign="top">
 
-**📚 从零开始的中文教程**<br>
-10 个由浅入深的入门例子、建模技巧速查表、练习题、逐函数的代码解析，还有一门 [Java 课](java/tutorial/README.md)：8 节零基础小课 + 12 课正式课。
+**📚 从零开始的优化教程**<br>
+10 个由浅入深的建模例子（买苹果、选项目、排班……）、建模技巧速查表、带答案的练习题，以及逐函数的代码解析。
 
 </td>
 <td width="50%" valign="top">
 
 **🪶 零依赖，小而可读**<br>
 不依赖任何第三方库，C++ 核心代码约 2,200 行。一个下午就能从 `main` 读到分支定界。
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**🎓 用它学 Java，从零开始**<br>
+20 节中文课：8 节零基础小课（打印、变量、循环、数组……），再用求解器的真实代码学类、集合、lambda、异常和测试。每节一道自动判分的练习。
+
+</td>
+<td width="50%" valign="top">
+
+**🖥️ 用起来像 CPLEX**<br>
+读写 CPLEX `.lp` 文件，命令行打印 CPLEX 风格的节点日志；线性规划还能输出影子价格（`--duals`）。
 
 </td>
 </tr>
@@ -89,6 +105,7 @@ git clone https://github.com/xudaniel/minicplex.git && cd minicplex
 cmake -S . -B build && cmake --build build -j
 ./build/minicplex examples/bakery.lp            # 解一道面包店整数规划
 ./build/minicplex examples/bakery.lp --trace    # 看它一步一步怎么算
+java/build.sh && java/tutorial/run.sh A01       # 想学 Java？做第一道练习（只需要 JDK 17+）
 ```
 
 `examples/bakery.lp` 就是用 CPLEX LP 格式写的一道小题：
@@ -139,6 +156,24 @@ Result r = Solver.solve(m);   // r.objective == 20
 </td>
 </tr>
 </table>
+
+## 用它学 Java
+
+[`java/tutorial/`](java/tutorial/README.md) 是一门中文 Java 课，分两段。每节都有一道练习，运行后自动判分（✅ 对、❌ 不对、⏳ 还没写），卡住了可以看参考答案。
+
+| 阶段 | 内容 | 适合谁 | 每节 |
+|---|---|---|---|
+| **入门 A1～A8** | 打印、变量和计算、判断、循环、方法、数组、字符串；最后做一个“挑水果”小项目，再和求解器对答案 | 从没写过代码的人 | 10～20 分钟 |
+| **第 1～12 课** | 编译和包、小数误差、类、不可变对象、record 和 enum、集合、lambda 和优先队列、异常、字符串处理、测试；最后做一个“选课助手” | 学过一点编程的人 | 30～60 分钟 |
+
+正式课的例子全部取自这个求解器的源代码，比如“为什么 `LinExpr` 每次都返回新对象”“分支定界的节点队列怎么排序”。学完不只会写 Java 语法，还能读懂一个完整的真实项目。
+
+```bash
+java/build.sh                  # 编译一次（约 10 秒，不需要 Maven，也不联网）
+java/tutorial/run.sh A01       # 入门第一课的练习
+java/tutorial/run.sh 01        # 正式课第一课的练习
+java/tutorial/run.sh all       # 看看一共完成了多少
+```
 
 ## 它是怎么工作的
 
@@ -573,10 +608,7 @@ m.writeLP(std::cout);         // 导出为 CPLEX LP 格式
 
 ## Java 版
 
-> **想用 minicplex 学 Java？** [`java/tutorial/`](java/tutorial/README.md) 是一门中文 Java 课。完全没写过代码的，
-> 先做 8 节零基础小课 A1～A8（打印、变量、判断、循环、方法、数组、字符串、挑水果小项目，每节 10～20 分钟）；
-> 再进入 12 课正式课程（数组、类、不可变对象、record、集合、lambda、异常、字符串、测试……），例子取自本项目的源代码。
-> 每课配一道能自动判分的练习：`java/tutorial/run.sh A01`。
+> **想用 minicplex 学 Java？** 见上面的[用它学 Java](#用它学-java)：20 节课，每节一道自动判分的练习。
 
 `java/` 目录是整个求解器的 Java 移植：单纯形内核、预处理、Gomory 割、可靠性分支、LP 文件读写、命令行、
 `--trace` 教学输出、基准和随机题工具、全部 15 个例子和测试，一个不少。Java 17 起可用，不依赖任何第三方库。
