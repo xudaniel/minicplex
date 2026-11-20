@@ -223,7 +223,7 @@ python3 python/tutorial/run.py all        # 看看一共完成了多少
 [`learning/hash-fourier/`](learning/hash-fourier/README.md) 是一组和求解器无关的小练习，思路和本项目一样：从零写出来，再逐项核对。
 纯 C 手写 SHA-256（带逐轮追踪）、FNV-1a、傅里叶变换的 DFT 和 FFT，只 `#include <stdio.h>`，连 `sin`、`cos`、开方都是自己写的。
 另有一门八个实验的互动小课 `course/index.html`，单个文件，用浏览器直接打开，手机也能用。
-配套的傅里叶游戏厅 `arcade/index.html` 有四个小游戏（调音、认谱、寻频、画圆），中英文可切换。
+配套的傅里叶游戏厅 `arcade/index.html` 有四个小游戏（调音、认谱、寻频、画圆），哈希游戏厅 `arcade/hash.html` 有两个（挖矿、撞车赌局），都可以切换中英文。
 
 ```bash
 cd learning/hash-fourier
@@ -1839,7 +1839,7 @@ java/      build.sh  pom.xml  tutorial/（Java 教程：A1～A8 零基础 + 12 �
 python/    minicplex/（求解器包：model.py lp_engine.py solver.py lp_reader.py presolve.py ……）  pyproject.toml
            tutorial/（Python 教程：A1～A8 零基础 + 12 课；lessons/、exercises/、solutions/、run.py）
            examples/（15 个例子）  tests/test_solver.py
-learning/  hash-fourier/（和求解器无关的练习：纯 C 手写 SHA-256、FNV-1a、DFT、FFT，course/ 互动小课，arcade/ 傅里叶游戏厅）
+learning/  hash-fourier/（和求解器无关的练习：纯 C 手写 SHA-256、FNV-1a、DFT、FFT，course/ 互动小课，arcade/ 傅里叶和哈希两个游戏厅）
 ```
 
 ## 后续方向

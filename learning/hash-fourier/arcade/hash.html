@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hash Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column of game cabinets on graph paper, the twin of the Fourier Arcade.
+   Ink on cool paper; vermilion leads here (the colour of scrambled bits in the course),
+   teal is kept for the player's own mark. */
+:root {
+  --paper: #EDF0F4;
+  --grid: #DCE2EA;
+  --card: #FBFCFD;
+  --ink: #141B2B;
+  --muted: #586377;
+  --line: #C5CDD8;
+  --off: #E1E6ED;
+  --hot: #D93A22;
+  --wave: #0B7A85;
+  --ok: #1F7F52;
+  --acc: var(--hot);
+  --f-display: "ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0C111D; --grid: #151C2C; --card: #141B2B; --ink: #E7ECF5;
+    --muted: #95A1B8; --line: #2B3650; --off: #1F2940;
+    --hot: #FF6A48; --wave: #42C4CE; --ok: #4CC38A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0C111D; --grid: #151C2C; --card: #141B2B; --ink: #E7ECF5;
+  --muted: #95A1B8; --line: #2B3650; --off: #1F2940;
+  --hot: #FF6A48; --wave: #42C4CE; --ok: #4CC38A;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+}
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 18px; }
+h1, h2 { font-family: var(--f-display); font-weight: 400; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.nav { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--paper) 90%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.nav .wrap { display: flex; gap: 6px; padding-top: 8px; padding-bottom: 8px; align-items: center; }
+.nav button { height: 32px; padding: 0 10px; font-size: 13px; background: transparent; border: 1.5px solid var(--line); border-radius: 3px; cursor: pointer; white-space: nowrap; }
+.nav button.jump { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nav button.jump.full { background: var(--acc); border-color: var(--acc); color: #fff; }
+.nav .stars { font-family: var(--f-mono); font-size: 13px; font-weight: 600; padding: 0 4px; white-space: nowrap; }
+
+.top { padding: 36px 0 4px; display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+h1 { font-size: clamp(54px, 15vw, 104px); line-height: .98; letter-spacing: .01em; }
+h1 span { color: var(--acc); }
+.lead { max-width: 36em; font-size: 17px; }
+#heroWave { height: 64px; }
+
+.game { margin-top: 52px; padding-top: 18px; border-top: 3px solid var(--ink); scroll-margin-top: 60px; display: flex; flex-direction: column; gap: 14px; }
+.game-head { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: baseline; }
+.tag { font-family: var(--f-mono); font-weight: 600; font-size: 14px; color: var(--acc); border: 1.5px solid var(--acc); border-radius: 3px; padding: 0 7px; }
+.game-head h2 { font-size: 34px; line-height: 1.15; }
+.how { grid-column: 1 / -1; margin-top: 6px; max-width: 40em; }
+.goals { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.goals li { display: grid; grid-template-columns: 20px 1fr; align-items: baseline; }
+.goals li::before { content: "☆"; font-size: 15px; }
+.goals li.done { color: var(--ink); font-weight: 700; }
+.goals li.done::before { content: "★"; color: var(--acc); }
+
+.bench { background: var(--card); border: 1.5px solid var(--ink); border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.cap { font-size: 13px; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { min-height: 40px; padding: 7px 14px; cursor: pointer; background: var(--acc); color: #fff; border: 0; border-radius: 4px; font-weight: 700; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); font-weight: 500; }
+.btn[hidden] { display: none; }
+.seg { display: flex; border: 1.5px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { flex: 1; min-height: 38px; padding: 6px 4px; background: transparent; border: 0; border-left: 1.5px solid var(--line); cursor: pointer; font-size: 13px; white-space: nowrap; }
+.seg button:first-child { border-left: 0; }
+.seg button.on { background: var(--ink); color: var(--paper); }
+.seg button.won::after { content: " ★"; color: var(--acc); }
+.seg button.on.won::after { color: var(--paper); }
+canvas { display: block; width: 100%; }
+input[type="range"] { width: 100%; accent-color: var(--acc); margin: 0; height: 26px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 0; margin-right: 5px; border-top: 2.5px solid var(--sw); vertical-align: 3px; }
+.legend .dash::before { border-top-style: dashed; }
+.big { font-family: var(--f-mono); font-weight: 600; font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.big small { font-family: var(--f-body); font-weight: 400; font-size: 14px; color: var(--muted); }
+.meter { position: relative; height: 12px; background: var(--off); border-radius: 2px; overflow: hidden; }
+.meter i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--acc); transition: width .15s; }
+.note { font-size: 15px; border-left: 4px solid var(--acc); padding-left: 12px; }
+.note[hidden] { display: none; }
+.note.bad { border-left-color: var(--hot); }
+
+.oscs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 18px; }
+.osc { display: flex; flex-direction: column; gap: 2px; }
+.osc .name { font-size: 13px; font-weight: 700; }
+.osc label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.opts button { padding: 8px 8px 4px; background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.opts button:not(:disabled):hover { border-color: var(--ink); }
+.opts button:disabled { cursor: default; }
+.opts button canvas { height: 84px; }
+.opts button .lab { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.opts button.right { border-color: var(--ok); box-shadow: inset 0 0 0 2px var(--ok); }
+.opts button.wrong { border-color: var(--hot); opacity: .6; }
+
+.cells { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.cells button { aspect-ratio: 1; min-width: 0; padding: 0; background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; cursor: pointer;
+  font-family: var(--f-mono); font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
+.cells button:not(:disabled):hover { border-color: var(--ink); }
+.cells button:disabled { cursor: default; }
+.cells button small { font-size: 10px; color: var(--muted); }
+.cells button.miss { background: var(--off); color: var(--muted); border-style: dashed; }
+.cells button.hit { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 600; }
+.cells button.hit small { color: #fff; }
+.cells button.reveal { border: 2px solid var(--hot); color: var(--hot); }
+
+.pad { position: relative; width: 100%; max-width: 440px; align-self: center; }
+.pad canvas { aspect-ratio: 1; height: auto; background: var(--paper); border: 1.5px dashed var(--line); border-radius: 4px; touch-action: none; cursor: crosshair; }
+
+.end { margin: 56px 0 0; padding: 20px 0 48px; border-top: 3px solid var(--ink); display: flex; flex-direction: column; gap: 8px; }
+.end .fine { font-size: 13px; color: var(--muted); max-width: 44em; }
+.stats { display: flex; flex-wrap: wrap; gap: 2px 16px; font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--ink); font-weight: 600; }
+.nav #soundBtn.off { color: var(--muted); text-decoration: line-through; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 10; max-width: calc(100% - 36px);
+  background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 4px; font-weight: 700; font-size: 15px;
+  opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+@keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.7); } 100% { transform: scale(1); } }
+.goals li.just::before { display: inline-block; animation: pop .6s ease; }
+.end h2 { font-size: 34px; }
+.records { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 4px 0 6px; font-size: 14px; }
+.records dt { font-weight: 700; }
+.records dd { margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+.end.cleared h2 { color: var(--acc); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* hash arcade additions */
+.bits32 { display: grid; grid-template-columns: repeat(32, 1fr); gap: 2px; }
+.bits32 i { aspect-ratio: 1; background: var(--off); border-radius: 1px; }
+.bits32 i.one { background: var(--ink); }
+.bits32 i.lead { background: var(--acc); }
+.bits32 i.need { box-shadow: 0 3px 0 var(--ink); }
+.hex { font-family: var(--f-mono); font-size: 13px; line-height: 1.6; word-break: break-all; }
+.hex b { color: var(--acc); font-weight: 600; }
+.try { font-family: var(--f-mono); font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+input[type="text"], input[type="number"] { width: 100%; padding: 10px 12px; font-size: 16px; background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; }
+input[type="text"]:focus, input[type="number"]:focus { border-color: var(--ink); outline: none; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 13px; color: var(--muted); }
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 16px; }
+.readout div { display: flex; flex-direction: column; }
+.readout .k { font-size: 12px; color: var(--muted); }
+.readout .v { font-family: var(--f-mono); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.btn:disabled { opacity: .5; cursor: default; }
+.betrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.gridpad { width: 100%; max-width: 360px; align-self: center; }
+.gridpad canvas { aspect-ratio: 1; height: auto; }
+.legend .teal { --sw: var(--wave); }
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="Games"><div class="wrap">
+  <button class="jump" type="button" data-jump="dig" data-i18n="nav1"></button>
+  <button class="jump" type="button" data-jump="bet" data-i18n="nav2"></button>
+  <span class="stars" id="starCount"></span>
+  <button type="button" id="soundBtn">♪</button>
+  <button type="button" id="langBtn"></button>
+</div></nav>
+
+<main class="wrap">
+<header class="top">
+  <div class="eyebrow" data-i18n="eyebrow"></div>
+  <h1 data-i18n-html="title"></h1>
+  <p class="lead" data-i18n="lead"></p>
+</header>
+
+<!-- ================= 1 ================= -->
+<section class="game" id="dig">
+  <div class="game-head"><span class="tag">H1</span><h2 data-i18n="g1title"></h2><p class="how" data-i18n="g1how"></p></div>
+  <ul class="goals"><li data-goal="dig0" data-i18n="g1goal0"></li><li data-goal="dig1" data-i18n="g1goal1"></li><li data-goal="dig2" data-i18n="g1goal2"></li></ul>
+  <div class="bench">
+    <div class="field"><label for="digBase" data-i18n="digBase"></label><input type="text" id="digBase" maxlength="60" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><span class="cap" data-i18n="digLevel"></span><div class="seg" id="digSeg"></div></div>
+    <span class="cap" id="digOdds"></span>
+    <div class="try" id="digTry"></div>
+    <div class="bits32" id="digBits" aria-hidden="true"></div>
+    <div class="legend"><span style="--sw:var(--acc)" data-i18n="legLead"></span><span style="--sw:var(--ink)" data-i18n="legOne"></span><span style="--sw:var(--off)" data-i18n="legZero"></span></div>
+    <div class="hex" id="digHex"></div>
+    <div class="readout">
+      <div><span class="k" data-i18n="digTries"></span><span class="v" id="digN"></span></div>
+      <div><span class="k" data-i18n="digZeros"></span><span class="v" id="digZ"></span></div>
+      <div><span class="k" data-i18n="digBestNow"></span><span class="v" id="digB"></span></div>
+      <div><span class="k" data-i18n="digRate"></span><span class="v" id="digR"></span></div>
+    </div>
+    <p class="note" id="digNote" hidden></p>
+    <div class="row">
+      <button class="btn ghost" type="button" id="digOnce" data-i18n="digOnce"></button>
+      <button class="btn" type="button" id="digAuto"></button>
+      <button class="btn ghost" type="button" id="digReset" data-i18n="digReset"></button>
+    </div>
+    <div class="stats"><span id="digRec"></span></div>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="game" id="bet">
+  <div class="game-head"><span class="tag">H2</span><h2 data-i18n="g2title"></h2><p class="how" data-i18n="g2how"></p></div>
+  <ul class="goals"><li data-goal="bet0" data-i18n="g2goal0"></li><li data-goal="bet1" data-i18n="g2goal1"></li><li data-goal="bet2" data-i18n="g2goal2"></li></ul>
+  <div class="bench">
+    <div class="seg" id="betSeg"></div>
+    <p id="betAsk" style="font-weight:700"></p>
+    <span class="cap" data-i18n="betTip"></span>
+    <div class="betrow">
+      <div class="field"><label for="betInput" data-i18n="betLabel"></label><input type="number" id="betInput" min="1" step="1" inputmode="numeric"></div>
+      <button class="btn" type="button" id="betGo" data-i18n="betGo"></button>
+    </div>
+    <div class="gridpad" id="betGridWrap"><canvas id="betGrid" role="img" aria-label="Slots filling up"></canvas></div>
+    <span class="cap" id="betGridCap"></span>
+    <canvas id="betHist" style="height:150px" role="img" aria-label="How many throws each race took" hidden></canvas>
+    <div class="legend" id="betLegend" hidden><span style="--sw:var(--muted)" data-i18n="legRaces"></span><span style="--sw:var(--acc)" data-i18n="legAvg"></span><span class="dash teal" data-i18n="legBet"></span></div>
+    <p class="note" id="betNote" hidden></p>
+    <div class="row"><button class="btn ghost" type="button" id="betNew" data-i18n="betNew"></button></div>
+    <div class="stats"><span id="betRec"></span></div>
+  </div>
+</section>
+
+<section class="end" id="end">
+  <h2 id="endTitle"></h2>
+  <p class="num" id="endStars"></p>
+  <dl class="records" id="records"></dl>
+  <p class="fine" data-i18n="fine"></p>
+</section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/*CORE-START*/
+const K256 = new Uint32Array([
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+const W256 = new Uint32Array(64);
+const ENC = new TextEncoder();
+function rotr(x, n) { return (x >>> n) | (x << (32 - n)); }
+/* the same SHA-256 as hash_demo.c: pad, expand, 64 rounds, add back */
+function sha256(bytes) {
+  const len = bytes.length, total = Math.ceil((len + 9) / 64) * 64;
+  const buf = new Uint8Array(total);
+  buf.set(bytes); buf[len] = 0x80;
+  const dv = new DataView(buf.buffer);
+  dv.setUint32(total - 8, Math.floor(len / 0x20000000));
+  dv.setUint32(total - 4, (len * 8) >>> 0);
+  let h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a, h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19;
+  const m = W256;
+  for (let off = 0; off < total; off += 64) {
+    for (let i = 0; i < 16; i++) m[i] = dv.getUint32(off + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const s0 = rotr(m[i-15], 7) ^ rotr(m[i-15], 18) ^ (m[i-15] >>> 3);
+      const s1 = rotr(m[i-2], 17) ^ rotr(m[i-2], 19) ^ (m[i-2] >>> 10);
+      m[i] = (m[i-16] + s0 + m[i-7] + s1) >>> 0;
+    }
+    let a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
+    for (let i = 0; i < 64; i++) {
+      const t1 = (h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + K256[i] + m[i]) >>> 0;
+      const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0; h5 = (h5 + f) >>> 0; h6 = (h6 + g) >>> 0; h7 = (h7 + h) >>> 0;
+  }
+  const out = new Uint8Array(32), odv = new DataView(out.buffer);
+  [h0, h1, h2, h3, h4, h5, h6, h7].forEach((v, i) => odv.setUint32(i * 4, v));
+  return out;
+}
+function hashText(s) { return sha256(ENC.encode(s)); }
+function hexBytes(b) { let s = ''; for (let i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, '0'); return s; }
+function mulberry(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ---- Dig: proof of work ---- */
+function leadingZeroBits(h) {
+  let n = 0;
+  for (let i = 0; i < h.length; i++) {
+    if (h[i] === 0) { n += 8; continue; }
+    n += Math.clz32(h[i]) - 24; break;
+  }
+  return n;
+}
+function digText(base, nonce) { return base + ' #' + nonce; }
+/* try nonces start .. start+count-1; stop at the first one that reaches `target` zero bits */
+function digRun(base, start, count, target) {
+  let bestBits = -1, bestNonce = -1;
+  for (let i = 0; i < count; i++) {
+    const nonce = start + i;
+    const bits = leadingZeroBits(hashText(digText(base, nonce)));
+    if (bits > bestBits) { bestBits = bits; bestNonce = nonce; }
+    if (bits >= target) return { found: nonce, tried: i + 1, bestBits, bestNonce };
+  }
+  return { found: -1, tried: count, bestBits, bestNonce };
+}
+const DIG_LEVELS = [8, 12, 16, 20];
+
+/* ---- Crash Bet: the birthday problem ---- */
+const BET_LEVELS = { 1: [64, 100, 144], 2: [400, 900, 1600], 3: [10000, 40000, 65536] };
+const BET_RACES = 200, BET_TOLERANCE = 20;
+function slotOf(h, n) { return (((h[0] << 24) | (h[1] << 16) | (h[2] << 8) | h[3]) >>> 0) % n; }
+/* throw sentences into n slots until two land in the same one */
+function race(n, tag, keepSeq) {
+  const seen = new Uint8Array(n), seq = [];
+  for (let i = 1; ; i++) {
+    const s = slotOf(hashText(tag + ' #' + i), n);
+    if (keepSeq) seq.push(s);
+    if (seen[s]) return { throws: i, seq };
+    seen[s] = 1;
+  }
+}
+function expectedThrows(n) { return Math.sqrt(Math.PI * n / 2) + 2 / 3; }
+function pctOff(bet, avg) { return Math.abs(bet - avg) / avg * 100; }
+function histogram(values, bins) {
+  const max = Math.max.apply(null, values), w = Math.max(1, Math.ceil((max + 1) / bins));
+  const counts = new Array(bins).fill(0);
+  for (const v of values) counts[Math.min(bins - 1, Math.floor(v / w))]++;
+  return { counts, width: w, max: w * bins };
+}
+
+/*CORE-END*/
+
+/* ================= text ================= */
+const TXT = {
+  zh: {
+    nav1: '挖矿', nav2: '撞车赌局', langBtn: 'EN',
+    eyebrow: '两个游戏 · 六颗星',
+    title: '哈希<span>游戏厅</span>',
+    lead: 'Hash 把任何一句话搅成一串看不出规律的指纹。这两个游戏让你亲手试一试：想让指纹长成指定的样子有多难，想让两句话的指纹撞在一起又有多容易。指纹全部在你的浏览器里现场算，用的是和 hash_demo.c 一样的 SHA-256。',
+    stars: '★ {n}/6',
+    g1title: '挖矿', g1how: '在一句话后面加一个编号，再算它的指纹。指纹开头的 0 越多越稀有。不停地换编号，直到挖出一个开头有足够多个 0 的指纹。',
+    g1goal0: '用手挖出开头 4 位是 0 的指纹', g1goal1: '让机器挖出 16 位 0', g1goal2: '让机器挖出 20 位 0',
+    digBase: '你的一句话（编号会加在后面）', digLevel: '目标：指纹开头要有多少位 0',
+    bitsN: '{n} 位',
+    digOdds: '每试一次，挖中的机会是 {p} 分之一，所以平均要试 {p} 次。每多要一位 0，工作量翻一倍。',
+    legLead: '开头连续的 0', legOne: '1', legZero: '后面的 0',
+    digTries: '已经试了', digZeros: '这一次开头的 0', digBestNow: '目前最好', digRate: '机器速度',
+    unitTimes: '{n} 次', unitBits: '{n} 位', unitRate: '{n} 次/秒', none: '–',
+    digOnce: '用手挖一下', autoStart: '让机器挖', autoStop: '停下', digReset: '从头再来',
+    digHandHit: '手挖到了：第 {n} 下，指纹开头有 {b} 位 0。',
+    digHit: '挖到了。「{t}」的指纹开头有 {b} 位 0，一共试了 {n} 次，平均要 {e} 次。',
+    digVerify: '任何人都能马上验证：./hash_demo "{t}"',
+    digLucky: '你的运气比平均好 {x} 倍。', digUnlucky: '这次比平均多花了 {x} 倍的力气。',
+    digRec: '挖到过最多的 0：{b} 位（{t}）', digNoRec: '还没有挖到过带 0 的指纹。',
+    g2title: '撞车赌局', g2how: '把一句句话扔进格子里，每句话的指纹决定它落进哪一格。先下注：平均扔多少句，才会第一次有两句落进同一格？然后跑 200 场，看你猜得准不准。',
+    g2goal0: '第 1 桌：猜到误差 20% 以内', g2goal1: '第 2 桌：猜到误差 20% 以内', g2goal2: '第 3 桌：猜到误差 20% 以内',
+    table: '第 {n} 桌',
+    betAsk: '这一桌有 {n} 个格子。平均扔多少句，会第一次撞车？',
+    betTip: '提示：生日有 365 种可能，平均到第 25 个人左右，就会出现两个人同一天生日。',
+    betLabel: '你的下注（句）', betGo: '下注，跑 200 场', betNew: '换一桌',
+    betGridIdle: '下注之后，这里会演示其中一场。', betGridRun: '演示第 1 场：第 {i} 句', betGridDone: '演示的这一场：第 {i} 句撞进了已经有人的格子。', betGridBig: '格子太多，画不下，直接跑 200 场。',
+    betRunning: '正在跑 200 场… {i}/200',
+    legRaces: '200 场各扔了多少句', legAvg: '平均', legBet: '你的下注',
+    betResult: '200 场平均扔了 {a} 句就撞车。你下注 {b} 句，差了 {p}%。',
+    betWin: '猜中了。', betLose: '差得有点远。',
+    betRule: '经验公式：大约 1.25 × √格子数。这一桌是 1.25 × √{n} ≈ {r}。格子多 4 倍，撞车只晚 2 倍。',
+    betRec: '这一桌最准的一次：差 {p}%', betNoRec: '这一桌还没有下过注。',
+    betBad: '先填一个大于 0 的整数。',
+    soundOn: '声音已开，点一下静音。', soundOff: '声音已关，点一下打开。',
+    newStar: '★ 新的一颗星：{g}',
+    boardTitle: '成绩榜', clearedTitle: '通关了', endStars: '已经拿到 {n} / 6 颗星。', clearedLine: '六颗星全部拿到。下面的纪录还可以继续刷。',
+    recDig: '挖矿', recBet: '撞车赌局', recNone: '还没有', recZero: '最多 {b} 位 0', recRate: '机器最快 {r} 次/秒', recBet1: '第 {n} 桌差 {p}%',
+    fine: '星星、成绩和设置只存在这个浏览器里。这是 Hash 与傅里叶互动课上半场的配套游戏。真正的比特币挖矿是同一类游戏：换编号、算指纹、数开头的 0，只是要的 0 多得多。'
+  },
+  en: {
+    nav1: 'Dig', nav2: 'Crash Bet', langBtn: '中文',
+    eyebrow: 'TWO GAMES · SIX STARS',
+    title: 'Hash <span>Arcade</span>',
+    lead: 'A hash scrambles any sentence into a fingerprint with no visible pattern. These two games let you feel it: how hard it is to make a fingerprint look the way you want, and how easy it is to make two fingerprints crash into each other. Every fingerprint is computed live in your browser with the same SHA-256 as hash_demo.c.',
+    stars: '★ {n}/6',
+    g1title: 'Dig', g1how: 'Add a number to the end of a sentence and hash it. The more zeros the fingerprint starts with, the rarer it is. Keep changing the number until you dig up a fingerprint with enough leading zeros.',
+    g1goal0: 'Dig by hand to a fingerprint that starts with 4 zero bits', g1goal1: 'Let the machine dig 16 zero bits', g1goal2: 'Let the machine dig 20 zero bits',
+    digBase: 'Your sentence (the number is added after it)', digLevel: 'Target: how many zero bits the fingerprint must start with',
+    bitsN: '{n} bits',
+    digOdds: 'Each try hits with a chance of 1 in {p}, so it takes {p} tries on average. Every extra zero bit doubles the work.',
+    legLead: 'Leading zeros', legOne: '1', legZero: 'Later zeros',
+    digTries: 'Tries so far', digZeros: 'Leading zeros this try', digBestNow: 'Best so far', digRate: 'Machine speed',
+    unitTimes: '{n}', unitBits: '{n} bits', unitRate: '{n}/s', none: '–',
+    digOnce: 'Dig once by hand', autoStart: 'Let the machine dig', autoStop: 'Stop', digReset: 'Start over',
+    digHandHit: 'Dug by hand: dig number {n} starts with {b} zero bits.',
+    digHit: 'Struck it. The fingerprint of "{t}" starts with {b} zero bits. That took {n} tries; the average is {e}.',
+    digVerify: 'Anyone can check it instantly: ./hash_demo "{t}"',
+    digLucky: 'You were {x} times luckier than average.', digUnlucky: 'This one cost {x} times the average effort.',
+    digRec: 'Most zeros ever dug: {b} bits ({t})', digNoRec: 'No zeros dug yet.',
+    g2title: 'Crash Bet', g2how: 'Sentences are thrown into slots; each sentence\'s fingerprint decides its slot. Place a bet first: on average, how many throws until two sentences land in the same slot? Then 200 races run and you see how close you were.',
+    g2goal0: 'Table 1: bet within 20%', g2goal1: 'Table 2: bet within 20%', g2goal2: 'Table 3: bet within 20%',
+    table: 'Table {n}',
+    betAsk: 'This table has {n} slots. On average, how many throws until the first crash?',
+    betTip: 'Hint: with 365 possible birthdays, the first shared birthday shows up at about the 25th person on average.',
+    betLabel: 'Your bet (throws)', betGo: 'Bet and run 200 races', betNew: 'New table',
+    betGridIdle: 'After you bet, one of the races plays out here.', betGridRun: 'Showing race 1: throw {i}', betGridDone: 'The race shown: throw {i} landed in a slot that was already taken.', betGridBig: 'Too many slots to draw, so it goes straight to the 200 races.',
+    betRunning: 'Running 200 races… {i}/200',
+    legRaces: 'Throws in each of the 200 races', legAvg: 'Average', legBet: 'Your bet',
+    betResult: 'Across 200 races the first crash came after {a} throws on average. You bet {b}, which is {p}% off.',
+    betWin: 'Close enough. ', betLose: 'Not close. ',
+    betRule: 'Rule of thumb: about 1.25 × √slots. Here that is 1.25 × √{n} ≈ {r}. Four times the slots only doubles the wait.',
+    betRec: 'Closest bet at this table: {p}% off', betNoRec: 'No bet at this table yet.',
+    betBad: 'Enter a whole number above 0 first.',
+    soundOn: 'Sound is on. Click to mute.', soundOff: 'Sound is off. Click to turn it on.',
+    newStar: '★ New star: {g}',
+    boardTitle: 'Scoreboard', clearedTitle: 'Arcade cleared', endStars: 'Stars collected: {n} of 6.', clearedLine: 'All six stars. You can still beat your own records below.',
+    recDig: 'Dig', recBet: 'Crash Bet', recNone: 'nothing yet', recZero: 'most zeros {b} bits', recRate: 'top machine speed {r}/s', recBet1: 'table {n}: {p}% off',
+    fine: 'Stars, records and settings are saved in this browser only. Companion to the first half of the Hash and Fourier course. Real Bitcoin mining is the same kind of game: change a number, hash, count the leading zeros. It just asks for far more of them.'
+  }
+};
+
+/* ================= state ================= */
+const $ = id => document.getElementById(id);
+const KEY = 'hash-arcade-v1';
+const S = { lang: 'zh', sound: true, stars: { dig: [false, false, false], bet: [false, false, false] },
+  best: { zero: 0, zeroText: '', rate: 0, bet: {} } };
+const GOAL_KEYS = { dig: 'g1goal', bet: 'g2goal' };
+function tr(key, vars) {
+  let s = (TXT[S.lang] && TXT[S.lang][key]) || TXT.en[key] || key;
+  if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  return s;
+}
+const num = n => Math.round(n).toLocaleString('en-US');
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function restore(data) {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+  const src = Object.assign({}, saved, data || {});
+  if (src.lang === 'en' || src.lang === 'zh') S.lang = src.lang;
+  if (typeof src.sound === 'boolean') S.sound = src.sound;
+  if (src.stars && typeof src.stars === 'object') for (const g of Object.keys(S.stars)) { const a = src.stars[g]; if (Array.isArray(a) && a.length === 3) S.stars[g] = a.map(Boolean); }
+  const b = src.best;
+  if (b && typeof b === 'object') {
+    if (Number.isFinite(b.zero) && b.zero > 0) { S.best.zero = Math.min(256, b.zero); S.best.zeroText = String(b.zeroText || '').slice(0, 90); }
+    if (Number.isFinite(b.rate) && b.rate > 0) S.best.rate = b.rate;
+    if (b.bet && typeof b.bet === 'object') for (let l = 1; l <= 3; l++) if (Number.isFinite(b.bet[l]) && b.bet[l] >= 0) S.best.bet[l] = b.bet[l];
+  }
+}
+let toastTimer = 0;
+function toast(msg) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600); }
+function countStars() { let n = 0; for (const g of Object.keys(S.stars)) n += S.stars[g].filter(Boolean).length; return n; }
+function star(game, i) {
+  if (S.stars[game][i]) return false;
+  S.stars[game][i] = true; save(); renderStars();
+  const li = document.querySelector('[data-goal="' + game + i + '"]');
+  if (li) { li.classList.add('just'); setTimeout(() => li.classList.remove('just'), 700); }
+  toast(tr('newStar', { g: tr(GOAL_KEYS[game] + i) }));
+  if (countStars() === 6) setTimeout(() => { sfxFanfare(); toast(tr('clearedTitle') + ' ★ 6/6'); }, 1300);
+  return true;
+}
+function renderStars() {
+  let n = 0;
+  for (const g of Object.keys(S.stars)) {
+    S.stars[g].forEach((v, i) => { if (v) n++; const li = document.querySelector('[data-goal="' + g + i + '"]'); if (li) li.classList.toggle('done', v); });
+    const jb = document.querySelector('.jump[data-jump="' + g + '"]'); if (jb) jb.classList.toggle('full', S.stars[g].every(Boolean));
+  }
+  $('starCount').textContent = tr('stars', { n });
+  renderRecords();
+}
+function renderRecords() {
+  const n = countStars(), cleared = n === 6;
+  $('end').classList.toggle('cleared', cleared);
+  $('endTitle').textContent = tr(cleared ? 'clearedTitle' : 'boardTitle');
+  $('endStars').textContent = cleared ? tr('clearedLine') : tr('endStars', { n });
+  const sep = S.lang === 'zh' ? '；' : ' · ';
+  const digBits = [];
+  if (S.best.zero > 0) digBits.push(tr('recZero', { b: S.best.zero }));
+  if (S.best.rate > 0) digBits.push(tr('recRate', { r: num(S.best.rate) }));
+  const betBits = [];
+  for (let l = 1; l <= 3; l++) if (S.best.bet[l] !== undefined) betBits.push(tr('recBet1', { n: l, p: S.best.bet[l].toFixed(1) }));
+  const dl = $('records'); dl.textContent = '';
+  [['recDig', digBits.join(sep)], ['recBet', betBits.join(sep)]].forEach(([k, v]) => {
+    const dt = document.createElement('dt'); dt.textContent = tr(k);
+    const dd = document.createElement('dd'); dd.textContent = v || tr('recNone');
+    dl.appendChild(dt); dl.appendChild(dd);
+  });
+}
+
+/* ================= helpers ================= */
+const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function prep(cv) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = cv.clientWidth || 300, h = cv.clientHeight || 150;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+  c.font = '10px ' + (tok('--f-mono') || 'monospace');
+  return { c, w, h };
+}
+
+/* ================= sound ================= */
+let actx = null;
+function audio() {
+  if (!S.sound) return null;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; } catch (e) { return null; }
+}
+function tones(notes) {
+  const ctx = audio(); if (!ctx) return;
+  try {
+    const t0 = ctx.currentTime + 0.02;
+    for (const n of notes) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      const a = t0 + (n.at || 0), d = n.dur || 0.15, vol = n.g || 0.12;
+      o.type = n.type || 'sine'; o.frequency.value = n.f;
+      g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(vol, a + 0.012);
+      g.gain.setValueAtTime(vol, a + d * 0.6); g.gain.linearRampToValueAtTime(0, a + d);
+      o.connect(g); g.connect(ctx.destination); o.start(a); o.stop(a + d + 0.02);
+    }
+  } catch (e) {}
+}
+/* a pick striking rock: the more leading zeros, the higher the ring */
+const sfxDig = bits => tones([{ f: 180 + bits * 70, dur: 0.07, type: 'triangle', g: 0.1 }]);
+const sfxRight = () => tones([{ f: 660, dur: 0.1 }, { f: 880, at: 0.09, dur: 0.16 }]);
+const sfxWrong = () => tones([{ f: 196, dur: 0.22, type: 'triangle', g: 0.14 }]);
+const sfxCrash = () => tones([{ f: 110, dur: 0.25, type: 'sawtooth', g: 0.08 }, { f: 82, at: 0.04, dur: 0.3, type: 'triangle', g: 0.12 }]);
+const sfxGold = () => tones([{ f: 784, dur: 0.1 }, { f: 1047, at: 0.09, dur: 0.1 }, { f: 1319, at: 0.18, dur: 0.1 }, { f: 1568, at: 0.27, dur: 0.3 }]);
+const sfxFanfare = () => tones([{ f: 523, dur: 0.14 }, { f: 659, at: 0.13, dur: 0.14 }, { f: 784, at: 0.26, dur: 0.14 },
+  { f: 1047, at: 0.39, dur: 0.5 }, { f: 784, at: 0.39, dur: 0.5, g: 0.07 }, { f: 659, at: 0.39, dur: 0.5, g: 0.07 }]);
+
+/* ================= H1 Dig ================= */
+const dig = { base: 'minicplex', target: 12, next: 0, tries: 0, hand: 0, cur: null, best: null, running: false, done: null, handHit: null,
+  batch: 400, t0: 0, n0: 0, rate: 0 };
+function digShow(nonce) {
+  const text = digText(dig.base, nonce), h = hashText(text);
+  dig.cur = { nonce, text, hash: h, bits: leadingZeroBits(h) };
+  if (!dig.best || dig.cur.bits > dig.best.bits) dig.best = { bits: dig.cur.bits, text };
+  if (dig.cur.bits > S.best.zero) { S.best.zero = dig.cur.bits; S.best.zeroText = text; save(); renderRecords(); }
+}
+function digFresh() {
+  dig.running = false; dig.next = 0; dig.tries = 0; dig.hand = 0; dig.best = null; dig.done = null; dig.handHit = null; dig.rate = 0; dig.batch = 400;
+  dig.cur = null;
+  renderDig();
+}
+function digWin(viaMachine) {
+  dig.running = false;
+  dig.done = { text: dig.cur.text, bits: dig.cur.bits, tries: dig.tries };
+  sfxGold();
+  if (viaMachine) { if (dig.cur.bits >= 16) star('dig', 1); if (dig.cur.bits >= 20) star('dig', 2); }
+}
+function digHandOnce() {
+  if (dig.running) return;
+  if (dig.done) dig.done = null;
+  digShow(dig.next); dig.next++; dig.tries++; dig.hand++;
+  sfxDig(dig.cur.bits);
+  if (dig.cur.bits >= 4 && !dig.handHit) { dig.handHit = { n: dig.hand, bits: dig.cur.bits }; if (star('dig', 0)) sfxGold(); }
+  if (dig.cur.bits >= dig.target) digWin(false);
+  renderDig();
+}
+function digAutoToggle() {
+  if (dig.running) { dig.running = false; renderDig(); return; }
+  dig.done = null; dig.running = true; dig.t0 = performance.now(); dig.n0 = dig.tries;
+  renderDig();
+}
+/* one animation frame of machine digging; the batch size adapts so a frame stays short */
+function digFrame() {
+  if (!dig.running) return;
+  const t = performance.now();
+  const r = digRun(dig.base, dig.next, dig.batch, dig.target);
+  dig.tries += r.tried; dig.next += r.tried;
+  const took = performance.now() - t;
+  if (took < 8 && dig.batch < 20000) dig.batch *= 2; else if (took > 20 && dig.batch > 200) dig.batch = Math.round(dig.batch / 2);
+  const secs = (performance.now() - dig.t0) / 1000;
+  if (secs > 0.05) { dig.rate = (dig.tries - dig.n0) / secs; if (secs > 0.5 && dig.rate > S.best.rate) S.best.rate = Math.round(dig.rate); }
+  if (r.found >= 0) { digShow(r.found); digWin(true); save(); renderRecords(); }
+  else digShow(r.bestBits >= 0 && (!dig.best || r.bestBits > dig.best.bits) ? r.bestNonce : dig.next - 1);
+  renderDig();
+}
+function buildDig() {
+  const seg = $('digSeg');
+  DIG_LEVELS.forEach(b => {
+    const el = document.createElement('button'); el.type = 'button'; el.dataset.bits = b;
+    el.addEventListener('click', () => { dig.target = b; digFresh(); });
+    seg.appendChild(el);
+  });
+  const bits = $('digBits'); for (let i = 0; i < 32; i++) bits.appendChild(document.createElement('i'));
+  const inp = $('digBase'); inp.value = dig.base;
+  inp.addEventListener('input', () => { dig.base = inp.value.slice(0, 60); digFresh(); });
+  $('digOnce').addEventListener('click', digHandOnce);
+  $('digAuto').addEventListener('click', digAutoToggle);
+  $('digReset').addEventListener('click', digFresh);
+}
+function renderDig() {
+  document.querySelectorAll('#digSeg button').forEach(b => {
+    const n = Number(b.dataset.bits);
+    b.textContent = tr('bitsN', { n }); b.classList.toggle('on', n === dig.target); b.disabled = dig.running;
+  });
+  $('digOdds').textContent = tr('digOdds', { p: num(Math.pow(2, dig.target)) });
+  const cur = dig.cur || { text: digText(dig.base, 0), hash: null, bits: 0 };
+  $('digTry').textContent = dig.cur ? cur.text : digText(dig.base, '?');
+  const cells = $('digBits').children;
+  for (let i = 0; i < 32; i++) {
+    let cls = i < dig.target ? 'need' : '';
+    if (cur.hash) { const bit = (cur.hash[i >> 3] >> (7 - (i & 7))) & 1; if (i < cur.bits) cls += ' lead'; else if (bit) cls += ' one'; }
+    cells[i].className = cls.trim();
+  }
+  if (cur.hash) { const hx = hexBytes(cur.hash), z = Math.floor(cur.bits / 4); $('digHex').innerHTML = (z ? '<b>' + hx.slice(0, z) + '</b>' : '') + hx.slice(z); }
+  else $('digHex').textContent = '';
+  $('digN').textContent = tr('unitTimes', { n: num(dig.tries) });
+  $('digZ').textContent = dig.cur ? tr('unitBits', { n: cur.bits }) : tr('none');
+  $('digB').textContent = dig.best ? tr('unitBits', { n: dig.best.bits }) : tr('none');
+  $('digR').textContent = dig.rate > 0 ? tr('unitRate', { n: num(dig.rate) }) : tr('none');
+  const note = $('digNote');
+  if (dig.done) {
+    const e = Math.pow(2, dig.target), ratio = e / dig.done.tries;
+    let msg = tr('digHit', { t: dig.done.text, b: dig.done.bits, n: num(dig.done.tries), e: num(e) });
+    const gap = S.lang === 'zh' ? '' : ' ';
+    if (ratio >= 1.5) msg += gap + tr('digLucky', { x: ratio.toFixed(1) }); else if (ratio <= 1 / 1.5) msg += gap + tr('digUnlucky', { x: (1 / ratio).toFixed(1) });
+    msg += gap + tr('digVerify', { t: dig.done.text });
+    note.hidden = false; note.textContent = msg;
+  } else if (dig.handHit && !dig.running) { note.hidden = false; note.textContent = tr('digHandHit', { n: dig.handHit.n, b: dig.handHit.bits }); }
+  else note.hidden = true;
+  $('digAuto').textContent = tr(dig.running ? 'autoStop' : 'autoStart');
+  $('digOnce').disabled = dig.running; $('digBase').disabled = dig.running;
+  $('digRec').textContent = S.best.zero > 0 ? tr('digRec', { b: S.best.zero, t: S.best.zeroText }) : tr('digNoRec');
+}
+
+/* ================= H2 Crash Bet ================= */
+const bet = { level: 1, n: 64, phase: 'idle', seq: null, shown: 0, runs: [], i: 0, bet: null, avg: null, off: null, tag: 1, err: false };
+function betNew(level, n) {
+  bet.level = level;
+  if (n) bet.n = n; else { const opts = BET_LEVELS[level].filter(v => v !== bet.n); bet.n = opts[Math.floor(Math.random() * opts.length)]; }
+  bet.phase = 'idle'; bet.seq = null; bet.shown = 0; bet.runs = []; bet.i = 0; bet.bet = null; bet.avg = null; bet.off = null; bet.err = false;
+  bet.tag = Math.floor(Math.random() * 1e9);
+  $('betInput').value = '';
+  renderBet();
+}
+function betGo() {
+  if (bet.phase !== 'idle') return;
+  const v = Math.floor(Number($('betInput').value));
+  if (!(v >= 1) || !Number.isFinite(v)) { bet.err = true; renderBet(); return; }
+  bet.err = false; bet.bet = v; bet.runs = []; bet.i = 0;
+  const first = race(bet.n, 'race' + bet.tag + '-0', true);
+  bet.runs.push(first.throws); bet.i = 1; bet.seq = first.seq; bet.shown = 0;
+  bet.phase = bet.n <= 1600 && !still() ? 'show' : 'run';
+  if (bet.phase === 'run') bet.shown = bet.seq.length;
+  renderBet();
+}
+function betFrame() {
+  if (bet.phase === 'show') {
+    bet.shown = Math.min(bet.seq.length, bet.shown + Math.max(1, Math.ceil(bet.seq.length / 70)));
+    drawBetGrid();
+    $('betGridCap').textContent = tr('betGridRun', { i: bet.shown });
+    if (bet.shown >= bet.seq.length) { sfxCrash(); bet.phase = 'run'; renderBet(); }
+  } else if (bet.phase === 'run') {
+    const t = performance.now(); let guard = 0;
+    while (bet.i < BET_RACES && guard++ < 40) { bet.runs.push(race(bet.n, 'race' + bet.tag + '-' + bet.i, false).throws); bet.i++; if (performance.now() - t > 12) break; }
+    if (bet.i >= BET_RACES) {
+      bet.avg = bet.runs.reduce((a, b) => a + b, 0) / bet.runs.length;
+      bet.off = pctOff(bet.bet, bet.avg);
+      bet.phase = 'done';
+      const old = S.best.bet[bet.level];
+      if (old === undefined || bet.off < old) { S.best.bet[bet.level] = Math.round(bet.off * 10) / 10; save(); renderRecords(); }
+      if (bet.off <= BET_TOLERANCE) { sfxRight(); star('bet', bet.level - 1); } else sfxWrong();
+    }
+    renderBet();
+  }
+}
+function buildBet() {
+  const seg = $('betSeg');
+  for (let l = 1; l <= 3; l++) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.level = l;
+    b.addEventListener('click', () => { if (bet.phase === 'idle' || bet.phase === 'done') betNew(l); });
+    seg.appendChild(b);
+  }
+  $('betGo').addEventListener('click', betGo);
+  $('betInput').addEventListener('keydown', e => { if (e.key === 'Enter') betGo(); });
+  $('betNew').addEventListener('click', () => { if (bet.phase === 'idle' || bet.phase === 'done') betNew(bet.level); });
+}
+function drawBetGrid() {
+  const cv = $('betGrid'); const { c, w } = prep(cv);
+  const side = Math.round(Math.sqrt(bet.n)), cell = w / side, gap = cell > 6 ? 1 : 0.5;
+  const off = tok('--off'), ink = tok('--ink'), acc = tok('--acc');
+  c.fillStyle = off;
+  for (let i = 0; i < bet.n; i++) c.fillRect((i % side) * cell + gap / 2, Math.floor(i / side) * cell + gap / 2, cell - gap, cell - gap);
+  if (!bet.seq) return;
+  c.fillStyle = ink;
+  for (let k = 0; k < bet.shown; k++) { const s = bet.seq[k]; c.fillRect((s % side) * cell + gap / 2, Math.floor(s / side) * cell + gap / 2, cell - gap, cell - gap); }
+  if (bet.shown >= bet.seq.length) {
+    const s = bet.seq[bet.seq.length - 1], x = (s % side) * cell, y = Math.floor(s / side) * cell;
+    c.fillStyle = acc; c.fillRect(x + gap / 2, y + gap / 2, cell - gap, cell - gap);
+    c.strokeStyle = acc; c.lineWidth = 2; c.beginPath(); c.arc(x + cell / 2, y + cell / 2, Math.max(cell, 9), 0, 2 * Math.PI); c.stroke();
+  }
+}
+function drawBetHist() {
+  const { c, w, h } = prep($('betHist'));
+  const L = 6, R = 6, T = 10, B = 18, pw = w - L - R, ph = h - T - B;
+  const hg = histogram(bet.runs, 20), top = Math.max.apply(null, hg.counts);
+  const muted = tok('--muted'), line = tok('--line'), acc = tok('--acc'), teal = tok('--wave');
+  const xmax = Math.max(hg.max, bet.avg * 1.2);
+  const X = v => L + Math.min(1, v / xmax) * pw;
+  c.strokeStyle = line; c.lineWidth = 1; c.beginPath(); c.moveTo(L, T + ph + .5); c.lineTo(w - R, T + ph + .5); c.stroke();
+  c.fillStyle = muted; c.globalAlpha = .6;
+  hg.counts.forEach((n, i) => { const bh = top ? n / top * ph : 0; const x0 = X(i * hg.width), x1 = X((i + 1) * hg.width); c.fillRect(x0 + 1, T + ph - bh, Math.max(1, x1 - x0 - 2), bh); });
+  c.globalAlpha = 1;
+  const vline = (v, color, dash) => { const x = Math.round(X(v)) + .5; c.strokeStyle = color; c.lineWidth = 2; c.setLineDash(dash || []); c.beginPath(); c.moveTo(x, T - 4); c.lineTo(x, T + ph); c.stroke(); c.setLineDash([]); };
+  vline(bet.avg, acc);
+  const over = bet.bet > xmax;
+  vline(over ? xmax : bet.bet, teal, [5, 4]);
+  c.fillStyle = muted; c.textBaseline = 'top'; c.textAlign = 'left'; c.fillText('0', L, T + ph + 5);
+  c.textAlign = 'right'; c.fillText(num(xmax) + (over ? ' →' : ''), w - R, T + ph + 5);
+  c.textAlign = 'center'; c.fillText(num(xmax / 2), L + pw / 2, T + ph + 5);
+}
+function renderBet() {
+  document.querySelectorAll('#betSeg button').forEach(b => {
+    const l = Number(b.dataset.level);
+    b.textContent = tr('table', { n: l }); b.classList.toggle('on', l === bet.level); b.classList.toggle('won', S.stars.bet[l - 1]);
+    b.disabled = bet.phase === 'show' || bet.phase === 'run';
+  });
+  $('betAsk').textContent = tr('betAsk', { n: num(bet.n) });
+  const busy = bet.phase === 'show' || bet.phase === 'run';
+  $('betGo').disabled = bet.phase !== 'idle'; $('betInput').disabled = bet.phase !== 'idle'; $('betNew').disabled = busy;
+  const big = bet.n > 1600;
+  $('betGridWrap').hidden = big;
+  if (!big) drawBetGrid();
+  const cap = $('betGridCap');
+  if (big) cap.textContent = tr('betGridBig');
+  else if (bet.phase === 'idle') cap.textContent = tr('betGridIdle');
+  else if (bet.phase === 'show') cap.textContent = tr('betGridRun', { i: bet.shown });
+  else cap.textContent = tr('betGridDone', { i: bet.seq.length });
+  const note = $('betNote'); note.classList.remove('bad');
+  const hist = $('betHist'), leg = $('betLegend');
+  hist.hidden = leg.hidden = bet.phase !== 'done';
+  if (bet.err) { note.hidden = false; note.classList.add('bad'); note.textContent = tr('betBad'); }
+  else if (bet.phase === 'run') { note.hidden = false; note.textContent = tr('betRunning', { i: bet.i }); }
+  else if (bet.phase === 'done') {
+    const win = bet.off <= BET_TOLERANCE;
+    note.hidden = false; note.classList.toggle('bad', !win);
+    note.textContent = tr(win ? 'betWin' : 'betLose') + tr('betResult', { a: bet.avg.toFixed(1), b: num(bet.bet), p: bet.off.toFixed(0) }) + ' ' +
+      tr('betRule', { n: num(bet.n), r: (1.25 * Math.sqrt(bet.n)).toFixed(1).replace(/\.0$/, '') });
+    drawBetHist();
+  } else note.hidden = true;
+  const rec = S.best.bet[bet.level];
+  $('betRec').textContent = rec === undefined ? tr('betNoRec') : tr('betRec', { p: rec.toFixed(1) });
+}
+
+/* ================= shell ================= */
+function renderSound() {
+  const b = $('soundBtn'); b.classList.toggle('off', !S.sound);
+  b.setAttribute('aria-label', tr(S.sound ? 'soundOn' : 'soundOff')); b.title = tr(S.sound ? 'soundOn' : 'soundOff'); b.setAttribute('aria-pressed', String(S.sound));
+}
+function renderAll() { renderStars(); renderDig(); renderBet(); }
+function applyText() {
+  document.documentElement.lang = S.lang === 'zh' ? 'zh-CN' : 'en';
+  document.title = S.lang === 'zh' ? '哈希游戏厅' : 'Hash Arcade';
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = tr(el.dataset.i18nHtml); });
+  $('langBtn').textContent = tr('langBtn');
+  renderSound(); renderAll();
+}
+function tick() { digFrame(); betFrame(); requestAnimationFrame(tick); }
+function start(data) {
+  restore(data);
+  buildDig(); buildBet();
+  document.querySelectorAll('.jump').forEach(b => b.addEventListener('click', () => $(b.dataset.jump).scrollIntoView({ behavior: still() ? 'auto' : 'smooth', block: 'start' })));
+  $('langBtn').addEventListener('click', () => { S.lang = S.lang === 'en' ? 'zh' : 'en'; save(); applyText(); });
+  $('soundBtn').addEventListener('click', () => { S.sound = !S.sound; save(); renderSound(); if (S.sound) sfxRight(); });
+  document.addEventListener('click', () => { if (S.sound) audio(); }, true);
+  betNew(1, 64);
+  applyText();
+  let timer = 0;
+  window.addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(renderAll, 120); });
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll); } catch (e) {}
+  try { new MutationObserver(renderAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+  requestAnimationFrame(tick);
+}
+try { window.claude?.hot?.snapshot?.(() => JSON.parse(JSON.stringify(S))); } catch (e) {}
+if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
+
+</script>
+</body>
+</html>
