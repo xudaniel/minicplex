@@ -4,6 +4,12 @@
 
 ## [未发布]
 
+### 用 minicplex 学 Java
+- 新增 `java/tutorial/`：12 课中文 Java 课（第一个程序、基本类型与小数误差、数组、类、不可变对象、record 与 enum、集合、lambda 与比较器、异常、字符串、包与测试、综合项目“选课助手”），例子全部取自本项目源代码
+- 每课一道能自动判分的练习（✅ / ❌ / ⏳），`java/tutorial/run.sh 01` 运行；参考答案在 `solutions/`，练习由 `make_exercises.py` 从答案挖空生成
+- CI 在 JDK 17 / 21 上运行全部参考答案，并检查练习和答案同步
+- 写教程时发现并修复：`LinExpr.terms()` 直接返回内部 `TreeMap`，外部可以改动“不可变”表达式；现在返回只读视图
+
 ### Java 版
 - 新增 `java/`：整个求解器逐行移植到 Java 17（零依赖）——单纯形内核、预处理、Gomory 割、可靠性分支、LP 读写、命令行（含 `--trace`）、`Bench`／`Gen` 工具、15 个例子（中文注释与 C++ 逐句对应）、40 项测试
 - 构建：`java/build.sh`（只用 javac + jar，不联网）或 `mvn -f java/pom.xml package`

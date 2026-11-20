@@ -1,5 +1,6 @@
 package minicplex;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -67,6 +68,7 @@ public final class LinExpr {
     public Constraint eq(LinExpr rhs) { return Constraint.make(this, Sense.EQ, rhs); }
     public Constraint eq(Var rhs) { return Constraint.make(this, Sense.EQ, of(rhs)); }
 
-    public Map<Integer, Double> terms() { return terms; }
+    /** Read-only view of the terms (variable id → coefficient); modifying it throws. */
+    public Map<Integer, Double> terms() { return Collections.unmodifiableMap(terms); }
     public double constant() { return constant; }
 }

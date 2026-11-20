@@ -84,6 +84,11 @@ jobs:
           java-version: ${{ matrix.java }}
       - name: 构建 + 测试（只用 javac / jar）
         run: java/build.sh
+      - name: Java 教程：参考答案全部通过、练习文件和答案同步
+        run: |
+          python3 java/tutorial/make_exercises.py --check
+          java/tutorial/run.sh all --solution
+          java/tutorial/run.sh all > /dev/null   # 练习文件（挖空版）也要能编译
       - name: 构建 + 测试（Maven）
         run: mvn -B -q -f java/pom.xml package
       - name: 构建 C++ 版

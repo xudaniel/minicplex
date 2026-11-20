@@ -74,8 +74,8 @@ CI checks this on every commit.
 <td width="50%" valign="top">
 
 **📚 Tutorial-grade examples**<br>
-Ten graded examples from "one variable" to elastic constraints, a modelling cheat sheet, exercises and a
-function-by-function code walkthrough.
+Ten graded examples from "one variable" to elastic constraints, a modelling cheat sheet, exercises, a
+function-by-function code walkthrough, and a 12-lesson [Java course](java/tutorial/README.md) (in Chinese).
 
 </td>
 <td width="50%" valign="top">
@@ -357,6 +357,11 @@ Java has no operator overloading, so expressions are built fluently:
 
 `Params` has the same fields and defaults in both languages.
 
+**Learn Java with minicplex.** [`java/tutorial/`](java/tutorial/README.md) is a 12-lesson Java course (in Chinese)
+that teaches one language feature per lesson — arrays, classes, immutability, records and enums, collections,
+lambdas and comparators, exceptions, string processing, testing — using real excerpts from this code base. Every
+lesson has a self-grading exercise (`java/tutorial/run.sh 01`) and a reference solution that CI runs on every commit.
+
 ### Same answers, same path
 
 A port can look identical and still drift: a different rounding here, a different tie-break there, and on a larger
@@ -503,7 +508,7 @@ tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
            compare_java_cpp.py  compare_examples_java_cpp.sh
 bench/     models/  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
-java/      build.sh  pom.xml  src/main/java/minicplex/  src/test/java/  examples/
+java/      build.sh  pom.xml  src/main/java/minicplex/  src/test/java/  examples/  tutorial/ (Java course)
 ```
 
 ## Roadmap

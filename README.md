@@ -23,6 +23,7 @@
 <a href="#例子">例子</a> ·
 <a href="#代码解析">代码解析</a> ·
 <a href="#java-版">Java 版</a> ·
+<a href="java/tutorial/README.md"><b>用它学 Java</b></a> ·
 <a href="docs/PRD.md">PRD</a>
 </p>
 
@@ -69,7 +70,7 @@ Java 版逐行移植，同一道题两边的节点数、迭代次数、每一步
 <td width="50%" valign="top">
 
 **📚 从零开始的中文教程**<br>
-10 个由浅入深的入门例子、建模技巧速查表、练习题，以及逐函数的代码解析。
+10 个由浅入深的入门例子、建模技巧速查表、练习题、逐函数的代码解析，还有一门 12 课的 [Java 入门课](java/tutorial/README.md)。
 
 </td>
 <td width="50%" valign="top">
@@ -571,6 +572,10 @@ m.writeLP(std::cout);         // 导出为 CPLEX LP 格式
 ```
 
 ## Java 版
+
+> **想用 minicplex 学 Java？** [`java/tutorial/`](java/tutorial/README.md) 是一门 12 课的中文 Java 课：每课一个知识点
+>（数组、类、不可变对象、record、集合、lambda、异常、字符串、测试……），例子全部取自本项目的源代码，
+> 每课配一道能自动判分的练习：`java/tutorial/run.sh 01`。
 
 `java/` 目录是整个求解器的 Java 移植：单纯形内核、预处理、Gomory 割、可靠性分支、LP 文件读写、命令行、
 `--trace` 教学输出、基准和随机题工具、全部 15 个例子和测试，一个不少。Java 17 起可用，不依赖任何第三方库。
@@ -1660,7 +1665,7 @@ tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
 bench/     models/（基准模型）  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
 .github/   workflows/ci.yml（持续集成）
-java/      build.sh  pom.xml
+java/      build.sh  pom.xml  tutorial/（12 课 Java 教程：lessons/、exercises/、solutions/）
            src/main/java/minicplex/（求解器、命令行、tools/ 基准与生成器）
            src/test/java/minicplex/SolverTest.java
            examples/minicplex/examples/（15 个例子，与 C++ 一一对应）
