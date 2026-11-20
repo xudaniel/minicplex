@@ -110,7 +110,7 @@ jobs:
 
   python:
     name: Python 版（${{ matrix.python }}）：测试 + 与 C++ 逐个对比
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest（26.04）已不提供 Python 3.9
     strategy:
       fail-fast: false
       matrix:
