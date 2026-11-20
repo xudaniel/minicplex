@@ -1,0 +1,6 @@
+simple_hash
+hash_demo
+fourier
+fft
+*.o
+.DS_Store

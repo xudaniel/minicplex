@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hash 与傅里叶互动课</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+<style>
+/* 布局：单列长卷，像一本实验记录。底是示波器的刻度纸。
+   上半场用朱红（被搅乱的位），下半场用青色（被分开的波），其余全是墨色。 */
+:root {
+  --paper: #EDF0F4;
+  --grid: #DCE2EA;
+  --card: #FBFCFD;
+  --ink: #141B2B;
+  --muted: #586377;
+  --line: #C5CDD8;
+  --off: #E1E6ED;
+  --flip: #D93A22;
+  --wave: #0B7A85;
+  --ok: #1F7F52;
+  --f-display: "ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0C111D; --grid: #151C2C; --card: #141B2B; --ink: #E7ECF5;
+    --muted: #95A1B8; --line: #2B3650; --off: #1F2940;
+    --flip: #FF6A48; --wave: #42C4CE; --ok: #4CC38A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0C111D; --grid: #151C2C; --card: #141B2B; --ink: #E7ECF5;
+  --muted: #95A1B8; --line: #2B3650; --off: #1F2940;
+  --flip: #FF6A48; --wave: #42C4CE; --ok: #4CC38A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.wrap { max-width: 680px; margin: 0 auto; padding: 0 18px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* 顶部进度条 */
+.nav {
+  position: sticky; top: 0; z-index: 5;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.nav .wrap { display: flex; gap: 6px; padding-top: 8px; padding-bottom: 8px; }
+.nav button {
+  flex: 1; min-width: 0; height: 32px; padding: 0;
+  font-family: var(--f-mono); font-size: 12px; font-weight: 600;
+  background: transparent; color: var(--muted);
+  border: 1.5px solid var(--line); border-radius: 3px; cursor: pointer;
+}
+.nav button[data-part="hash"].done { background: var(--flip); border-color: var(--flip); color: #fff; }
+.nav button[data-part="wave"].done { background: var(--wave); border-color: var(--wave); color: #fff; }
+.nav .gap { flex: 0 0 6px; }
+
+/* 开头 */
+.top { padding: 40px 0 8px; display: flex; flex-direction: column; gap: 16px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+h1 { font-size: clamp(64px, 21vw, 124px); line-height: .98; letter-spacing: .02em; }
+h1 .a { color: var(--flip); }
+h1 .b { color: var(--wave); }
+.lead { max-width: 34em; font-size: 17px; }
+
+/* 上下半场 */
+.part { margin-top: 56px; padding-top: 20px; border-top: 3px solid var(--ink); display: flex; flex-direction: column; gap: 6px; }
+.part h2 { font-size: 40px; line-height: 1.1; }
+.part[data-part="hash"] h2 span { color: var(--flip); }
+.part[data-part="wave"] h2 span { color: var(--wave); }
+.part p { color: var(--muted); }
+
+/* 实验 */
+.lab { --part: var(--flip); margin-top: 44px; scroll-margin-top: 64px; display: flex; flex-direction: column; gap: 18px; }
+.lab[data-part="wave"] { --part: var(--wave); }
+.lab-head { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: baseline; }
+.lab-no { font-family: var(--f-mono); font-weight: 600; font-size: 15px; color: var(--part); border: 1.5px solid var(--part); border-radius: 3px; padding: 0 7px; }
+.lab-head h3 { font-size: 30px; line-height: 1.2; }
+.idea { grid-column: 1 / -1; margin-top: 8px; }
+
+/* 先猜 */
+.quiz { display: flex; flex-direction: column; gap: 10px; }
+.quiz .q { font-weight: 700; }
+.quiz .q::before { content: "先猜"; font-family: var(--f-mono); font-size: 12px; font-weight: 600; color: var(--part); border-bottom: 2px solid var(--part); margin-right: 10px; padding-bottom: 1px; }
+.opts { display: flex; flex-direction: column; gap: 8px; }
+.opts button {
+  text-align: left; min-height: 46px; padding: 10px 14px;
+  background: var(--card); border: 1.5px solid var(--line); border-radius: 4px; cursor: pointer;
+}
+.opts button:not(:disabled):hover { border-color: var(--ink); }
+.opts button:disabled { cursor: default; }
+.opts button.right { border-color: var(--ok); box-shadow: inset 4px 0 0 var(--ok); font-weight: 700; }
+.opts button.right::after { content: "  ✓"; color: var(--ok); }
+.opts button.wrong { color: var(--muted); text-decoration: line-through; }
+.explain { font-size: 15px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 12px; }
+.explain[hidden] { display: none; }
+
+/* 实验台 */
+.bench {
+  background: var(--card); border: 1.5px solid var(--ink); border-radius: 4px;
+  padding: 16px; display: flex; flex-direction: column; gap: 14px;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label, .cap { font-size: 13px; color: var(--muted); }
+input[type="text"] {
+  width: 100%; padding: 11px 12px; font-size: 16px;
+  background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px;
+}
+input[type="text"]:focus { border-color: var(--ink); outline: none; }
+input[type="range"] { width: 100%; accent-color: var(--part); margin: 0; height: 28px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn {
+  min-height: 42px; padding: 8px 16px; cursor: pointer;
+  background: var(--part); color: #fff; border: 0; border-radius: 4px; font-weight: 700;
+}
+.btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); font-weight: 500; }
+.seg { display: flex; border: 1.5px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { flex: 1; min-height: 40px; padding: 6px 4px; white-space: nowrap; background: transparent; border: 0; border-left: 1.5px solid var(--line); cursor: pointer; font-family: var(--f-mono); font-size: 13px; }
+.seg button:first-child { border-left: 0; }
+.seg button.on { background: var(--ink); color: var(--paper); }
+
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 16px; }
+.readout div { display: flex; flex-direction: column; }
+.readout .k { font-size: 12px; color: var(--muted); }
+.readout .v { font-family: var(--f-mono); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.hex { font-family: var(--f-mono); font-size: 13px; line-height: 1.6; word-break: break-all; letter-spacing: .02em; }
+.hex b { color: var(--flip); font-weight: 600; }
+.big { font-family: var(--f-mono); font-weight: 600; font-size: 28px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.big small { font-family: var(--f-body); font-weight: 400; font-size: 14px; color: var(--muted); }
+
+/* 256 位的格子 */
+.bits { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; width: 100%; max-width: 336px; }
+.bits i { aspect-ratio: 1; background: var(--off); border-radius: 1px; transition: background-color .25s; }
+.bits i.on { background: var(--ink); }
+.bits i.df { background: var(--flip); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 1px; background: var(--sw, var(--off)); vertical-align: -1px; }
+.legend .dash::before { height: 0; border-top: 2px dashed var(--sw); background: none; vertical-align: 3px; width: 14px; }
+
+.meter { position: relative; height: 12px; background: var(--off); border-radius: 2px; }
+.meter i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--flip); border-radius: 2px; transition: width .25s; }
+.meter::after { content: ""; position: absolute; left: 50%; top: -4px; bottom: -4px; border-left: 1.5px dashed var(--ink); }
+
+canvas { display: block; width: 100%; }
+.words { display: grid; grid-template-columns: auto repeat(4, 1fr); gap: 2px 8px; font-family: var(--f-mono); font-size: 12.5px; align-items: baseline; }
+.words .who { font-family: var(--f-body); color: var(--muted); font-size: 12px; grid-row: span 2; }
+.words b { color: var(--flip); font-weight: 600; }
+.words i { display: block; font-style: normal; font-size: 11px; color: var(--muted); }
+.words > span:not(.who) { padding-bottom: 4px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 7px 8px 7px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+th { font-weight: 500; color: var(--muted); font-size: 12px; }
+
+.sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+.sliders .name { grid-column: 1 / -1; font-size: 13px; font-weight: 700; margin-top: 4px; }
+.sliders label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+
+.logbars { display: flex; flex-direction: column; gap: 10px; }
+.logbar { display: grid; grid-template-columns: 38px 1fr; gap: 8px; align-items: center; font-family: var(--f-mono); font-size: 12px; }
+.logbar .track { position: relative; height: 18px; background:
+  linear-gradient(90deg, transparent calc(25% - 1px), var(--line) calc(25% - 1px), var(--line) 25%, transparent 25%,
+  transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) 50%, transparent 50%,
+  transparent calc(75% - 1px), var(--line) calc(75% - 1px), var(--line) 75%, transparent 75%), var(--off); border-radius: 2px; }
+.logbar .track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; transition: width .2s; }
+.logaxis { display: grid; grid-template-columns: 38px 1fr; gap: 8px; font-size: 11px; color: var(--muted); }
+.logaxis div { display: flex; justify-content: space-between; }
+.halves { display: flex; flex-direction: column; gap: 4px; }
+.halves .hrow { display: grid; grid-template-columns: 1fr 132px; gap: 10px; align-items: center; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.halves .blocks { display: flex; gap: 2px; height: 14px; }
+.halves .blocks i { flex: 1; background: var(--wave); border-radius: 1px; opacity: .85; }
+
+details.code { border-top: 1px solid var(--line); padding-top: 10px; }
+details.code summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+pre { margin: 10px 0 0; padding: 12px; overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 4px; font-family: var(--f-mono); font-size: 12.5px; line-height: 1.55; }
+.take { font-weight: 700; padding-left: 12px; border-left: 4px solid var(--part); }
+
+.end { margin: 64px 0 0; padding: 24px 0 56px; border-top: 3px solid var(--ink); display: flex; flex-direction: column; gap: 14px; }
+.end h2 { font-size: 36px; }
+.end ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+.end .fine { font-size: 13px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="实验进度"><div class="wrap" id="nav"></div></nav>
+
+<main class="wrap">
+
+<header class="top">
+  <div class="eyebrow">八个实验 · 先猜再动手</div>
+  <h1><span class="a">搅乱</span>，<br>与<span class="b">分开</span></h1>
+  <p class="lead">Hash 把一句话搅成一串指纹，再也回不去。傅里叶把混在一起的波一根一根分出来，还能原样拼回去。这页里的每个数字，都是你的浏览器照着那几个 C 文件的算法现场算的。</p>
+</header>
+
+<!-- ============ 上半场 ============ -->
+<div class="part" data-part="hash">
+  <h2>上半场 <span>搅乱</span></h2>
+  <p>Hash：任意长的内容，压成固定长度的指纹。</p>
+</div>
+
+<section class="lab" id="lab-1" data-part="hash">
+  <div class="lab-head"><span class="lab-no">01</span><h3>指纹</h3>
+    <p class="idea">随便写一句话。下面 256 个格子就是它的 SHA-256，每个格子是一位，黑的是 1。</p></div>
+  <div class="quiz" data-quiz="1"></div>
+  <div class="bench">
+    <div class="field"><label for="s1">你的一句话</label><input type="text" id="s1" autocomplete="off" spellcheck="false"></div>
+    <div class="bits" id="grid1" aria-hidden="true"></div>
+    <div class="field"><span class="cap">SHA-256（256 位，64 个十六进制字符）</span><div class="hex" id="sha1"></div></div>
+    <div class="readout">
+      <div><span class="k" id="bytesK">实际处理的字节数</span><span class="v" id="bytes1"></span></div>
+      <div><span class="k">FNV-1a（十行那个，32 位）</span><span class="v" id="fnv1"></span></div>
+    </div>
+  </div>
+  <details class="code"><summary>对应的 C 代码（simple_hash.c）</summary>
+<pre>unsigned int hash(const char *s) {
+    unsigned int h = 2166136261u;   // 起点
+    while (*s) {
+        h ^= (unsigned char)*s++;   // 混入一个字节
+        h *= 16777619u;             // 乘质数搅散
+    }
+    return h;
+}</pre></details>
+  <p class="take">同一句话永远得到同一个指纹。hash 只认字节，不认字。</p>
+</section>
+
+<section class="lab" id="lab-2" data-part="hash">
+  <div class="lab-head"><span class="lab-no">02</span><h3>雪崩</h3>
+    <p class="idea">把上面那句话改一点点，看指纹变了多少。红格子是变了的位。</p></div>
+  <div class="quiz" data-quiz="2"></div>
+  <div class="bench">
+    <div class="field"><span class="cap">原句（在实验 01 里改）</span><div id="s1echo"></div></div>
+    <div class="field"><label for="s2">改动后的句子</label><input type="text" id="s2" autocomplete="off" spellcheck="false"></div>
+    <div class="row">
+      <button class="btn ghost" id="btnDot" type="button">原句加一个句号</button>
+      <button class="btn ghost" id="btnCut" type="button">原句删掉最后一个字</button>
+    </div>
+    <div class="big"><span id="diffCount"></span> <small>/ 256 位不同。虚线是一半，128。</small></div>
+    <div class="meter"><i id="diffBar"></i></div>
+    <div class="bits" id="grid2" aria-hidden="true"></div>
+    <div class="legend"><span style="--sw:var(--flip)">变了的位</span><span style="--sw:var(--ink)">没变，是 1</span><span>没变，是 0</span></div>
+    <div class="field"><span class="cap">两个指纹，红字是不一样的字符</span><div class="hex" id="hexA"></div><div class="hex" id="hexB"></div></div>
+  </div>
+  <details class="code"><summary>对应的 C 代码（hash_demo.c）</summary>
+<pre>static int pop32(u32 x) {            // 数有几个 1
+    int n = 0;
+    while (x) { n += x &amp; 1; x &gt;&gt;= 1; }
+    return n;
+}
+// 两个 hash 异或，1 的个数就是不同的位数
+n += pop32((u32)(a[i] ^ b[i]));</pre></details>
+  <p class="take">改一位，变一半。相似的话得不到相似的指纹。</p>
+</section>
+
+<section class="lab" id="lab-3" data-part="hash">
+  <div class="lab-head"><span class="lab-no">03</span><h3>六十四轮</h3>
+    <p class="idea">SHA-256 把 8 个数 a 到 h 搅 64 轮。拖滑块，一轮一轮看实验 02 那两句话是怎么分道扬镳的。</p></div>
+  <div class="quiz" data-quiz="3"></div>
+  <div class="bench">
+    <p class="cap" id="roundNote"></p>
+    <canvas id="cvRounds" style="height:170px" role="img" aria-label="每一轮之后 a 到 h 有多少位不同"></canvas>
+    <div class="field"><label for="round"><span id="roundLabel"></span></label><input type="range" id="round" min="0" max="64" step="1"></div>
+    <div class="big"><span id="roundDiff"></span> <small>/ 256 位不同</small></div>
+    <div class="words" id="words"></div>
+  </div>
+  <details class="code"><summary>对应的 C 代码（hash_demo.c）</summary>
+<pre>for (i = 0; i &lt; 64; i++) {
+    t1 = h + EP1(e) + CH(e,f,g) + K[i] + m[i];
+    t2 = EP0(a) + MAJ(a,b,c);
+    h = g; g = f; f = e; e = d + t1;   // 整体往后挪一格
+    d = c; c = b; b = a; a = t1 + t2;  // 新值从 a 和 e 进去
+}</pre></details>
+  <p class="take">四五轮就乱到一半。剩下五十多轮都是安全余量。</p>
+</section>
+
+<section class="lab" id="lab-4" data-part="hash">
+  <div class="lab-head"><span class="lab-no">04</span><h3>撞车</h3>
+    <p class="idea">256 位撞不上，那就把指纹截短，只看前几位，现场找两句指纹相同的话。</p></div>
+  <div class="quiz" data-quiz="4"></div>
+  <div class="bench">
+    <div class="field"><span class="cap">只看 SHA-256 的前几位</span>
+      <div class="seg" id="bitsSeg">
+        <button type="button" data-bits="8">8 位</button><button type="button" data-bits="12">12 位</button><button type="button" data-bits="16">16 位</button><button type="button" data-bits="20">20 位</button><button type="button" data-bits="24">24 位</button>
+      </div></div>
+    <div class="row"><button class="btn" id="btnFind" type="button">再找一次</button></div>
+    <div id="colOut" class="field"></div>
+    <table>
+      <thead><tr><th>指纹长度</th><th>大约试多少句，有一半把握撞上</th></tr></thead>
+      <tbody>
+        <tr><td>16 位</td><td>约 300 句</td></tr>
+        <tr><td>32 位（FNV-1a）</td><td>约 7.7 万句</td></tr>
+        <tr><td>64 位</td><td>约 51 亿句</td></tr>
+        <tr><td>256 位（SHA-256）</td><td>约 4 × 10³⁸ 句，也就是 2¹²⁸ 的量级</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="take">指纹长度翻倍，要试的次数变成原来的平方。</p>
+</section>
+
+<!-- ============ 下半场 ============ -->
+<div class="part" data-part="wave">
+  <h2>下半场 <span>分开</span></h2>
+  <p>傅里叶变换：一段信号里，每个频率各有多少。</p>
+</div>
+
+<section class="lab" id="lab-5" data-part="wave">
+  <div class="lab-head"><span class="lab-no">05</span><h3>混音</h3>
+    <p class="idea">三个波加在一起。上图是混好的信号，下图是变换后的频谱。拖滑块，两张图一起动。</p></div>
+  <div class="quiz" data-quiz="5"></div>
+  <div class="bench">
+    <span class="cap">混在一起的信号（看时间）</span>
+    <canvas id="cvWave" style="height:150px" role="img" aria-label="混合后的波形"></canvas>
+    <span class="cap">傅里叶变换之后（看频率）：横轴是频率，柱高是振幅</span>
+    <canvas id="cvSpec" style="height:140px" role="img" aria-label="频谱"></canvas>
+    <div class="sliders" id="mixer"></div>
+  </div>
+  <details class="code"><summary>对应的 C 代码（fourier.c）</summary>
+<pre>// 振幅 = |X[k]| × 2/N
+double amp = my_sqrt(re[k]*re[k] + im[k]*im[k]) * 2 / N;</pre></details>
+  <p class="take">在时间上搅成一团的波，在频率上各站各的位置。</p>
+</section>
+
+<section class="lab" id="lab-6" data-part="wave">
+  <div class="lab-head"><span class="lab-no">06</span><h3>探针</h3>
+    <p class="idea">变换是怎么分出来的？拿一个标准波当探针，和实验 05 的信号逐点相乘，再全部加起来。</p></div>
+  <div class="quiz" data-quiz="6"></div>
+  <div class="bench">
+    <div class="field"><label for="probe">探针的频率：<span class="num" id="probeVal"></span></label><input type="range" id="probe" min="1" max="16" step="1"></div>
+    <div class="seg" id="probeSeg"><button type="button" data-kind="sin">用 sin 波探</button><button type="button" data-kind="cos">用 cos 波探</button></div>
+    <span class="cap">信号 × 探针。横线上面的面积算正，下面的算负。</span>
+    <canvas id="cvProd" style="height:150px" role="img" aria-label="信号和探针的乘积"></canvas>
+    <div class="legend"><span style="--sw:var(--wave)">正的部分</span><span style="--sw:var(--muted)">负的部分</span></div>
+    <div class="readout">
+      <div><span class="k">× sin 波，加起来</span><span class="v" id="pSin"></span></div>
+      <div><span class="k">× cos 波，加起来</span><span class="v" id="pCos"></span></div>
+      <div><span class="k">合成的振幅</span><span class="v" id="pAmp"></span></div>
+    </div>
+    <span class="cap">三个数都已除以 N/2，所以直接就是振幅。</span>
+    <div class="field"><label for="phase">把整个信号往后挪：<span class="num" id="phaseVal"></span></label><input type="range" id="phase" min="0" max="360" step="15"></div>
+  </div>
+  <details class="code"><summary>对应的 C 代码（fourier.c）</summary>
+<pre>for (int k = 0; k &lt; N; k++) {        // 每一个频率
+    for (int n = 0; n &lt; N; n++) {    // 每一个采样点
+        re[k] += x[n] * my_cos(a);   // 和 cos 波的相似度
+        im[k] -= x[n] * my_sin(a);   // 和 sin 波的相似度
+    }
+}</pre></details>
+  <p class="take">信号里有这个频率，乘积就累加；没有，就正负抵消。sin 和 cos 两根探针一起用，信号挪到哪都测得准。</p>
+</section>
+
+<section class="lab" id="lab-7" data-part="wave">
+  <div class="lab-head"><span class="lab-no">07</span><h3>对半拆</h3>
+    <p class="idea">探针法要每个频率把所有点过一遍，N × N 次。FFT 把问题对半拆，再对半拆。拖滑块加点数，看两边差多少。</p></div>
+  <div class="quiz" data-quiz="7"></div>
+  <div class="bench">
+    <div class="field"><label for="pexp">采样点数 N = 2<sup id="pexpVal"></sup> = <span class="num" id="cN"></span></label><input type="range" id="pexp" min="3" max="20" step="1"></div>
+    <div class="logbars">
+      <div class="logbar"><span>DFT</span><div class="track"><i id="barD" style="background:var(--muted)"></i></div></div>
+      <div class="logbar"><span>FFT</span><div class="track"><i id="barF" style="background:var(--wave)"></i></div></div>
+      <div class="logaxis"><span></span><div><span>1</span><span>一千</span><span>一百万</span><span>十亿</span><span>一万亿</span></div></div>
+    </div>
+    <span class="cap">柱长按对数画：每一格是 1000 倍。</span>
+    <div class="readout">
+      <div><span class="k">DFT 次数（N × N）</span><span class="v" id="cD"></span></div>
+      <div><span class="k">FFT 次数（N/2 × log₂N）</span><span class="v" id="cF"></span></div>
+      <div><span class="k">FFT 少算</span><span class="v" id="cR"></span></div>
+      <div><span class="k">按每秒 1 亿次估算</span><span class="v" id="cT" style="font-size:14px"></span></div>
+    </div>
+    <span class="cap">FFT 怎么拆：</span>
+    <div class="halves" id="halves"></div>
+  </div>
+  <details class="code"><summary>对应的 C 代码（fft.c）</summary>
+<pre>fft(er, ei, h);                      // 偶数位那一半
+fft(odr, odi, h);                    // 奇数位那一半
+for (int k = 0; k &lt; h; k++) {
+    // t = w × 奇[k]：算一次，用两次
+    re[k]     = er[k] + tr;
+    re[k + h] = er[k] - tr;
+}</pre></details>
+  <p class="take">每层只做 N/2 次，一共 log₂N 层。</p>
+</section>
+
+<section class="lab" id="lab-8" data-part="wave">
+  <div class="lab-head"><span class="lab-no">08</span><h3>回得去吗</h3>
+    <p class="idea">最后把两样东西放在一起比。先给实验 05 的信号加上杂音，再用傅里叶把杂音拿掉。然后试着从指纹倒推原句。</p></div>
+  <div class="quiz" data-quiz="8"></div>
+  <div class="bench">
+    <span class="cap">傅里叶：变换，删掉高频，再反变换</span>
+    <canvas id="cvDen" style="height:170px" role="img" aria-label="降噪前后的波形"></canvas>
+    <div class="legend"><span style="--sw:var(--line)">加了杂音的信号</span><span style="--sw:var(--wave)">拿掉高频之后</span><span class="dash" style="--sw:var(--ink)">原来干净的信号</span></div>
+    <div class="field"><label for="cut" id="cutLabel"></label><input type="range" id="cut" min="1" max="128" step="1"></div>
+    <p class="cap" id="rt"></p>
+  </div>
+  <div class="bench" style="--part:var(--flip)">
+    <span class="cap">Hash：从指纹倒推原句，只能一句一句瞎猜</span>
+    <div class="hex" id="target"></div>
+    <div id="bruteOut" class="field"></div>
+    <div class="row"><button class="btn" id="btnBrute" type="button">再猜 20,000 句</button></div>
+  </div>
+  <p class="take">傅里叶把回去的路留着，所以能修声音和图片。Hash 把路拆了，所以能验明正身。</p>
+</section>
+
+<section class="end">
+  <h2>记住三句</h2>
+  <ol>
+    <li>Hash 是指纹：改一位变一半，撞不上，回不去。</li>
+    <li>傅里叶是分拣：拿标准波一个一个去探，有就累加，没有就抵消。</li>
+    <li>两个算法的核心都是几行循环，你今天都在 C 里见过了。</li>
+  </ol>
+  <p class="num" id="score"></p>
+  <p class="fine">页面里的 SHA-256、FNV-1a、DFT 和 FFT 是照着 hash_demo.c、simple_hash.c、fourier.c、fft.c 用 JavaScript 重写的，在你的浏览器里现场运行。答题进度只存在这台设备的浏览器里。</p>
+</section>
+
+</main>
+
+<script>
+/*CORE-START*/
+const K256 = new Uint32Array([
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+
+const ENC = new TextEncoder();
+function utf8(s) { return ENC.encode(s); }
+
+function fnv1a(bytes) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i++) { h ^= bytes[i]; h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0;
+}
+
+function rotr(x, n) { return (x >>> n) | (x << (32 - n)); }
+
+/* trace = true 时，额外记下每块每一轮的 a..h */
+function sha256(bytes, trace) {
+  const len = bytes.length;
+  const total = Math.ceil((len + 9) / 64) * 64;
+  const buf = new Uint8Array(total);
+  buf.set(bytes);
+  buf[len] = 0x80;
+  const dv = new DataView(buf.buffer);
+  dv.setUint32(total - 8, Math.floor(len / 0x20000000));
+  dv.setUint32(total - 4, (len * 8) >>> 0);
+  const st = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+  const m = new Uint32Array(64);
+  const blocks = [];
+  for (let off = 0; off < total; off += 64) {
+    for (let i = 0; i < 16; i++) m[i] = dv.getUint32(off + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const s0 = rotr(m[i-15], 7) ^ rotr(m[i-15], 18) ^ (m[i-15] >>> 3);
+      const s1 = rotr(m[i-2], 17) ^ rotr(m[i-2], 19) ^ (m[i-2] >>> 10);
+      m[i] = (m[i-16] + s0 + m[i-7] + s1) >>> 0;
+    }
+    let a = st[0], b = st[1], c = st[2], d = st[3], e = st[4], f = st[5], g = st[6], h = st[7];
+    let rec = null;
+    if (trace) rec = { m: Array.from(m), rounds: [[a, b, c, d, e, f, g, h]], out: null };
+    for (let i = 0; i < 64; i++) {
+      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (h + S1 + ch + K256[i] + m[i]) >>> 0;
+      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const t2 = (S0 + maj) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0;
+      d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+      if (rec) rec.rounds.push([a, b, c, d, e, f, g, h]);
+    }
+    st[0] += a; st[1] += b; st[2] += c; st[3] += d; st[4] += e; st[5] += f; st[6] += g; st[7] += h;
+    if (rec) { rec.out = Array.from(st); blocks.push(rec); }
+  }
+  const out = new Uint8Array(32);
+  const odv = new DataView(out.buffer);
+  for (let i = 0; i < 8; i++) odv.setUint32(i * 4, st[i]);
+  return trace ? { hash: out, blocks } : out;
+}
+
+function pop32(x) { let n = 0; x >>>= 0; while (x) { n += x & 1; x >>>= 1; } return n; }
+function diffBytes(a, b) { let n = 0; for (let i = 0; i < a.length; i++) n += pop32(a[i] ^ b[i]); return n; }
+function diffWords(a, b) { let n = 0; for (let i = 0; i < a.length; i++) n += pop32((a[i] ^ b[i]) >>> 0); return n; }
+function hexBytes(b) { let s = ''; for (let i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, '0'); return s; }
+function hex8(x) { return (x >>> 0).toString(16).padStart(8, '0'); }
+
+/* 两句话的逐轮对比：找到第一块不一样的，返回每轮的不同位数 */
+function compareTrace(tA, tB) {
+  const nb = Math.min(tA.blocks.length, tB.blocks.length);
+  for (let bi = 0; bi < nb; bi++) {
+    const A = tA.blocks[bi], B = tB.blocks[bi];
+    const start = diffWords(A.rounds[0], B.rounds[0]);
+    const md = [];
+    for (let i = 0; i < 16; i++) if (A.m[i] !== B.m[i]) md.push(i);
+    if (start === 0 && md.length === 0) continue;
+    const diffs = [];
+    for (let r = 0; r <= 64; r++) diffs.push(diffWords(A.rounds[r], B.rounds[r]));
+    return { bi, start, md, diffs, A, B, nA: tA.blocks.length, nB: tB.blocks.length };
+  }
+  return null;
+}
+
+/* 把 hash 截到前 bits 位，找两句撞车的话 */
+function findCollision(bits, salt) {
+  const seen = new Map();
+  for (let i = 1; ; i++) {
+    const s = '第 ' + salt + '-' + i + ' 句';
+    const h = sha256(utf8(s));
+    const v = (((h[0] << 16) | (h[1] << 8) | h[2]) >>> (24 - bits));
+    if (seen.has(v)) return { a: seen.get(v), b: s, tries: i, v };
+    seen.set(v, s);
+  }
+}
+function expectedTries(bits) { return Math.sqrt(Math.PI / 2 * Math.pow(2, bits)) + 2 / 3; }
+
+/* 傅里叶 */
+function mixAt(parts, phaseDeg, t) {
+  const ph = phaseDeg * Math.PI / 180;
+  let v = 0;
+  for (const p of parts) v += p.a * Math.sin(2 * Math.PI * p.f * t + ph);
+  return v;
+}
+function sampleMix(parts, phaseDeg, N) {
+  const x = new Float64Array(N);
+  for (let n = 0; n < N; n++) x[n] = mixAt(parts, phaseDeg, n / N);
+  return x;
+}
+function dft(x) {
+  const N = x.length, re = new Float64Array(N), im = new Float64Array(N);
+  for (let k = 0; k < N; k++) {
+    for (let n = 0; n < N; n++) {
+      const a = 2 * Math.PI * ((k * n) % N) / N;
+      re[k] += x[n] * Math.cos(a);
+      im[k] -= x[n] * Math.sin(a);
+    }
+  }
+  return { re, im };
+}
+function fft(re, im) {
+  const n = re.length;
+  if (n === 1) return { re: Float64Array.from(re), im: Float64Array.from(im) };
+  const h = n / 2;
+  const er = new Float64Array(h), ei = new Float64Array(h), or = new Float64Array(h), oi = new Float64Array(h);
+  for (let i = 0; i < h; i++) { er[i] = re[2*i]; ei[i] = im[2*i]; or[i] = re[2*i+1]; oi[i] = im[2*i+1]; }
+  const E = fft(er, ei), O = fft(or, oi);
+  const R = new Float64Array(n), I = new Float64Array(n);
+  for (let k = 0; k < h; k++) {
+    const a = 2 * Math.PI * k / n;
+    const wr = Math.cos(a), wi = -Math.sin(a);
+    const tr = wr * O.re[k] - wi * O.im[k];
+    const ti = wr * O.im[k] + wi * O.re[k];
+    R[k] = E.re[k] + tr;     I[k] = E.im[k] + ti;
+    R[k + h] = E.re[k] - tr; I[k + h] = E.im[k] - ti;
+  }
+  return { re: R, im: I };
+}
+function ifft(re, im) {
+  const n = re.length;
+  const ci = new Float64Array(n);
+  for (let i = 0; i < n; i++) ci[i] = -im[i];
+  const F = fft(re, ci);
+  const R = new Float64Array(n), I = new Float64Array(n);
+  for (let i = 0; i < n; i++) { R[i] = F.re[i] / n; I[i] = -F.im[i] / n; }
+  return { re: R, im: I };
+}
+function makeNoise(N, seed, amp) {
+  let s = seed >>> 0;
+  const out = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    out[i] = ((((t ^ (t >>> 14)) >>> 0) / 4294967296) * 2 - 1) * amp;
+  }
+  return out;
+}
+function lowpass(x, cut) {
+  const N = x.length;
+  const F = fft(x, new Float64Array(N));
+  for (let k = 0; k < N; k++) if (Math.min(k, N - k) > cut) { F.re[k] = 0; F.im[k] = 0; }
+  return ifft(F.re, F.im).re;
+}
+function roundTripError(x) {
+  const N = x.length;
+  const F = fft(x, new Float64Array(N));
+  const back = ifft(F.re, F.im).re;
+  let e = 0;
+  for (let i = 0; i < N; i++) e = Math.max(e, Math.abs(back[i] - x[i]));
+  return e;
+}
+function zhNum(n) {
+  const f = (v, u) => (v >= 100 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, '')) + ' ' + u;
+  if (n >= 1e12) return f(n / 1e12, '万亿');
+  if (n >= 1e8) return f(n / 1e8, '亿');
+  if (n >= 1e4) return f(n / 1e4, '万');
+  return String(Math.round(n));
+}
+function zhTime(sec) {
+  if (sec < 0.001) return '不到 1 毫秒';
+  if (sec < 1) return Math.round(sec * 1000) + ' 毫秒';
+  if (sec < 60) return sec.toFixed(1).replace(/\.0$/, '') + ' 秒';
+  if (sec < 3600) return (sec / 60).toFixed(1).replace(/\.0$/, '') + ' 分钟';
+  return (sec / 3600).toFixed(1).replace(/\.0$/, '') + ' 小时';
+}
+/*CORE-END*/
+
+/* ================= 页面 ================= */
+const $ = id => document.getElementById(id);
+const DEFAULT_S1 = 'hash为什么基本就是唯一的';
+const LABS = [
+  { part: 'hash', name: '指纹' }, { part: 'hash', name: '雪崩' }, { part: 'hash', name: '六十四轮' }, { part: 'hash', name: '撞车' },
+  { part: 'wave', name: '混音' }, { part: 'wave', name: '探针' }, { part: 'wave', name: '对半拆' }, { part: 'wave', name: '回得去吗' }];
+const QUIZ = {
+  1: { q: '「hash为什么基本就是唯一的」这句话，SHA-256 实际处理的是多少个字节？', o: ['14 个', '28 个', '34 个'], a: 2,
+       e: '4 个英文字母各占 1 字节，10 个汉字在 UTF-8 里各占 3 字节，4 + 30 = 34。hash 只认字节。' },
+  2: { q: '在句尾加一个句号。256 位的指纹里，大约有几位会变？', o: ['3 位左右', '24 位，正好是句号的 3 个字节', '128 位左右'], a: 2,
+       e: '例句加句号后有 121 位不同。一处改动会扩散到全部 256 位，每一位变不变都接近抛硬币，所以总在 128 上下。' },
+  3: { q: '例句里，句号带来的差别从第 8 轮才进来。到第几轮，不同的位数就接近一半？', o: ['第 12 轮', '第 32 轮', '第 63 轮'], a: 0,
+       e: '第 8 轮 14 位，第 9 轮 47 位，第 12 轮已经 127 位。之后一直在 128 附近晃。' },
+  4: { q: '把指纹截到 16 位，一共 65,536 种可能。平均试多少句话就会撞上？', o: ['约 300 句', '约 32,768 句', '约 65,536 句'], a: 0,
+       e: '这是生日问题：要试的次数大约是可能数的平方根。√65536 = 256，再乘 1.25，约 320 句。' },
+  5: { q: '信号 = 频率 3 的波（振幅 1.0）+ 频率 7 的波（振幅 0.5）。频谱上会看到什么？', o: ['频率 10 那里一根柱子', '频率 3 和 7 各一根，高 1.0 和 0.5', '所有频率都有一点'], a: 1,
+       e: '频率不会相加。每个波在频谱上各占一根柱子，柱高就是它的振幅。' },
+  6: { q: '信号里只有频率 3 和 7。拿频率 5 的探针去乘，再全部加起来，得多少？', o: ['0', '0.75', '1.5'], a: 0,
+       e: '信号里没有频率 5，乘积一半正一半负，加起来正好抵消成 0。' },
+  7: { q: '一百万个点（2²⁰）。FFT 比探针法少算多少倍？', o: ['约 20 倍', '约 1000 倍', '约 10 万倍'], a: 2,
+       e: 'DFT 算 N × N，约 1.1 万亿次。FFT 算 N/2 × 20，约 1049 万次。相差约 10.5 万倍。' },
+  8: { q: '下面哪件事做得到？', o: ['从 hash 倒推出原句', '从频谱还原出原信号', '两件都行'], a: 1,
+       e: '频谱里一点信息都没丢，反变换就回去了。hash 把任意长的内容压成 256 位，每块还要把结果加回去一次，没有回去的路。' }
+};
+
+const S = {
+  s1: DEFAULT_S1, s2: DEFAULT_S1 + '。', s2auto: true,
+  round: 9, bits: 16,
+  parts: [{ f: 3, a: 1 }, { f: 7, a: 0.5 }, { f: 12, a: 0 }],
+  phase: 0, probe: 3, kind: 'sin', pexp: 12, cut: 20,
+  quiz: {}
+};
+const KEY = 'hash-fourier-course-v1';
+let runs = [], lastCol = null, colSalt = 1;
+let brute = { tries: 0, best: -1, str: '' }, bruteSalt = 1, targetHash = null, bruteTimer = 0, bruteReady = false;
+let cmp = null;
+const NOISE = makeNoise(256, 20261120, 0.5);
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify({ s1: S.s1, s2: S.s2, s2auto: S.s2auto, quiz: S.quiz })); } catch (e) {}
+}
+function restore(data) {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+  const src = Object.assign({}, saved, data || {});
+  if (typeof src.s1 === 'string') S.s1 = src.s1.slice(0, 400);
+  if (typeof src.s2 === 'string') S.s2 = src.s2.slice(0, 400);
+  if (typeof src.s2auto === 'boolean') S.s2auto = src.s2auto;
+  if (src.quiz && typeof src.quiz === 'object') {
+    for (const id of Object.keys(QUIZ)) {
+      const p = src.quiz[id];
+      if (Number.isInteger(p) && p >= 0 && p < QUIZ[id].o.length) S.quiz[id] = p;
+    }
+  }
+  for (const k of ['round', 'bits', 'phase', 'probe', 'pexp', 'cut']) if (Number.isFinite(src[k])) S[k] = src[k];
+  if (src.kind === 'sin' || src.kind === 'cos') S.kind = src.kind;
+  if (Array.isArray(src.parts) && src.parts.length === 3 && src.parts.every(p => p && Number.isFinite(p.f) && Number.isFinite(p.a))) {
+    S.parts = src.parts.map(p => ({ f: Math.min(15, Math.max(1, Math.round(p.f))), a: Math.min(1, Math.max(0, p.a)) }));
+  }
+}
+
+function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function prep(cv) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = cv.clientWidth || 300, h = cv.clientHeight || 150;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+  c.font = '10px ' + (tok('--f-mono') || 'monospace');
+  return { c, w, h };
+}
+function clean0(v) { return Math.abs(v) < 0.005 ? 0 : v; }
+function esc(s) { return s.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])); }
+
+/* ---------- 导航和小测 ---------- */
+function buildNav() {
+  const nav = $('nav');
+  LABS.forEach((lab, i) => {
+    if (i === 4) { const g = document.createElement('span'); g.className = 'gap'; nav.appendChild(g); }
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.part = lab.part; b.dataset.i = i + 1;
+    b.textContent = String(i + 1).padStart(2, '0');
+    b.setAttribute('aria-label', '实验 ' + b.textContent + ' ' + lab.name);
+    b.addEventListener('click', () => {
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      $('lab-' + (i + 1)).scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+    });
+    nav.appendChild(b);
+  });
+}
+function buildQuiz() {
+  document.querySelectorAll('.quiz').forEach(box => {
+    const id = box.dataset.quiz, Q = QUIZ[id];
+    const q = document.createElement('p'); q.className = 'q'; q.textContent = Q.q; box.appendChild(q);
+    const opts = document.createElement('div'); opts.className = 'opts'; box.appendChild(opts);
+    Q.o.forEach((t, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = t;
+      b.addEventListener('click', () => { if (S.quiz[id] === undefined) { S.quiz[id] = i; save(); renderQuiz(); } });
+      opts.appendChild(b);
+    });
+    const ex = document.createElement('p'); ex.className = 'explain'; ex.hidden = true; box.appendChild(ex);
+  });
+}
+function renderQuiz() {
+  let done = 0, right = 0;
+  document.querySelectorAll('.quiz').forEach(box => {
+    const id = box.dataset.quiz, Q = QUIZ[id], pick = S.quiz[id];
+    const btns = box.querySelectorAll('.opts button'), ex = box.querySelector('.explain');
+    const answered = pick !== undefined;
+    btns.forEach((b, i) => {
+      b.disabled = answered;
+      b.classList.toggle('right', answered && i === Q.a);
+      b.classList.toggle('wrong', answered && i === pick && i !== Q.a);
+    });
+    ex.hidden = !answered;
+    if (answered) {
+      ex.textContent = (pick === Q.a ? '猜对了。' : '差一点。') + Q.e;
+      done++; if (pick === Q.a) right++;
+    }
+    const nb = document.querySelector('#nav button[data-i="' + id + '"]');
+    if (nb) nb.classList.toggle('done', answered);
+  });
+  $('score').textContent = done === 0 ? '八道「先猜」还没开始。' : '先猜：答了 ' + done + ' / 8，猜对 ' + right + ' 道。';
+}
+
+/* ---------- 01 到 03：hash ---------- */
+function buildGrid(el) { const f = document.createDocumentFragment(); for (let i = 0; i < 256; i++) f.appendChild(document.createElement('i')); el.appendChild(f); }
+function bitAt(bytes, i) { return (bytes[i >> 3] >> (7 - (i & 7))) & 1; }
+
+function renderHash() {
+  const b1 = utf8(S.s1), b2 = utf8(S.s2);
+  const t1 = sha256(b1, true), t2 = sha256(b2, true);
+  targetHash = t1.hash;
+  const hA = hexBytes(t1.hash), hB = hexBytes(t2.hash);
+
+  // 01
+  const g1 = $('grid1').children;
+  for (let i = 0; i < 256; i++) g1[i].className = bitAt(t1.hash, i) ? 'on' : '';
+  $('sha1').textContent = hA;
+  $('bytes1').textContent = b1.length + ' 字节';
+  $('bytesK').textContent = Array.from(S.s1).length + ' 个字符，实际处理的字节数';
+  $('fnv1').textContent = hex8(fnv1a(b1));
+
+  // 02
+  $('s1echo').textContent = S.s1 === '' ? '（空）' : S.s1;
+  const g2 = $('grid2').children;
+  for (let i = 0; i < 256; i++) {
+    const a = bitAt(t1.hash, i), b = bitAt(t2.hash, i);
+    g2[i].className = a !== b ? 'df' : (a ? 'on' : '');
+  }
+  const d = diffBytes(t1.hash, t2.hash);
+  $('diffCount').textContent = d;
+  $('diffBar').style.width = (d / 256 * 100) + '%';
+  $('hexA').textContent = hA;
+  let hb = '';
+  for (let i = 0; i < 64; i++) hb += hA[i] === hB[i] ? hB[i] : '<b>' + hB[i] + '</b>';
+  $('hexB').innerHTML = hb;
+
+  // 03
+  cmp = compareTrace(t1, t2);
+  renderRounds();
+
+  // 08 的倒推目标
+  $('target').textContent = '目标指纹：' + hA;
+  brute = { tries: 0, best: -1, str: '' };
+  clearTimeout(bruteTimer);
+  if (bruteReady) bruteTimer = setTimeout(() => runBrute(2000), 350);   // 打字时等停手再猜
+  else { bruteReady = true; runBrute(2000); }
+}
+
+function renderRounds() {
+  const note = $('roundNote');
+  if (!cmp) {
+    note.textContent = '两句话一模一样，每一轮都没有差别。去实验 02 改一个字。';
+    $('roundLabel').textContent = ''; $('roundDiff').textContent = '0'; $('words').innerHTML = '';
+    drawRounds(new Array(65).fill(0), S.round);
+    return;
+  }
+  const blk = '这两句话各有 ' + cmp.nA + ' 块和 ' + cmp.nB + ' 块（每块 64 字节）。下面看第 ' + (cmp.bi + 1) + ' 块。';
+  if (cmp.md.length === 0) {
+    note.textContent = blk + '这一块的数据两边一样，差别是前面的块带进来的。';
+  } else {
+    const names = cmp.md.slice(0, 6).map(i => 'm[' + i + ']').join('、') + (cmp.md.length > 6 ? ' 等 ' + cmp.md.length + ' 个' : '');
+    const first = cmp.md[0];
+    const tail = cmp.start > 0 ? '前面的块已经带进了 ' + cmp.start + ' 位差别。'
+      : first === 0 ? '所以差别从第 0 轮就进来了。'
+      : '第 0 到 ' + (first - 1) + ' 轮用的数据两边一样，差别从第 ' + first + ' 轮进来。';
+    note.textContent = blk + '不同的数据是 ' + names + '。' + tail;
+  }
+  const r = S.round;
+  $('roundLabel').textContent = r === 0 ? '开始前' : '第 ' + (r - 1) + ' 轮之后';
+  $('roundDiff').textContent = cmp.diffs[r];
+  const A = cmp.A.rounds[r], B = cmp.B.rounds[r];
+  const row = (who, mine, other) => {
+    let h = '<span class="who">' + who + '</span>';
+    for (let i = 0; i < 8; i++) {
+      const x = hex8(mine[i]), y = hex8(other[i]);
+      let s = '';
+      for (let j = 0; j < 8; j++) s += x[j] === y[j] ? x[j] : '<b>' + x[j] + '</b>';
+      h += '<span><i>' + 'abcdefgh'[i] + '</i>' + s + '</span>';
+    }
+    return h;
+  };
+  $('words').innerHTML = row('原句', A, B) + row('改后', B, A);
+  drawRounds(cmp.diffs, r);
+}
+
+function drawRounds(diffs, sel) {
+  const { c, w, h } = prep($('cvRounds'));
+  const L = 30, R = 4, T = 8, B = 18, pw = w - L - R, ph = h - T - B;
+  const ink = tok('--ink'), muted = tok('--muted'), line = tok('--line'), flip = tok('--flip');
+  const y = v => T + ph - v / 256 * ph;
+  c.fillStyle = muted; c.textAlign = 'right'; c.textBaseline = 'middle';
+  [0, 128, 256].forEach(v => { c.fillText(String(v), L - 6, y(v)); });
+  c.strokeStyle = line; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(L, y(0) + .5); c.lineTo(w - R, y(0) + .5); c.stroke();
+  c.setLineDash([4, 4]); c.strokeStyle = ink; c.globalAlpha = .5;
+  c.beginPath(); c.moveTo(L, y(128)); c.lineTo(w - R, y(128)); c.stroke();
+  c.setLineDash([]); c.globalAlpha = 1;
+  const bw = pw / 65;
+  for (let i = 0; i <= 64; i++) {
+    c.fillStyle = i === sel ? flip : muted;
+    c.globalAlpha = i === sel ? 1 : .55;
+    const bh = diffs[i] / 256 * ph;
+    c.fillRect(L + i * bw + .5, T + ph - bh, Math.max(1, bw - 1), bh);
+  }
+  c.globalAlpha = 1;
+  c.fillStyle = flip; c.fillRect(L + sel * bw + .5, T + ph + 2, Math.max(1, bw - 1), 3);
+  c.fillStyle = muted; c.textAlign = 'center'; c.textBaseline = 'top';
+  [0, 16, 32, 48, 63].forEach(rd => c.fillText(String(rd), L + (rd + 1.5) * bw, T + ph + 6));
+}
+
+/* ---------- 04：撞车 ---------- */
+function runCollision() {
+  lastCol = findCollision(S.bits, colSalt++);
+  runs.push(lastCol.tries);
+  renderCollision();
+}
+function renderCollision() {
+  document.querySelectorAll('#bitsSeg button').forEach(b => b.classList.toggle('on', Number(b.dataset.bits) === S.bits));
+  if (!lastCol) return;
+  const avg = runs.reduce((a, b) => a + b, 0) / runs.length;
+  const hx = lastCol.v.toString(16).padStart(S.bits / 4, '0');
+  $('colOut').innerHTML =
+    '<div class="big">' + lastCol.tries.toLocaleString('en-US') + ' <small>句之后撞上了</small></div>' +
+    '<div>「' + esc(lastCol.a) + '」和「' + esc(lastCol.b) + '」</div>' +
+    '<div class="cap">这两句 SHA-256 的前 ' + S.bits + ' 位都是 <span class="num">' + hx + '</span>。</div>' +
+    '<div class="cap">你一共找了 ' + runs.length + ' 回，平均 ' + Math.round(avg).toLocaleString('en-US') + ' 句。理论平均约 ' +
+      Math.round(expectedTries(S.bits)).toLocaleString('en-US') + ' 句。</div>';
+}
+
+/* ---------- 05、06、08：波 ---------- */
+function yMax() { return Math.max(1.5, S.parts.reduce((s, p) => s + p.a, 0) * 1.05); }
+
+function drawCurve(cv, fn, ymax, opts) {
+  const { c, w, h } = prep(cv);
+  const T = 6, B = 6, ph = h - T - B, mid = T + ph / 2;
+  const y = v => mid - v / ymax * (ph / 2);
+  c.strokeStyle = tok('--line'); c.lineWidth = 1;
+  c.beginPath(); c.moveTo(0, mid + .5); c.lineTo(w, mid + .5); c.stroke();
+  const steps = Math.max(200, Math.round(w * 1.5));
+  const path = () => { c.beginPath(); for (let i = 0; i <= steps; i++) { const t = i / steps, X = t * w, Y = y(fn(t)); i ? c.lineTo(X, Y) : c.moveTo(X, Y); } };
+  if (opts && opts.fill) {
+    const region = (y0, y1, color) => {
+      c.save(); c.beginPath(); c.rect(0, y0, w, y1 - y0); c.clip();
+      path(); c.lineTo(w, mid); c.lineTo(0, mid); c.closePath();
+      c.fillStyle = color; c.globalAlpha = .55; c.fill(); c.restore();
+    };
+    region(0, mid, tok('--wave'));
+    region(mid, h, tok('--muted'));
+  }
+  path(); c.strokeStyle = (opts && opts.color) || tok('--wave'); c.lineWidth = 2; c.lineJoin = 'round'; c.stroke();
+}
+
+function drawSpectrum(amps) {
+  const { c, w, h } = prep($('cvSpec'));
+  const L = 30, R = 4, T = 10, B = 18, pw = w - L - R, ph = h - T - B;
+  const top = Math.max(1, Math.ceil(Math.max.apply(null, amps) * 2 - 1e-9) / 2);
+  const muted = tok('--muted'), line = tok('--line'), wave = tok('--wave');
+  const y = v => T + ph - v / top * ph;
+  c.textAlign = 'right'; c.textBaseline = 'middle'; c.lineWidth = 1;
+  for (let v = 0; v <= top + 1e-9; v += 0.5) {
+    c.fillStyle = muted; c.fillText(v.toFixed(1), L - 6, y(v));
+    c.strokeStyle = line; c.beginPath(); c.moveTo(L, Math.round(y(v)) + .5); c.lineTo(w - R, Math.round(y(v)) + .5); c.stroke();
+  }
+  const n = amps.length, bw = pw / n;
+  c.fillStyle = wave;
+  for (let k = 0; k < n; k++) {
+    const bh = amps[k] / top * ph;
+    if (bh > 0.3) c.fillRect(L + k * bw + bw * .2, T + ph - bh, bw * .6, bh);
+  }
+  c.fillStyle = muted; c.textAlign = 'center'; c.textBaseline = 'top';
+  for (let k = 0; k < n; k += 2) c.fillText(String(k), L + (k + .5) * bw, T + ph + 5);
+}
+
+function buildMixer() {
+  const box = $('mixer');
+  ['波 A', '波 B', '波 C'].forEach((nm, i) => {
+    const name = document.createElement('div'); name.className = 'name'; name.textContent = nm; box.appendChild(name);
+    [['f', '频率', 1, 15, 1], ['a', '振幅', 0, 1, 0.05]].forEach(([key, label, min, max, step]) => {
+      const wrap = document.createElement('div'); wrap.className = 'field';
+      const id = 'mix-' + key + i;
+      const lb = document.createElement('label'); lb.htmlFor = id;
+      lb.innerHTML = '<span>' + label + '</span><span class="num" id="' + id + '-v"></span>';
+      const inp = document.createElement('input'); inp.type = 'range'; inp.id = id; inp.min = min; inp.max = max; inp.step = step;
+      inp.value = S.parts[i][key];
+      inp.addEventListener('input', () => { S.parts[i][key] = Number(inp.value); renderWaves(); });
+      wrap.appendChild(lb); wrap.appendChild(inp); box.appendChild(wrap);
+    });
+  });
+}
+
+function renderWaves() {
+  S.parts.forEach((p, i) => {
+    $('mix-f' + i + '-v').textContent = p.f;
+    $('mix-a' + i + '-v').textContent = p.a.toFixed(2);
+  });
+  const ym = yMax();
+  // 05
+  drawCurve($('cvWave'), t => mixAt(S.parts, S.phase, t), ym);
+  const N = 64, x = sampleMix(S.parts, S.phase, N), X = dft(x);
+  const amps = [];
+  for (let k = 0; k <= 16; k++) amps.push(Math.hypot(X.re[k], X.im[k]) * (k === 0 ? 1 : 2) / N);
+  drawSpectrum(amps);
+  // 06
+  renderProbe(x);
+  // 08
+  renderDenoise();
+}
+
+function renderProbe(x) {
+  const N = 64, k = S.probe;
+  x = x || sampleMix(S.parts, S.phase, N);
+  let ss = 0, sc = 0;
+  for (let n = 0; n < N; n++) {
+    const a = 2 * Math.PI * ((k * n) % N) / N;
+    ss += x[n] * Math.sin(a); sc += x[n] * Math.cos(a);
+  }
+  ss = ss * 2 / N; sc = sc * 2 / N;
+  $('probeVal').textContent = k;
+  $('phaseVal').textContent = S.phase + '°';
+  $('pSin').textContent = clean0(ss).toFixed(2);
+  $('pCos').textContent = clean0(sc).toFixed(2);
+  $('pAmp').textContent = clean0(Math.hypot(ss, sc)).toFixed(2);
+  document.querySelectorAll('#probeSeg button').forEach(b => b.classList.toggle('on', b.dataset.kind === S.kind));
+  const pf = S.kind === 'sin' ? Math.sin : Math.cos;
+  drawCurve($('cvProd'), t => mixAt(S.parts, S.phase, t) * pf(2 * Math.PI * k * t), yMax(), { fill: true, color: tok('--ink') });
+}
+
+function renderDenoise() {
+  const N = 256;
+  const clean = sampleMix(S.parts, S.phase, N);
+  const noisy = new Float64Array(N);
+  for (let i = 0; i < N; i++) noisy[i] = clean[i] + NOISE[i];
+  const filt = lowpass(noisy, S.cut);
+  const { c, w, h } = prep($('cvDen'));
+  const T = 6, B = 6, ph = h - T - B, mid = T + ph / 2, ym = yMax() + 0.5;
+  const y = v => mid - v / ym * (ph / 2);
+  const plot = (arr, color, lw, dash, alpha) => {
+    c.beginPath();
+    for (let i = 0; i <= N; i++) { const X = i / N * w, Y = y(arr[i % N]); i ? c.lineTo(X, Y) : c.moveTo(X, Y); }
+    c.strokeStyle = color; c.lineWidth = lw; c.setLineDash(dash || []); c.globalAlpha = alpha || 1; c.lineJoin = 'round'; c.stroke();
+    c.setLineDash([]); c.globalAlpha = 1;
+  };
+  c.strokeStyle = tok('--line'); c.lineWidth = 1; c.beginPath(); c.moveTo(0, mid + .5); c.lineTo(w, mid + .5); c.stroke();
+  plot(noisy, tok('--line'), 1.5);
+  plot(filt, tok('--wave'), 2.5);
+  plot(clean, tok('--ink'), 1, [4, 3], .8);
+  $('cutLabel').textContent = S.cut >= 128 ? '保留全部频率（0 到 128），什么都不删' : '保留频率 0 到 ' + S.cut + '，把更高的 ' + (128 - S.cut) + ' 个清零';
+  const fmax = Math.max.apply(null, S.parts.filter(p => p.a > 0).map(p => p.f).concat([0]));
+  const warn = S.cut < fmax ? '你把滑块拉到了 ' + fmax + ' 以下，信号自己的波也被删掉了一部分。' : '';
+  $('rt').textContent = warn + '不删任何频率时，正变换再反变换，和原信号最大只差 ' + roundTripError(noisy).toExponential(1) + '。';
+}
+
+/* ---------- 07：次数 ---------- */
+function renderCount() {
+  const p = S.pexp, N = Math.pow(2, p);
+  const D = N * N, F = N / 2 * p;
+  $('pexpVal').textContent = p;
+  $('cN').textContent = N.toLocaleString('en-US');
+  $('cD').textContent = zhNum(D);
+  $('cF').textContent = zhNum(F);
+  $('cR').textContent = zhNum(D / F) + ' 倍';
+  $('cT').innerHTML = 'DFT ' + zhTime(D / 1e8) + '<br>FFT ' + zhTime(F / 1e8);
+  $('barD').style.width = (Math.log10(D) / 12 * 100) + '%';
+  $('barF').style.width = (Math.log10(F) / 12 * 100) + '%';
+  const box = $('halves'); box.innerHTML = '';
+  const rows = Math.min(p, 5);
+  for (let L = 0; L <= rows; L++) {
+    const row = document.createElement('div'); row.className = 'hrow';
+    const blocks = document.createElement('div'); blocks.className = 'blocks';
+    for (let i = 0; i < Math.pow(2, L); i++) blocks.appendChild(document.createElement('i'));
+    const lab = document.createElement('span');
+    lab.textContent = Math.pow(2, L) + ' 组 × ' + (N / Math.pow(2, L)).toLocaleString('en-US') + ' 点';
+    row.appendChild(blocks); row.appendChild(lab); box.appendChild(row);
+  }
+  const more = document.createElement('p'); more.className = 'cap';
+  more.textContent = '一直拆到每组只剩 1 个点，再一层层合并回来。一共 ' + p + ' 层，每层合并 ' + (N / 2).toLocaleString('en-US') + ' 次。';
+  box.appendChild(more);
+}
+
+/* ---------- 08：倒推 ---------- */
+function runBrute(n) {
+  const salt = bruteSalt++;
+  for (let i = 0; i < n; i++) {
+    const s = '猜 ' + salt + '-' + i;
+    const match = 256 - diffBytes(sha256(utf8(s)), targetHash);
+    if (match > brute.best) { brute.best = match; brute.str = s; }
+  }
+  brute.tries += n;
+  $('bruteOut').innerHTML =
+    '<div class="big">' + brute.best + ' <small>/ 256 位，是最像的一句对上的位数</small></div>' +
+    '<div class="cap">已经瞎猜了 ' + brute.tries.toLocaleString('en-US') + ' 句，最像的是「' + esc(brute.str) + '」。随便一句平均也能对上 128 位，所以这等于没有进展。要 256 位全对，平均要猜约 2²⁵⁶ 句，大约是 10⁷⁷。</div>';
+}
+
+/* ---------- 启动 ---------- */
+function redraw() { renderRounds(); renderWaves(); }
+
+function start(data) {
+  restore(data);
+  buildNav(); buildQuiz(); buildGrid($('grid1')); buildGrid($('grid2')); buildMixer();
+
+  const s1 = $('s1'), s2 = $('s2');
+  s1.value = S.s1; s2.value = S.s2;
+  s1.addEventListener('input', () => {
+    S.s1 = s1.value;
+    if (S.s2auto) { S.s2 = S.s1 + '。'; s2.value = S.s2; }
+    renderHash(); save();
+  });
+  s2.addEventListener('input', () => { S.s2 = s2.value; S.s2auto = false; renderHash(); save(); });
+  $('btnDot').addEventListener('click', () => { S.s2 = S.s1 + '。'; S.s2auto = true; s2.value = S.s2; renderHash(); save(); });
+  $('btnCut').addEventListener('click', () => { S.s2 = Array.from(S.s1).slice(0, -1).join(''); S.s2auto = false; s2.value = S.s2; renderHash(); save(); });
+
+  const bind = (id, key, fn) => { const el = $(id); el.value = S[key]; el.addEventListener('input', () => { S[key] = Number(el.value); fn(); }); };
+  bind('round', 'round', renderRounds);
+  bind('probe', 'probe', () => renderProbe());
+  bind('phase', 'phase', renderWaves);
+  bind('pexp', 'pexp', renderCount);
+  bind('cut', 'cut', renderDenoise);
+  document.querySelectorAll('#probeSeg button').forEach(b => b.addEventListener('click', () => { S.kind = b.dataset.kind; renderProbe(); }));
+  document.querySelectorAll('#bitsSeg button').forEach(b => b.addEventListener('click', () => { S.bits = Number(b.dataset.bits); runs = []; runCollision(); }));
+  $('btnFind').addEventListener('click', runCollision);
+  $('btnBrute').addEventListener('click', () => runBrute(20000));
+
+  renderQuiz(); renderHash(); runCollision(); renderWaves(); renderCount();
+
+  let timer = 0;
+  window.addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(redraw, 120); });
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw); } catch (e) {}
+  try { new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(redraw).catch(() => {});
+}
+
+try { window.claude?.hot?.snapshot?.(() => JSON.parse(JSON.stringify(S))); } catch (e) {}
+if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>
