@@ -165,7 +165,8 @@ SHA-256：00004cb33c61c8f4d66ec8ac3b4055957900fd68dac8637e535b22187855767f
 
 这是《搅乱，与分开》互动课（[`../course/index.html`](../course/index.html)）的配套游戏：哈希游戏厅对应上半场，傅里叶游戏厅对应下半场。课程讲原理，这里练手感。上一级目录的 [README](../README.md) 里有 C 代码和课程的说明。
 
-在线版（默认只有作者能打开，分享后别人才能看）：
+在线版：
 
-- 傅里叶游戏厅：<https://claude.ai/artifact/J5sRc4QCMf5KEXKrbG61eq>
-- 哈希游戏厅：<https://claude.ai/artifact/U5DRZv88msGfDzGnUP5eWS>
+- 首页：<https://xudaniel.github.io/minicplex/hash-fourier/>
+- 傅里叶游戏厅：<https://xudaniel.github.io/minicplex/hash-fourier/arcade/>
+- 哈希游戏厅：<https://xudaniel.github.io/minicplex/hash-fourier/arcade/hash.html>

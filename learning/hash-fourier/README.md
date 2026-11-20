@@ -7,6 +7,8 @@
 
 这个目录和求解器本身没有依赖关系，放在 minicplex 里是因为目的相同：把一个算法从零写出来，写到能看懂、能核对为止。
 
+**在线版：<https://xudaniel.github.io/minicplex/hash-fourier/>**（首页连着互动课和两个游戏厅，手机也能用）
+
 所有 C 文件只 `#include <stdio.h>`。数据类型、字符串函数、`sin`、`cos`、开方都是手写的，没有用任何加密库或数学库。
 
 ## 文件
@@ -18,6 +20,7 @@
 | `hash_demo.c` | 手写 SHA-256，带雪崩演示和 `--trace` 逐轮追踪 |
 | `fourier.c` | 傅里叶变换的直白写法（DFT），N × N 次 |
 | `fft.c` | 快速傅里叶变换（FFT），并和 DFT 对比结果与运算次数 |
+| `index.html` | 首页：连着互动课和两个游戏厅，显示各自的进度 |
 | `course/index.html` | 互动课程，单个文件，用浏览器直接打开 |
 | `tests/course_test.js` | 把课程页面里的算法取出来，和 C 版的结果逐项对比 |
 | `arcade/index.html` | 傅里叶游戏厅：四个小游戏，单个文件，中英文可切换（[说明](arcade/README.md)） |
@@ -172,7 +175,7 @@ FFT 找到的峰：频率 50 振幅 1.000   频率 120 振幅 0.500
 
 页面里的算法是照着上面几个 C 文件用 JavaScript 重写的，在浏览器里现场运行。
 
-在线版：<https://claude.ai/artifact/WvQeusC72b8onKfcf4tWtz>（默认只有作者能打开，分享后别人才能看）
+在线版：<https://xudaniel.github.io/minicplex/hash-fourier/course/>
 
 ## 四、游戏厅
 
@@ -195,6 +198,21 @@ FFT 找到的峰：频率 50 振幅 1.000   频率 120 振幅 0.500
 | H2 | 撞车赌局 | 先下注平均扔多少句会撞车，再跑 200 场看猜得准不准 |
 
 规则、计分和原理见 [`arcade/README.md`](arcade/README.md)。
+
+## 五、网站
+
+`index.html` 是首页，把互动课和两个游戏厅连在一起，并显示你在这个浏览器里的进度。三个页面的最下面都有回到首页的链接。
+
+这些页面随 minicplex 的网站一起发布（`.github/workflows/pages.yml`）：每次先跑三个核对脚本，全部通过才把页面复制进网站。
+
+| 页面 | 网址 |
+|---|---|
+| 首页 | <https://xudaniel.github.io/minicplex/hash-fourier/> |
+| 互动课 | <https://xudaniel.github.io/minicplex/hash-fourier/course/> |
+| 哈希游戏厅 | <https://xudaniel.github.io/minicplex/hash-fourier/arcade/hash.html> |
+| 傅里叶游戏厅 | <https://xudaniel.github.io/minicplex/hash-fourier/arcade/> |
+
+不联网也能用：把仓库下载下来，用浏览器打开 `learning/hash-fourier/index.html` 就行。
 
 ## 怎么核对的
 

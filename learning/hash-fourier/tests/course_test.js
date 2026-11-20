@@ -67,3 +67,4 @@ const target = api.sha256(api.utf8(s1)); let best = 0; const t0 = Date.now();
 for (let i = 0; i < 20000; i++) best = Math.max(best, 256 - api.diffBytes(api.sha256(api.utf8('猜 1-' + i)), target));
 console.log('     brute best of 20000 =', best, ' ms', Date.now() - t0);
 console.log(fail ? 'FAILURES: ' + fail : 'ALL OK');
+process.exit(fail ? 1 : 0);

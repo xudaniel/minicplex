@@ -224,6 +224,7 @@ python3 python/tutorial/run.py all        # 看看一共完成了多少
 纯 C 手写 SHA-256（带逐轮追踪）、FNV-1a、傅里叶变换的 DFT 和 FFT，只 `#include <stdio.h>`，连 `sin`、`cos`、开方都是自己写的。
 另有一门八个实验的互动小课 `course/index.html`，单个文件，用浏览器直接打开，手机也能用。
 配套的傅里叶游戏厅 `arcade/index.html` 有四个小游戏（调音、认谱、寻频、画圆），哈希游戏厅 `arcade/hash.html` 有两个（挖矿、撞车赌局），都可以切换中英文。
+**🌐 [在线打开](https://xudaniel.github.io/minicplex/hash-fourier/)**：首页连着互动课和两个游戏厅，不用下载。
 
 ```bash
 cd learning/hash-fourier
@@ -1831,7 +1832,7 @@ tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
            compare_java_cpp.py  compare_examples_java_cpp.sh  compare_examples_py_cpp.sh
 bench/     models/（基准模型）  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
-.github/   workflows/ci.yml（持续集成）
+.github/   workflows/ci.yml（持续集成）  pages.yml（网站：Python 课 + Hash 与傅里叶的互动课和游戏厅）
 java/      build.sh  pom.xml  tutorial/（Java 教程：A1～A8 零基础 + 12 课；lessons/、exercises/、solutions/）
            src/main/java/minicplex/（求解器、命令行、tools/ 基准与生成器）
            src/test/java/minicplex/SolverTest.java

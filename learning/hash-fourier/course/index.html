@@ -1089,5 +1089,17 @@ function start(data) {
 try { window.claude?.hot?.snapshot?.(() => JSON.parse(JSON.stringify(S))); } catch (e) {}
 if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
 </script>
+<script>
+/* When this page sits next to the hub (the repo folder or the public site), link back to it. */
+(function () {
+  try {
+    if (location.pathname.indexOf('/hash-fourier/') === -1) return;
+    var end = document.querySelector('.end'); if (!end) return;
+    var p = document.createElement('p'), a = document.createElement('a');
+    a.href = '../index.html'; a.textContent = '\u2190 \u9996\u9875 / Home'; a.style.color = 'inherit'; a.style.fontWeight = '700';
+    p.appendChild(a); end.appendChild(p);
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>
