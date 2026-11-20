@@ -66,7 +66,7 @@ Open [`exercises/l12_project.py`](../exercises/l12_project.py), write `parse` an
 
 ## 6. What next
 
-- Carry on with [advanced lessons 13–18](13-debugging.md).
+- Carry on with [advanced lessons 13–19](13-debugging.md).
 - Add a rule to the planner: "not both Databases and Writing", or "at least one Wed course".
 - Read the catalog from a file instead, with a friendly message when the file is missing or malformed (lesson 9).
 - Read the minicplex source. Suggested order: [`model.py`](../../../minicplex/model.py) (modelling layer) → [`lp_reader.py`](../../../minicplex/lp_reader.py) (reading files) →
@@ -74,6 +74,6 @@ Open [`exercises/l12_project.py`](../exercises/l12_project.py), write `parse` an
   The main README's [Code tour](../../../../README.en.md#code-tour) walks through the algorithms section by section (using the C++ version; the Python version matches it line by line).
 - Want to learn Java too? The same solver has a [Java version with a 20-lesson Java course](../../../../java/tutorial/README.md) (in Chinese), where you can compare the same algorithm in two languages.
 
-🎉 Congratulations on finishing the main course! Want more? **Advanced lessons 13–18** cover what real projects use every day: reading errors and debugging, more about functions, decorators, generators, files and data, command-line programs and packaging.
+🎉 Congratulations on finishing the main course! Want more? **Advanced lessons 13–19** cover what real projects use every day: reading errors and debugging, more about functions, decorators, generators, files and data, command-line programs and packaging.
 
 [← Testing](11-testing.md) · [Contents](../README.md) · Next: [Advanced: reading errors and debugging →](13-debugging.md)
