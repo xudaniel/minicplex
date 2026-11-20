@@ -75,7 +75,7 @@ CI checks this on every commit.
 
 **📚 Tutorial-grade examples**<br>
 Ten graded examples from "one variable" to elastic constraints, a modelling cheat sheet, exercises, a
-function-by-function code walkthrough, and a 12-lesson [Java course](java/tutorial/README.md) (in Chinese).
+function-by-function code walkthrough, and a [Java course](java/tutorial/README.md) (in Chinese): 8 zero-basics lessons plus 12 main lessons.
 
 </td>
 <td width="50%" valign="top">
@@ -357,8 +357,10 @@ Java has no operator overloading, so expressions are built fluently:
 
 `Params` has the same fields and defaults in both languages.
 
-**Learn Java with minicplex.** [`java/tutorial/`](java/tutorial/README.md) is a 12-lesson Java course (in Chinese)
-that teaches one language feature per lesson — arrays, classes, immutability, records and enums, collections,
+**Learn Java with minicplex.** [`java/tutorial/`](java/tutorial/README.md) is a Java course (in Chinese). Complete
+beginners start with eight 10–20 minute lessons, A1 to A8 (printing, variables, decisions, loops, methods, arrays,
+strings, and a small fruit-shopping project that ends by checking its answer against the solver). The 12 main lessons
+then teach one language feature per lesson — arrays, classes, immutability, records and enums, collections,
 lambdas and comparators, exceptions, string processing, testing — using real excerpts from this code base. Every
 lesson has a self-grading exercise (`java/tutorial/run.sh 01`) and a reference solution that CI runs on every commit.
 

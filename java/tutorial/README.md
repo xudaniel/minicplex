@@ -1,7 +1,7 @@
 # 用 minicplex 学 Java
 
-> 一门用**真实项目**学 Java 的中文小课：12 课，每课一个 Java 知识点，例子全部取自 minicplex 求解器的源代码，
-> 每课配一道能自动判分的练习。
+> 一门用**真实项目**学 Java 的中文小课：先是 8 节零基础入门小课（A1～A8），再是 12 课正式课程。
+> 每课一个 Java 知识点，例子取自 minicplex 求解器的源代码，每课配一道能自动判分的练习。
 
 大多数 Java 教程用“学生类”“动物类”举例，学完了还是不知道真实项目里代码长什么样。这门课反过来：
 先摆出 minicplex（一个能真正解优化题的求解器，约 2,600 行 Java）里的一段代码，再讲它用到的 Java 知识，
@@ -9,7 +9,8 @@
 
 ## 适合谁
 
-- 学过一点编程（任何语言都行），知道变量、if、循环是什么；
+- **完全没写过代码？** 从入门 A1 开始。每节 10～20 分钟，只学一件事，例子都是买水果、算步数这样的日常小事。
+- 学过一点编程（任何语言都行），知道变量、if、循环是什么：可以直接从第 1 课开始；
 - 想系统学 Java，或者想知道“真实的 Java 项目”是怎么组织的；
 - 不需要懂优化算法，用到的地方都会用大白话解释。完全没接触过优化，可以先读主 README 的
   [用大白话讲 minicplex](../../README.md#用大白话讲-minicplex先看这里)（5 分钟）。
@@ -21,7 +22,8 @@
 ```bash
 git clone https://github.com/xudaniel/minicplex.git && cd minicplex
 java/build.sh                      # 编译求解器（约 10 秒）
-java/tutorial/run.sh 01            # 运行第 1 课的练习
+java/tutorial/run.sh A01           # 零基础：运行入门 A1 的练习
+java/tutorial/run.sh 01            # 学过编程：运行第 1 课的练习
 ```
 
 ## 练习怎么做
@@ -46,6 +48,23 @@ $ java/tutorial/run.sh 02
 
 ## 课程目录
 
+### 第 0 阶段：零基础入门（A1～A8，每节 10～20 分钟）
+
+| 课 | 主题 | 练习 |
+|---|---|---|
+| [A1](lessons/a1-hello.md) | 让程序说话：打印、字符串、`+` 拼接 | 打招呼、报价 |
+| [A2](lessons/a2-variables.md) | 变量和计算：`int`、`double`、整数除法的坑 | 总价、找零、最多买几个 |
+| [A3](lessons/a3-decisions.md) | 做判断：`if / else`、`&&`、`\|\|`、`equals` | 钱够不够、满 99 包邮 |
+| [A4](lessons/a4-loops.md) | 重复做事：`for`、`while` | 1 加到 n、攒钱要几天 |
+| [A5](lessons/a5-methods.md) | 自己写方法：参数和返回值 | 最大值、温度换算、`clamp` |
+| [A6](lessons/a6-arrays.md) | 数组：一次存一排数 | 一周步数的总和、最大值、平均数 |
+| [A7](lessons/a7-strings.md) | 字符串：`charAt`、`char`、为什么用 `equals` | 名字缩写、密码里有没有数字 |
+| [A8](lessons/a8-project.md) | 小项目：挑水果 | 两层循环试遍所有买法，再和求解器对答案 |
+
+练习运行方式：`java/tutorial/run.sh A01`（也可以写 `A1`）。A8 做完，就可以进入正式课程了。
+
+### 第 1～12 课：用 minicplex 学 Java
+
 | 课 | 主题 | 用到的 minicplex 代码 | 练习 |
 |---|---|---|---|
 | [01](lessons/01-first-program.md) | 第一个程序：编译、运行、包 | `examples/Basics01OneVariable`、`build.sh` | 建一个冰淇淋模型 |
@@ -61,7 +80,7 @@ $ java/tutorial/run.sh 02
 | [11](lessons/11-testing.md) | 包、访问控制和测试 | `SolverTest`、包内可见的 `LPEngine` | 随机测试 + 暴力对拍 |
 | [12](lessons/12-project.md) | 综合项目：选课助手 | 前面全部 | 从文本到模型到报表 |
 
-每课大约 30～60 分钟。01～06 是语言基础，07～10 是标准库，11～12 是工程实践。
+入门小课每节 10～20 分钟；正式课每课大约 30～60 分钟。01～06 是语言基础，07～10 是标准库，11～12 是工程实践。
 
 ## 学完能做什么
 

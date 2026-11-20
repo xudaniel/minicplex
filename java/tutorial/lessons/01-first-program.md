@@ -4,7 +4,9 @@
 > **用到的代码：** [`Basics01OneVariable.java`](../../examples/minicplex/examples/Basics01OneVariable.java)、[`build.sh`](../../build.sh)
 > **练习：** `java/tutorial/run.sh 01`
 
-[目录](../README.md) · 下一课：[数字和小数误差 →](02-numbers.md)
+[← 入门 A8：挑水果](a8-project.md) · [目录](../README.md) · 下一课：[数字和小数误差 →](02-numbers.md)
+
+> **还没写过代码？** 先做[入门 A1～A8](../README.md#第-0-阶段零基础入门a1a8每节-1020-分钟)，每节 10～20 分钟，这一课会轻松很多。
 
 ## 1. 一个完整的 Java 程序
 
