@@ -211,4 +211,4 @@ Priorities: P0 = must have, P1 = should have, P2 = nice to have.
 - Bit-level details: C++-style rounding, `ceil`/`floor` that keep the sign of `-0.0`, Java-style `min(0.0, -0.0)`,
   and `-0.0` before `0.0` in the node queue (`python/minicplex/jmath.py`)
 - Speed: about 20 s for the benchmark models against about 0.4 s for C++; fine for teaching and small models
-- Companion: a 20-lesson Python course in Chinese (`python/tutorial/`); CI runs every reference solution on 3.9 and 3.13
+- Companion: a Python course in Chinese (`python/tutorial/`, now 26 lessons, with an in-browser version); CI runs every reference solution on 3.9 and 3.13

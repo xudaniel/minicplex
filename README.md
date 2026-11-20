@@ -11,7 +11,7 @@
 <img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
 <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+">
 <a href="java/tutorial/README.md"><img src="https://img.shields.io/badge/Java%20%E8%AF%BE-20%20%E8%8A%82-f59e0b" alt="Java 课 20 节"></a>
-<a href="python/tutorial/README.md"><img src="https://img.shields.io/badge/Python%20%E8%AF%BE-20%20%E8%8A%82-3776AB" alt="Python 课 20 节"></a>
+<a href="python/tutorial/README.md"><img src="https://img.shields.io/badge/Python%20%E8%AF%BE-26%20%E8%8A%82-3776AB" alt="Python 课 26 节"></a>
 <a href="https://xudaniel.github.io/minicplex/python/"><img src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E5%AD%A6-%E4%B8%8D%E7%94%A8%E5%AE%89%E8%A3%85-16a34a" alt="在线学 Python：不用安装"></a>
 <img src="https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-22c55e" alt="零依赖">
 <a href="LICENSE"><img src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-64748b" alt="MIT"></a>
@@ -91,7 +91,7 @@ Java 版和 Python 版都是逐行移植：同一道题三边的节点数、迭�
 <td width="50%" valign="top">
 
 **🎓 用它学 Java 或 Python，从零开始**<br>
-两门各 20 节的中文课：8 节零基础小课（打印、变量、循环……），再用求解器的真实代码学类、集合、异常和测试；Python 课还讲运算符重载和 dataclass。每节一道自动判分的练习。
+Java 课 20 节、Python 课 26 节，都是中文：8 节零基础小课（打印、变量、循环……），再用求解器的真实代码学类、集合、异常和测试；Python 课还讲运算符重载、dataclass、装饰器、生成器和调试。每节一道自动判分的练习。
 
 </td>
 <td width="50%" valign="top">
@@ -198,7 +198,7 @@ java/tutorial/run.sh all       # 看看一共完成了多少
 
 ## 用它学 Python
 
-[`python/tutorial/`](python/tutorial/README.md) 是一门中文 Python 课，结构和 Java 课一样：8 节零基础 + 12 节读真实代码，每节一道自动判分的练习。
+[`python/tutorial/`](python/tutorial/README.md) 是一门中文 Python 课：8 节零基础 + 12 节读真实代码 + 6 节进阶，一共 26 节，每节一道自动判分的练习。
 **🌐 [打开网页就能学](https://xudaniel.github.io/minicplex/python/)**：课文、编辑器、自动判分在同一个页面里，Python 在浏览器里运行，不用安装、不用注册，手机也能用。
 想在自己电脑上写也行：只需要 Python 3.9+，**不用装任何包**；运行练习的 `run.py` 本身也是 Python 写的，Windows、macOS、Linux 用法相同。
 
@@ -206,6 +206,7 @@ java/tutorial/run.sh all       # 看看一共完成了多少
 |---|---|---|---|
 | **入门 A1～A8** | `print` 和 f-string、变量和计算、判断、循环、函数、列表、字符串；最后做一个“挑水果”小项目，再和求解器对答案 | 从没写过代码的人 | 10～20 分钟 |
 | **第 1～12 课** | 模块和 import、小数误差、列表推导式、类、**运算符重载**、dataclass 和 enum、字典和集合、排序和堆、异常、文本处理、测试；最后做一个“选课助手” | 学过一点编程的人 | 30～60 分钟 |
+| **进阶 13～18 课** | 读懂报错和调试（🐞 找 bug 练习）、`*args` 和闭包、装饰器、生成器、文件和 CSV/JSON、命令行和打包 | 学完正式课的人 | 30～60 分钟 |
 
 正式课的例子全部取自 Python 版求解器的源代码，比如“`2 * x + 3 * y <= 12` 为什么能变成一条约束”（`__mul__`、`__radd__`、`__le__`）、
 “为什么 `Result` 的列表字段要写 `field(default_factory=list)`”、“分支定界的节点队列为什么是一个装元组的堆”。
@@ -746,7 +747,7 @@ CI 每次提交都会在 JDK 17 和 21 上重新跑一遍：Java 测试、例子
 
 ## Python 版
 
-> **想用 minicplex 学 Python？** 见上面的[用它学 Python](#用它学-python)：20 节课，每节一道自动判分的练习。
+> **想用 minicplex 学 Python？** 见上面的[用它学 Python](#用它学-python)：26 节课，每节一道自动判分的练习。
 
 `python/` 目录是整个求解器的纯 Python 移植（约 2,700 行，含注释）：单纯形内核、预处理、Gomory 割、可靠性分支、LP 文件读写、命令行、
 `--trace` 教学输出、批量求解工具、全部 15 个例子和测试。只用标准库，Python 3.9 起可用。

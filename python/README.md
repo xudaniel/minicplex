@@ -33,7 +33,7 @@ pip install ./python                                    # 可选：安装后任�
 
 ## 用它学 Python / Learn Python with it
 
-[`tutorial/`](tutorial/README.md)：20 节中文 Python 课，也可以 [直接在网页上学](https://xudaniel.github.io/minicplex/python/)（不用安装）（8 节零基础 + 12 节读真实代码），每节一道自动判分的练习。
+[`tutorial/`](tutorial/README.md)：26 节中文 Python 课，也可以 [直接在网页上学](https://xudaniel.github.io/minicplex/python/)（不用安装）：8 节零基础 + 12 节读真实代码 + 6 节进阶，每节一道自动判分的练习。
 
 ## 目录 / Layout
 

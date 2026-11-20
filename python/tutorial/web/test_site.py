@@ -1,4 +1,4 @@
-"""网页版 Python 课的端到端测试：在真浏览器里把 20 课的参考答案和练习各跑一遍，再试语法错误、运行错误、
+"""网页版 Python 课的端到端测试：在真浏览器里把每一课的参考答案和练习各跑一遍，再试语法错误、运行错误、
 死循环 + 停止、自动保存、手机布局。
 
     python python/tutorial/web/test_site.py http://localhost:8765/python/ _site/python/course.json
@@ -34,12 +34,14 @@ with sync_playwright() as p:
         print(f"{L['id']} solution {'OK ' if ok else 'BAD'} {time.time() - t:5.1f}s  {st[:40]}")
         if not ok: fails.append((L["id"], "solution", st, out[-500:]))
         st, out = run_code(page, L["exercise"])
-        ok = "没写" in st and "❌" not in out
+        ok = ("没写" in st or "不对" in st) and "❗" not in out   # “找 bug”题的练习本来就是 ❌
         if not ok: fails.append((L["id"], "exercise", st, out[-500:]))
     # progress shown on home
     page.goto(BASE + "#")
     print("home:", page.inner_text("#progress"))
-    print("done marks:", page.locator(".cards .done", has_text="✅").count())
+    marks = page.locator(".cards .done", has_text="✅").count()
+    print("done marks:", marks)
+    if marks != len(course["lessons"]): fails.append(("home", f"{marks} done marks", "", ""))
     # syntax error, runtime error, infinite loop + stop
     page.goto(BASE + "#a01")
     st, out_syntax = run_code(page, "from check import *\ndef f(:\n    pass\n")

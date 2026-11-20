@@ -22,9 +22,10 @@
   function shortTitle(t) { return t.replace(/^(入门 A\d+|第 \d+ 课)：/, ""); }
 
   function renderHome() {
-    for (const [stage, el] of [["a", $("stage0")], ["l", $("stage1")]]) {
+    const stageOf = (id) => (id[0] === "a" ? 0 : Number(id.slice(1)) <= 12 ? 1 : 2);
+    for (const [stage, el] of [[0, $("stage0")], [1, $("stage1")], [2, $("stage2")]]) {
       el.innerHTML = "";
-      for (const L of course.lessons.filter((x) => x.id[0] === stage)) {
+      for (const L of course.lessons.filter((x) => stageOf(x.id) === stage)) {
         const li = document.createElement("li");
         const a = document.createElement("a");
         a.href = "#" + L.id;
@@ -40,7 +41,7 @@
     const next = course.lessons.find((L) => !isDone(L.id));
     $("progress").innerHTML = n === 0
       ? `从 <a href="#a01">入门 A1</a> 开始；学过编程的话可以直接从 <a href="#l01">第 1 课</a> 开始。`
-      : n === course.lessons.length ? `🎉 20 节全部完成！`
+      : n === course.lessons.length ? `🎉 ${n} 节全部完成！`
       : `已完成 ${n} / ${course.lessons.length} 节 · <a href="#${next.id}">继续：${label(next.id)} ${shortTitle(next.title)} →</a>`;
   }
 
@@ -212,7 +213,8 @@
       }
     } else if (m) {
       const [_, p, f, t] = m;
-      setStatus(f !== "0" ? `有 ${f} 项不对：看看 ❌ 那几行，期望值和实际值差在哪里。` : `还有 ${t} 项没写：找到代码里的 TODO。`);
+      setStatus(f !== "0" ? `有 ${f} 项不对：看看 ❌ 那几行，期望值和实际值差在哪里。` + (t !== "0" ? `另外还有 ${t} 项没写。` : "")
+                          : `还有 ${t} 项没写：找到代码里的 TODO。`);
     } else if (exitCode === "stopped") {
       setStatus("已停止。");
     } else {

@@ -128,7 +128,7 @@ jobs:
         run: |
           python python/tutorial/make_exercises.py --check
           python python/tutorial/run.py all --solution
-          python python/tutorial/run.py all > /dev/null; test $? -ne 1   # 练习文件（挖空版）只能是“没写完”，不能报错
+          python python/tutorial/run.py all > /dev/null; test $? -ne 2   # 练习文件都要能跑起来（“找 bug”题本来就是 ❌，不算错）
       - name: 构建 C++ 版
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j 4
       - name: 例子输出逐字对比

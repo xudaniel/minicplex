@@ -4,6 +4,14 @@
 solutions/ 里的每个文件中，# >>> 和 # <<< 之间是答案。生成练习时把这一段换成
 raise NotImplementedError("TODO")，其余内容原样保留；check.py 原样复制。
 
+“找 bug”题：答案后面跟一行 # === 和一段注释掉的“有 bug 的版本”，练习里放的就是这个版本：
+
+    # >>>
+    for x in nums:          ← 正确答案
+    # ===
+    # for x in nums[1:]:    ← 练习里的版本（去掉行首的 "# "）
+    # <<<
+
     python3 python/tutorial/make_exercises.py           # 重新生成 exercises/
     python3 python/tutorial/make_exercises.py --check   # 只检查 exercises/ 是否和答案同步（CI 用）
 """
@@ -17,8 +25,23 @@ DST = HERE / "exercises"
 BLOCK = re.compile(r"^([ \t]*)# >>>\n.*?^[ \t]*# <<<\n", re.S | re.M)
 
 
+def _replace(m: re.Match) -> str:
+    indent, block = m.group(1), m.group(0)
+    if "# ===\n" not in block:
+        return f'{indent}raise NotImplementedError("TODO")  # ← 在这里写你的代码\n'
+    lines = []
+    for ln in block.split("# ===\n", 1)[1].splitlines():
+        if ln.strip().startswith("# <<<"):
+            continue
+        body = ln[len(indent):]
+        if not body.startswith("#"):
+            raise ValueError(f"有 bug 的版本每一行都要注释掉：{ln!r}")
+        lines.append(indent + body[2:] if body.startswith("# ") else indent + body[1:])
+    return f"{indent}# 🐞 下面这段有 bug：找出来，改好\n" + "\n".join(lines) + "\n"
+
+
 def make(text: str) -> str:
-    return BLOCK.sub(lambda m: f'{m.group(1)}raise NotImplementedError("TODO")  # ← 在这里写你的代码\n', text)
+    return BLOCK.sub(_replace, text)
 
 
 def main() -> None:

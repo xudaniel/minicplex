@@ -5,7 +5,7 @@
     python3 python/tutorial/run.py 03              运行第 3 课的练习（你写的代码）
     python3 python/tutorial/run.py 03 --solution   运行第 3 课的参考答案
     python3 python/tutorial/run.py all --solution  运行全部参考答案（CI 用：必须全部通过）
-    python3 python/tutorial/run.py all             看看你一共完成了多少
+    python3 python/tutorial/run.py all             看看你一共完成了多少（退出码 2 = 有文件跑不起来）
 """
 import os
 import pathlib
@@ -24,9 +24,16 @@ def find(folder: pathlib.Path, lesson: str):
     return hits[0] if hits else None
 
 
-def run_file(path: pathlib.Path) -> int:
+def run_file(path: pathlib.Path, check_summary: bool = False) -> int:
+    """运行一个练习文件。check_summary=True 时，没有打印出判分汇总（-- 通过 …）就算“跑不起来”，返回 2。"""
     env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1")
-    return subprocess.call([sys.executable, str(path)], env=env)
+    if not check_summary:
+        return subprocess.call([sys.executable, str(path)], env=env)
+    p = subprocess.run([sys.executable, str(path)], env=env, capture_output=True, text=True, encoding="utf-8")
+    sys.stdout.write(p.stdout)
+    sys.stderr.write(p.stderr)
+    sys.stdout.flush()
+    return p.returncode if "\n-- 通过 " in "\n" + p.stdout else 2
 
 
 def main() -> int:
@@ -41,9 +48,11 @@ def main() -> int:
         failed = 0
         files = sorted(folder.glob("a*_*.py")) + sorted(folder.glob("l*_*.py"))
         for f in files:
-            code = run_file(f)
-            if code == 1 or (code != 0 and solution):
-                failed = 1
+            code = run_file(f, check_summary=True)
+            if code not in (0, 1, 3):
+                failed = 2                       # 文件本身跑不起来（语法错误等）
+            elif code == 1 or (code != 0 and solution):
+                failed = max(failed, 1)
             print()
         return failed
     try:

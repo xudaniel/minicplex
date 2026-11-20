@@ -5,7 +5,7 @@
 > **练习：** `python3 python/tutorial/run.py 12`
 > **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l12)
 
-[← 测试](11-testing.md) · [目录](../README.md)
+[← 测试](11-testing.md) · [目录](../README.md) · 下一课：[进阶：读懂报错和调试 →](13-debugging.md)
 
 ## 1. 题目
 
@@ -66,6 +66,7 @@ index["算法"] <= index["Python"]                                              
 
 ## 6. 接下来
 
+- 继续学[进阶 13～18 课](13-debugging.md)。
 - 给选课助手加一条规则：“数据库和写作不能都选”，或者“至少选一门 Wed 的课”。
 - 改成从文件读课程表，文件不存在或格式不对时给出友好的提示（第 9 课）。
 - 读 minicplex 的源代码。推荐顺序：[`model.py`](../../minicplex/model.py)（建模层）→ [`lp_reader.py`](../../minicplex/lp_reader.py)（读文件）→
@@ -73,6 +74,6 @@ index["算法"] <= index["Python"]                                              
   主 README 的[代码解析](../../../README.md#代码解析)一节逐段讲解了算法（用的是 C++ 版，Python 版是逐行对应的）。
 - 也想学 Java？同一个求解器的 [Java 版和 20 节 Java 课](../../../java/tutorial/README.md)，可以对照着看同一段算法在两种语言里怎么写。
 
-🎉 恭喜你学完了这门课！
+🎉 恭喜你学完了正式课！还想继续？**进阶 13～18 课**补上真实项目里天天用的几样：读报错和调试、函数进阶、装饰器、生成器、文件和数据、命令行和打包。
 
-[← 测试](11-testing.md) · [目录](../README.md)
+[← 测试](11-testing.md) · [目录](../README.md) · 下一课：[进阶：读懂报错和调试 →](13-debugging.md)
