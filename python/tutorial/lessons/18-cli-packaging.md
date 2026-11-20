@@ -5,7 +5,7 @@
 > **练习：** `python3 python/tutorial/run.py 18`
 > **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l18)
 
-[← 文件和数据](17-files-data.md) · [目录](../README.md)
+[← 文件和数据](17-files-data.md) · [目录](../README.md) · 下一课：[为什么知道这是最优解 →](19-optimality.md)
 
 ## 1. 命令行参数
 
@@ -80,7 +80,7 @@ deactivate                       # 用完退出
 
 ## 7. 接下来
 
-🎉 26 节全部学完了！你现在会的已经远不止语法：读报错、调试、写测试、处理文件、做命令行工具、打包发布。几个继续的方向：
+到这里，工程上的本事已经齐了：读报错、调试、写测试、处理文件、做命令行工具、打包发布。还剩最后一课（[第 19 课](19-optimality.md)）：求解器凭什么说“这就是最优解”。之后几个继续的方向：
 
 - 把第 12 课的选课助手改成一个真正的命令行工具：`python3 -m planner courses.csv --max-hours 20`，结果写成 JSON。
 - 读 minicplex 的源代码。推荐顺序：[`model.py`](../../minicplex/model.py) → [`lp_reader.py`](../../minicplex/lp_reader.py) → [`solver.py`](../../minicplex/solver.py) → [`lp_engine.py`](../../minicplex/lp_engine.py)。
@@ -88,4 +88,4 @@ deactivate                       # 用完退出
 - 给 minicplex 提一个 pull request：比如给 LP 读取器加一种新的语法，记得同时加测试（流程见 [CONTRIBUTING.md](../../../CONTRIBUTING.md)）。
 - 想学第二门语言？同一个求解器还有 [Java 版和 20 节 Java 课](../../../java/tutorial/README.md)。
 
-[← 文件和数据](17-files-data.md) · [目录](../README.md)
+[← 文件和数据](17-files-data.md) · [目录](../README.md) · 下一课：[为什么知道这是最优解 →](19-optimality.md)

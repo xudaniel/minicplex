@@ -230,4 +230,18 @@ HINTS = {
         ("main", ["Three steps: build_parser().parse_args(argv), read_file(args.model), solve(model, to_params(args)); return f\"{r.status} {r.objective:g}\".",
                   'args = build_parser().parse_args(argv)\nr = solve(read_file(args.model), to_params(args))\nreturn f"{r.status} {r.objective:g}"']),
     ],
+    "l19": [
+        ("dual_bound", ["Pair the two lists up with zip(b, y), multiply, and add.", "return sum(bi * yi for bi, yi in zip(b, y))"]),
+        ("dual_feasible", ["First look for any negative y; then for each column j add up a[i][j] * y[i] and compare with c[j] (with tolerance tol).",
+                           "if any(yi < -tol for yi in y):\n    return False\nfor j in range(len(c)):\n    if sum(a[i][j] * y[i] for i in range(len(y))) < c[j] - tol:\n        return False\nreturn True"]),
+        ("certify_lp", ["Check three things in order and return False as soon as one fails: x non-negative and within every constraint; dual_feasible; objective equals dual_bound.",
+                        "value = sum(cj * xj for cj, xj in zip(c, x))\nreturn math.isclose(value, dual_bound(b, y), abs_tol=tol)  (after the first two checks)"]),
+        ("relative_gap", ["The numerator is the absolute difference; the denominator the absolute best integer, with max(1e-10, ...) to avoid dividing by 0.",
+                          "return abs(bound - incumbent) / max(1e-10, abs(incumbent))"]),
+        ("proven_optimal", ["When maximising, bound >= best integer; they have met once the difference is within the absolute tolerance, or within the relative tolerance times max(1, |best integer|).",
+                            "return bound - incumbent <= max(absolute, rel * max(1.0, abs(incumbent)))"]),
+        ("game_bounds", ["Floor: for each column compute sum(p[i] * m[i][j]) and take the smallest; cap: for each row compute sum(m[i][j] * q[j]) and take the largest.",
+                         "floor = min(sum(p[i] * m[i][j] for i in range(rows)) for j in range(cols))\ncap = max(sum(m[i][j] * q[j] for j in range(cols)) for i in range(rows))\nreturn floor, cap"]),
+        ("guess_after_stop", ["An integer solution worth 19 has been found, so the optimum is no smaller; the bound says nothing can beat 20.", "The optimum is between 19 and 20, both included."]),
+    ],
 }

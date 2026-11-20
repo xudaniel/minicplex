@@ -11,7 +11,7 @@
 <img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
 <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+">
 <a href="java/tutorial/README.md"><img src="https://img.shields.io/badge/Java%20course-20%20lessons-f59e0b" alt="Java course: 20 lessons"></a>
-<a href="python/tutorial/en/README.md"><img src="https://img.shields.io/badge/Python%20course-26%20lessons-3776AB" alt="Python course: 26 lessons"></a>
+<a href="python/tutorial/en/README.md"><img src="https://img.shields.io/badge/Python%20course-27%20lessons-3776AB" alt="Python course: 27 lessons"></a>
 <a href="https://xudaniel.github.io/minicplex/python/en/"><img src="https://img.shields.io/badge/learn%20online-no%20install-16a34a" alt="Learn Python online: no install"></a>
 <img src="https://img.shields.io/badge/dependencies-none-22c55e" alt="No dependencies">
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-64748b" alt="MIT"></a>
@@ -99,9 +99,9 @@ afternoon.
 <td width="50%" valign="top">
 
 **🎓 Learn Java or Python from zero**<br>
-A 20-lesson Java course and a 26-lesson Python course (in Chinese): 8 zero-basics lessons, then classes,
+A 20-lesson Java course (in Chinese) and a 27-lesson Python course (in English and Chinese): 8 zero-basics lessons, then classes,
 collections, exceptions and testing taught with the solver's real code; the Python course adds operator overloading,
-dataclasses, decorators, generators and debugging. Every lesson has a
+dataclasses, decorators, generators, debugging, and how a solver proves an answer optimal. Every lesson has a
 self-grading exercise.
 
 </td>
@@ -223,7 +223,7 @@ java/tutorial/run.sh all       # see how far you have got
 
 The Python course is **in English** ([`python/tutorial/en/`](python/tutorial/en/README.md)) and in Chinese
 ([`python/tutorial/`](python/tutorial/README.md)): 8 zero-basics lessons, 12 lessons built on the Python solver's own code
-and 6 advanced ones, 26 in all, each with a self-grading exercise, hints and explanations of common mistakes.
+and 7 advanced ones, 27 in all, each with a self-grading exercise, hints and explanations of common mistakes.
 **[Take it in the browser](https://xudaniel.github.io/minicplex/python/en/)**: lesson text, editor and grading on one page, with Python running in the
 browser (Pyodide); nothing to install, no account, works on phones. Offline it needs Python 3.9+ and nothing else;
 the runner `run.py` is itself Python, so it works the same on Windows, macOS and Linux.
@@ -232,7 +232,7 @@ the runner `run.py` is itself Python, so it works the same on Windows, macOS and
 |---|---|---|---|
 | **Basics A1–A8** | `print` and f-strings, variables, decisions, loops, functions, lists, strings; the fruit-shopping project checked against the solver | People who have never written code | 10–20 minutes |
 | **Lessons 1–12** | Modules and imports, floating-point error, list comprehensions, classes, **operator overloading**, dataclasses and enums, dicts and sets, sorting and heaps, exceptions, text processing, testing; the course-planner project | People who know a little programming | 30–60 minutes |
-| **Advanced 13–18** | Reading tracebacks and debugging (a 🐞 bug-hunt exercise), `*args` and closures, decorators, generators, files with CSV/JSON, command-line tools and packaging | People who finished lessons 1–12 | 30–60 minutes |
+| **Advanced 13–19** | Reading tracebacks and debugging (a 🐞 bug-hunt exercise), `*args` and closures, decorators, generators, files with CSV/JSON, command-line tools and packaging; the last lesson shows how we know an answer is optimal (dual certificates and the gap) | People who finished lessons 1–12 | 30–60 minutes |
 
 Examples come straight from the solver: why `2 * x + 3 * y <= 12` turns into a constraint (`__rmul__`, `__add__`,
 `__le__`), why `Result`'s list fields need `field(default_factory=list)`, why the branch-and-bound queue is a heap

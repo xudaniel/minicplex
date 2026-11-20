@@ -1,8 +1,8 @@
 # 用 minicplex 学 Python
 
-> 一门用**真实项目**学 Python 的中文小课：先是 8 节零基础入门小课（A1～A8），再是 12 课正式课程，最后 6 课进阶（13～18）。
+> 一门用**真实项目**学 Python 的中文小课：先是 8 节零基础入门小课（A1～A8），再是 12 课正式课程，最后 7 课进阶（13～19）。
 > 每课一个 Python 知识点，例子取自 minicplex 求解器的 Python 源代码，每课配一道能自动判分的练习。
-> [English version](en/README.md)：26 课全部有英文版，网页版右上角一键切换。
+> [English version](en/README.md)：27 课全部有英文版，网页版右上角一键切换。
 
 大多数 Python 教程用“猫和狗”举例，学完了还是不知道真实项目里的代码长什么样。这门课反过来：
 先摆出 minicplex（一个能真正解优化题的求解器：约 2,700 行纯 Python，含注释，零依赖）里的一段代码，再讲它用到的 Python 知识，
@@ -107,7 +107,7 @@ python3 python/tutorial/run.py 02 --hint 2    # 还不行？给出接近代码�
 | [11](lessons/11-testing.md) | 测试：`unittest`、随机对拍 | `tests/test_solver.py`、三个版本互相对拍 | 随机出题 + 暴力对拍 |
 | [12](lessons/12-project.md) | 综合项目：选课助手 | 前面全部 | 从文本到模型到报表 |
 
-### 进阶 13～18 课：真实项目天天用的
+### 进阶 13～19 课：真实项目天天用的
 
 | 课 | 主题 | 用到的 minicplex 代码 | 练习 |
 |---|---|---|---|
@@ -117,8 +117,9 @@ python3 python/tutorial/run.py 02 --hint 2    # 还不行？给出接近代码�
 | [16](lessons/16-generators.md) | 生成器和迭代器：`yield`、`itertools` | `sum(... for ...)`、`itertools.product` | 无穷斐波那契、递归生成所有组合 |
 | [17](lessons/17-files-data.md) | 文件和数据：`pathlib`、CSV、JSON | `read_file` 的编码、对比脚本读 CSV、`make_web.py` 写 JSON | CSV → 建模选货 → JSON |
 | [18](lessons/18-cli-packaging.md) | 命令行程序和打包：`argparse`、`python -m`、`pip`、虚拟环境 | `__main__.py`、`pyproject.toml` | 一个迷你版的 minicplex 命令行 |
+| [19](lessons/19-optimality.md) | 为什么知道这是最优解：对偶证书、间隙、博弈的保底和封顶 | `Result.duals`、`best_bound`、`solver.py` 的间隙判断 | 手写证书检查，给点球博弈证明最优 |
 
-入门小课每节 10～20 分钟；正式课和进阶课每课大约 30～60 分钟。01～06 是语言基础，07～10 是标准库，11～12 是工程实践，13～18 是进阶。
+入门小课每节 10～20 分钟；正式课和进阶课每课大约 30～60 分钟。01～06 是语言基础，07～10 是标准库，11～12 是工程实践，13～19 是进阶。
 
 ## 学完能做什么
 
@@ -135,5 +136,5 @@ python3 python/tutorial/run.py 02 --hint 2    # 还不行？给出接近代码�
   “找 bug”题在答案后面加 `# ===` 和一段注释掉的有 bug 的版本，练习里放的就是那个版本）。
 - 想加一道题：在 `solutions/` 里写好答案并用 `# >>>`、`# <<<` 标出要挖空的部分，在 [`hints.py`](hints.py) 里给这个函数写两级提示，
   再运行 `python3 python/tutorial/make_exercises.py`。CI 会检查每个挖空的函数都有提示。
-- 网页版由 [`make_web.py`](make_web.py) 从同一套课文和练习生成，GitHub Actions 每次先在真浏览器里把 26 课的答案和练习跑一遍（[`web/test_site.py`](web/test_site.py)），通过了才发布。Python 运行时（Pyodide）和网站放在一起，打不开 CDN 的地方也能用。
+- 网页版由 [`make_web.py`](make_web.py) 从同一套课文和练习生成，GitHub Actions 每次先在真浏览器里把 27 课的答案和练习跑一遍（中英文两个版本）（[`web/test_site.py`](web/test_site.py)），通过了才发布。Python 运行时（Pyodide）和网站放在一起，打不开 CDN 的地方也能用。
 - 判分框架 [`check.py`](solutions/check.py) 只有 100 来行，学生读得懂；退出码 0 = 全对，1 = 有错，3 = 没写完，方便批量收作业。

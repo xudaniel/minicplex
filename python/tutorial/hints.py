@@ -237,4 +237,18 @@ HINTS = {
         ("main", ["三步：build_parser().parse_args(argv)、read_file(args.model)、solve(模型, to_params(args))；返回 f\"{r.status} {r.objective:g}\"。",
                   'args = build_parser().parse_args(argv)\nr = solve(read_file(args.model), to_params(args))\nreturn f"{r.status} {r.objective:g}"'],),
     ],
+    "l19": [
+        ("dual_bound", ["两个列表一一配对相乘再加起来：zip(b, y)。", "return sum(bi * yi for bi, yi in zip(b, y))"]),
+        ("dual_feasible", ["先看有没有负的 y；再对每一列 j，把 a[i][j] * y[i] 加起来，和 c[j] 比（留容差 tol）。",
+                           "if any(yi < -tol for yi in y):\n    return False\nfor j in range(len(c)):\n    if sum(a[i][j] * y[i] for i in range(len(y))) < c[j] - tol:\n        return False\nreturn True"]),
+        ("certify_lp", ["按顺序查三件事，哪一件不成立就 return False：x 非负且满足每条约束；dual_feasible；目标值和 dual_bound 相等。",
+                        "value = sum(cj * xj for cj, xj in zip(c, x))\nreturn math.isclose(value, dual_bound(b, y), abs_tol=tol)  （前面两步先检查完）"]),
+        ("relative_gap", ["分子是两数之差的绝对值，分母是最好整数解的绝对值；用 max(1e-10, ...) 防止除以 0。",
+                          "return abs(bound - incumbent) / max(1e-10, abs(incumbent))"]),
+        ("proven_optimal", ["最大化时上限 >= 最好整数解，两者之差够小就算碰上：小到绝对容差以内，或者小到相对容差乘以 max(1, |最好整数解|) 以内。",
+                            "return bound - incumbent <= max(absolute, rel * max(1.0, abs(incumbent)))"]),
+        ("game_bounds", ["保底：对每一列算 sum(p[i] * m[i][j])，取最小的；封顶：对每一行算 sum(m[i][j] * q[j])，取最大的。",
+                         "floor = min(sum(p[i] * m[i][j] for i in range(rows)) for j in range(cols))\ncap = max(sum(m[i][j] * q[j] for j in range(cols)) for i in range(rows))\nreturn floor, cap"]),
+        ("guess_after_stop", ["已经找到的整数解能拿 19，所以最优值不会更小；上限说不可能超过 20。", "最优值在 19 和 20 之间（含两头）。"]),
+    ],
 }

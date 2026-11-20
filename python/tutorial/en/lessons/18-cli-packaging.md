@@ -5,7 +5,7 @@
 > **Exercise:** `python3 python/tutorial/en/run.py 18`
 > **Do it online:** [open the web version, nothing to install](https://xudaniel.github.io/minicplex/python/en/#l18)
 
-[← Files and data](17-files-data.md) · [Contents](../README.md)
+[← Files and data](17-files-data.md) · [Contents](../README.md) · Next: [How do we know it's optimal? →](19-optimality.md)
 
 ## 1. Command-line arguments
 
@@ -80,7 +80,7 @@ Open [`exercises/l18_cli_packaging.py`](../exercises/l18_cli_packaging.py): pars
 
 ## 7. What next
 
-🎉 You've finished all 26 lessons! What you can do now goes well beyond syntax: reading errors, debugging, writing tests, handling files, building command-line tools, packaging. A few ways to keep going:
+The engineering skills are now complete: reading errors, debugging, writing tests, handling files, building command-line tools, packaging. One lesson is left ([lesson 19](19-optimality.md)): why a solver is entitled to say "this is optimal". After that, a few ways to keep going:
 
 - Turn lesson 12's course planner into a real command-line tool: `python3 -m planner courses.csv --max-hours 20`, writing the result as JSON.
 - Read the minicplex source. Suggested order: [`model.py`](../../../minicplex/model.py) → [`lp_reader.py`](../../../minicplex/lp_reader.py) → [`solver.py`](../../../minicplex/solver.py) → [`lp_engine.py`](../../../minicplex/lp_engine.py).
@@ -88,4 +88,4 @@ Open [`exercises/l18_cli_packaging.py`](../exercises/l18_cli_packaging.py): pars
 - Send minicplex a pull request: for example, a new piece of syntax for the LP reader, with tests to go with it (the process is in [CONTRIBUTING.md](../../../../CONTRIBUTING.md)).
 - Want a second language? The same solver also has a [Java version with a 20-lesson Java course](../../../../java/tutorial/README.md) (in Chinese).
 
-[← Files and data](17-files-data.md) · [Contents](../README.md)
+[← Files and data](17-files-data.md) · [Contents](../README.md) · Next: [How do we know it's optimal? →](19-optimality.md)
