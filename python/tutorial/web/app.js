@@ -8,18 +8,80 @@
   let worker = null;         // 运行 Python 的 Worker
   let workerReady = null;    // Promise：Worker 准备好了
   let running = false;
+  const LANG = document.documentElement.lang.startsWith("en") ? "en" : "zh";
+  const T = {
+    zh: {
+      start: `从 <a href="#a01">入门 A1</a> 开始；学过编程的话可以直接从 <a href="#l01">第 1 课</a> 开始。`,
+      allDone: (n) => `🎉 ${n} 节全部完成！`,
+      progress: (n, total, next) => `已完成 ${n} / ${total} 节 · <a href="#${next.id}">继续：${label(next.id)} ${shortTitle(next.title)} →</a>`,
+      siteTitle: "用 minicplex 学 Python",
+      homeTitle: "用 minicplex 学 Python · 在线练习",
+      lessonDone: "✅ 这一课你已经完成了。",
+      writeThenRun: "写完点 ▶ 运行判分（Ctrl + Enter）。",
+      preparing: "正在准备 Python 运行环境（第一次大约需要 5～15 秒，之后就快了）…",
+      workerError: (m) => "Python 运行环境出错了（" + (m || "未知错误") + "）。请刷新页面；如果一直这样，换一个新版浏览器试试。",
+      ready: (s) => `Python 准备好了（${s} 秒）。写完点 ▶ 运行判分。`,
+      loadFailed: (m) => "Python 运行环境加载失败：" + m + "。请检查网络后刷新页面。",
+      running: "运行中…",
+      slow: (s) => `运行了 ${s} 秒还没结束……如果是写出了死循环，点 ■ 停止。`,
+      passedFirst: "🎉 全部通过，这一课完成了！",
+      passed: "🎉 全部通过！",
+      nextLesson: (L) => ` 下一课：${label(L.id)} ${shortTitle(L.title)} →`,
+      wrong: (f, t) => `有 ${f} 项不对：看看 ❌ 那几行，期望值和实际值差在哪里。` + (t !== "0" ? `另外还有 ${t} 项没写。` : ""),
+      todo: (t) => `还有 ${t} 项没写：找到代码里的 TODO。`,
+      stopped: "已停止。",
+      stoppedOut: "■ 已停止。",
+      crashed: "程序没能运行完：看输出里 ❗ 那一行，它会告诉你第几行出了什么错。",
+      hintFirst: "看第 1 级提示",
+      hintMore: (k) => `再给一点（第 ${k} 级）`,
+      courseFailed: "课程加载失败，请刷新页面重试。",
+      confirmReset: "恢复成最初的练习？你写的代码会被清掉。",
+      confirmAnswer: "先自己试试？看答案之前，至少运行一次、看看哪里不对。\n\n确定要看参考答案吗？",
+      confirmUse: "用参考答案替换你的代码？",
+    },
+    en: {
+      start: `Start with <a href="#a01">Basics A1</a>; if you've done some programming, you can start at <a href="#l01">lesson 1</a>.`,
+      allDone: (n) => `🎉 All ${n} lessons done!`,
+      progress: (n, total, next) => `${n} / ${total} lessons done · <a href="#${next.id}">Continue: ${label(next.id)} ${shortTitle(next.title)} →</a>`,
+      siteTitle: "Learn Python with minicplex",
+      homeTitle: "Learn Python with minicplex · online exercises",
+      lessonDone: "✅ You've already finished this lesson.",
+      writeThenRun: "When you're done, click ▶ Run & check (Ctrl + Enter).",
+      preparing: "Getting Python ready (about 5–15 seconds the first time, quick after that)…",
+      workerError: (m) => "Something went wrong with Python (" + (m || "unknown error") + "). Please reload the page; if it keeps happening, try a recent browser.",
+      ready: (s) => `Python is ready (${s} s). When you're done, click ▶ Run & check.`,
+      loadFailed: (m) => "Python failed to load: " + m + ". Check your connection and reload the page.",
+      running: "Running…",
+      slow: (s) => `Still running after ${s} seconds… if you wrote an infinite loop, click ■ Stop.`,
+      passedFirst: "🎉 All passed: lesson complete!",
+      passed: "🎉 All passed!",
+      nextLesson: (L) => ` Next: ${label(L.id)} ${shortTitle(L.title)} →`,
+      wrong: (f, t) => `${f} wrong: look at the ❌ lines to see how the expected and actual values differ.` + (t !== "0" ? ` ${t} still to write as well.` : ""),
+      todo: (t) => `${t} still to write: find the TODOs in the code.`,
+      stopped: "Stopped.",
+      stoppedOut: "■ Stopped.",
+      crashed: "The program didn't finish: the ❗ line in the output tells you which line went wrong and how.",
+      hintFirst: "Show hint 1",
+      hintMore: (k) => `A bit more (hint ${k})`,
+      courseFailed: "The course failed to load; please reload the page.",
+      confirmReset: "Restore the original exercise? Your code will be cleared.",
+      confirmAnswer: "Try it yourself first? Before looking at the answer, run your code at least once and see what's wrong.\n\nShow the answer anyway?",
+      confirmUse: "Replace your code with the answer?",
+    },
+  }[LANG];
 
   // ---------------------------------------------------------------- 本地存储（隐私模式等情况下可能不可用）
+  const PREFIX = LANG === "en" ? "mcpy:en:" : "mcpy:";   // 中英文版的代码和进度分开存
   const store = {
-    get(k) { try { return localStorage.getItem("mcpy:" + k); } catch (e) { return null; } },
-    set(k, v) { try { localStorage.setItem("mcpy:" + k, v); } catch (e) { /* 不保存也能用 */ } },
-    del(k) { try { localStorage.removeItem("mcpy:" + k); } catch (e) { /* ignore */ } },
+    get(k) { try { return localStorage.getItem(PREFIX + k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(PREFIX + k, v); } catch (e) { /* 不保存也能用 */ } },
+    del(k) { try { localStorage.removeItem(PREFIX + k); } catch (e) { /* ignore */ } },
   };
   const isDone = (id) => store.get("done:" + id) === "1";
 
   // ---------------------------------------------------------------- 目录
   function label(id) { return id[0] === "a" ? "A" + Number(id.slice(1)) : String(Number(id.slice(1))).padStart(2, "0"); }
-  function shortTitle(t) { return t.replace(/^(入门 A\d+|第 \d+ 课)：/, ""); }
+  function shortTitle(t) { return t.replace(/^(入门 A\d+|第 \d+ 课)：|^(Basics A\d+|Lesson \d+): /, ""); }
 
   function renderHome() {
     const stageOf = (id) => (id[0] === "a" ? 0 : Number(id.slice(1)) <= 12 ? 1 : 2);
@@ -39,10 +101,9 @@
     }
     const n = course.lessons.filter((L) => isDone(L.id)).length;
     const next = course.lessons.find((L) => !isDone(L.id));
-    $("progress").innerHTML = n === 0
-      ? `从 <a href="#a01">入门 A1</a> 开始；学过编程的话可以直接从 <a href="#l01">第 1 课</a> 开始。`
-      : n === course.lessons.length ? `🎉 ${n} 节全部完成！`
-      : `已完成 ${n} / ${course.lessons.length} 节 · <a href="#${next.id}">继续：${label(next.id)} ${shortTitle(next.title)} →</a>`;
+    $("progress").innerHTML = n === 0 ? T.start
+      : n === course.lessons.length ? T.allDone(n)
+      : T.progress(n, course.lessons.length, next);
   }
 
   // ---------------------------------------------------------------- 课文和编辑器
@@ -52,7 +113,7 @@
     const prev = course.lessons[i - 1], next = course.lessons[i + 1];
     setNav($("navPrev"), prev);
     setNav($("navNext"), next);
-    document.title = `${L.title} · 用 minicplex 学 Python`;
+    document.title = `${L.title} · ${T.siteTitle}`;
     $("article").innerHTML = `<h1></h1>` + L.html;
     $("article").querySelector("h1").textContent = L.title;
     $("article").scrollTop = 0;
@@ -63,7 +124,7 @@
     $("answerBox").hidden = true;
     $("hintBox").hidden = true;
     $("btnHint").hidden = !(L.hints && L.hints.length);
-    setStatus(isDone(L.id) ? "✅ 这一课你已经完成了。" : "写完点 ▶ 运行判分（Ctrl + Enter）。", isDone(L.id));
+    setStatus(isDone(L.id) ? T.lessonDone : T.writeThenRun, isDone(L.id));
     ensureWorker();
   }
   function setNav(a, L) {
@@ -124,24 +185,25 @@
     if (workerReady) return workerReady;
     worker = new Worker("worker.mjs?v=" + course.version, { type: "module" });
     const t0 = performance.now();
-    if (!running) setStatus("正在准备 Python 运行环境（第一次大约需要 5～15 秒，之后就快了）…");
+    if (!running) setStatus(T.preparing);
     worker.onerror = (e) => {
-      setStatus("Python 运行环境出错了（" + (e.message || "未知错误") + "）。请刷新页面；如果一直这样，换一个新版浏览器试试。");
+      setStatus(T.workerError(e.message));
       if (running) finishRun(2);
     };
     workerReady = new Promise((resolve, reject) => {
       worker.onmessage = (ev) => {
         if (ev.data.type === "ready") {
           worker.onmessage = onWorkerMessage;
-          if (!running && current) setStatus(isDone(current.id) ? "✅ 这一课你已经完成了。" : `Python 准备好了（${((performance.now() - t0) / 1000).toFixed(1)} 秒）。写完点 ▶ 运行判分。`, isDone(current.id));
+          if (!running && current) setStatus(isDone(current.id) ? T.lessonDone : T.ready(((performance.now() - t0) / 1000).toFixed(1)), isDone(current.id));
           resolve();
         } else if (ev.data.type === "error") {
-          setStatus("Python 运行环境加载失败：" + ev.data.text + "。请检查网络后刷新页面。");
+          setStatus(T.loadFailed(ev.data.text));
           workerReady = null;
           reject(new Error(ev.data.text));
         }
       };
-      worker.postMessage({ type: "boot", files: course.files, selfHosted: course.selfHostedPyodide, override: params.get("pyodide") });
+      worker.postMessage({ type: "boot", files: course.files, selfHosted: course.selfHostedPyodide, pyodidePath: course.pyodidePath,
+                          override: params.get("pyodide"), lang: LANG });
     });
     return workerReady;
   }
@@ -186,11 +248,11 @@
       finishRun(2);
       return;
     }
-    setStatus("运行中…");
+    setStatus(T.running);
     const t0 = performance.now();
     runTimer = setInterval(() => {
       const s = (performance.now() - t0) / 1000;
-      if (s > 5) setStatus(`运行了 ${s.toFixed(0)} 秒还没结束……如果是写出了死循环，点 ■ 停止。`);
+      if (s > 5) setStatus(T.slow(s.toFixed(0)));
     }, 1000);
     worker.postMessage({ type: "run", code: code().value });
   }
@@ -201,27 +263,26 @@
     $("btnRun").hidden = false;
     $("btnStop").hidden = true;
     const text = $("output").textContent;
-    const m = text.match(/-- 通过 (\d+)，不对 (\d+)，没写 (\d+)/);
+    const m = text.match(/-- 通过 (\d+)，不对 (\d+)，没写 (\d+)/) || text.match(/-- passed (\d+), wrong (\d+), todo (\d+)/);
     if (exitCode === 0 && m && m[2] === "0" && m[3] === "0") {
       const first = !isDone(current.id);
       store.set("done:" + current.id, "1");
       const i = course.lessons.indexOf(current);
       const next = course.lessons[i + 1];
-      setStatus(first ? "🎉 全部通过，这一课完成了！" : "🎉 全部通过！", true);
+      setStatus(first ? T.passedFirst : T.passed, true);
       if (next) {
         const a = document.createElement("a");
         a.href = "#" + next.id;
-        a.textContent = ` 下一课：${label(next.id)} ${shortTitle(next.title)} →`;
+        a.textContent = T.nextLesson(next);
         $("status").appendChild(a);
       }
     } else if (m) {
       const [_, p, f, t] = m;
-      setStatus(f !== "0" ? `有 ${f} 项不对：看看 ❌ 那几行，期望值和实际值差在哪里。` + (t !== "0" ? `另外还有 ${t} 项没写。` : "")
-                          : `还有 ${t} 项没写：找到代码里的 TODO。`);
+      setStatus(f !== "0" ? T.wrong(f, t) : T.todo(t));
     } else if (exitCode === "stopped") {
-      setStatus("已停止。");
+      setStatus(T.stopped);
     } else {
-      setStatus("程序没能运行完：看输出里 ❗ 那一行，它会告诉你第几行出了什么错。");
+      setStatus(T.crashed);
     }
   }
 
@@ -230,7 +291,7 @@
     worker.terminate();
     worker = null;
     workerReady = null;
-    appendOutput("■ 已停止。");
+    appendOutput(T.stoppedOut);
     finishRun("stopped");
     ensureWorker();  // 重新准备一个，下次运行不用等太久
   }
@@ -255,7 +316,7 @@
       if (shown < levels.length) {
         const b = document.createElement("button");
         b.className = "btn ghost more";
-        b.textContent = shown === 0 ? "看第 1 级提示" : `再给一点（第 ${shown + 1} 级）`;
+        b.textContent = shown === 0 ? T.hintFirst : T.hintMore(shown + 1);
         b.onclick = () => { store.set(key, String(shown + 1)); renderHints(); };
         div.appendChild(b);
       }
@@ -272,7 +333,9 @@
     $("lessonNav").hidden = !L;
     document.body.classList.toggle("in-lesson", !!L);
     if (L) showLesson(L);
-    else { current = null; document.title = "用 minicplex 学 Python · 在线练习"; renderHome(); window.scrollTo(0, 0); }
+    else { current = null; document.title = T.homeTitle; renderHome(); window.scrollTo(0, 0); }
+    const other = $("langSwitch");
+    if (other) other.href = other.getAttribute("href").split("#")[0] + (L ? "#" + L.id : "");
   }
 
   function setTab(codeTab) {
@@ -287,7 +350,7 @@
       const res = await fetch("course.json?v=" + (document.querySelector('script[src^="app.js"]').src.split("v=")[1] || ""));
       course = await res.json();
     } catch (e) {
-      $("loading").textContent = "课程加载失败，请刷新页面重试。";
+      $("loading").textContent = T.courseFailed;
       return;
     }
     $("loading").hidden = true;
@@ -297,11 +360,11 @@
     $("btnRun").onclick = run;
     $("btnStop").onclick = stop;
     $("btnReset").onclick = () => {
-      if (confirm("恢复成最初的练习？你写的代码会被清掉。")) { setCode(current.exercise); store.del("code:" + current.id); $("output").textContent = ""; }
+      if (confirm(T.confirmReset)) { setCode(current.exercise); store.del("code:" + current.id); $("output").textContent = ""; }
     };
     $("btnAnswer").onclick = () => {
       if (!$("answerBox").hidden) { $("answerBox").hidden = true; return; }
-      if (!isDone(current.id) && !confirm("先自己试试？看答案之前，至少运行一次、看看哪里不对。\n\n确定要看参考答案吗？")) return;
+      if (!isDone(current.id) && !confirm(T.confirmAnswer)) return;
       $("answerCode").textContent = current.solution;
       $("answerBox").hidden = false;
       $("answerBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -316,7 +379,7 @@
     };
     $("btnHideHint").onclick = () => { $("hintBox").hidden = true; };
     $("btnUseAnswer").onclick = () => {
-      if (confirm("用参考答案替换你的代码？")) { setCode(current.solution); onInput(); $("answerBox").hidden = true; }
+      if (confirm(T.confirmUse)) { setCode(current.solution); onInput(); $("answerBox").hidden = true; }
     };
     $("tabRead").onclick = () => setTab(false);
     $("tabCode").onclick = () => setTab(true);

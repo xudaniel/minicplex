@@ -27,7 +27,7 @@
    (cd python && python3 -m minicplex.bench ../bench/models --quiet --csv ../py.csv)
    python3 tools/compare_java_cpp.py cpp.csv py.csv --strict --label Python
    ```
-   改了公开 API 时，记得同步两门课的参考答案（`java/tutorial/run.sh all --solution`、`python3 python/tutorial/run.py all --solution`）。
+   改了公开 API 时，记得同步两门课的参考答案（`java/tutorial/run.sh all --solution`、`python3 python/tutorial/run.py all --solution`，Python 课的英文版是 `python3 python/tutorial/en/run.py all --solution`）。改 Python 课的答案时，中英文两份一起改，再分别运行 `make_exercises.py` 和 `make_exercises.py --lang en`。
 3. 改动求解逻辑时，跑一轮对拍：
    ```bash
    ./build/minicplex_gen --kind mixed --count 400 --seed 1 --out fuzz

@@ -2,6 +2,9 @@
 死循环 + 停止、自动保存、手机布局。
 
     python python/tutorial/web/test_site.py http://localhost:8765/python/ _site/python/course.json
+    python python/tutorial/web/test_site.py http://localhost:8765/python/en/ _site/python/en/course.json
+
+页面上的文字按 course.json 里的 lang（zh / en）检查。
 """
 import json, sys, time
 from playwright.sync_api import sync_playwright
@@ -9,6 +12,14 @@ from playwright.sync_api import sync_playwright
 BASE = sys.argv[1]
 course = json.load(open(sys.argv[2], encoding="utf-8"))
 fails = []
+EN = course.get("lang") == "en"
+S = {  # 页面上会出现的文字
+    "ready": "is ready" if EN else "准备好了",
+    "passed": "All passed" if EN else "全部通过",
+    "unfinished": ("wrong", "still to write") if EN else ("没写", "不对"),
+    "syntax": "Syntax error" if EN else "语法错误",
+    "mistake": "use // (floor division)" if EN else "要整数时用 //",
+}
 
 def run_code(page, code, timeout=120000):
     page.evaluate("c => { const t = document.getElementById('code'); t.value = c; t.dispatchEvent(new Event('input')); }", code)
@@ -24,17 +35,17 @@ with sync_playwright() as p:
     page.on("pageerror", lambda e: logs.append(str(e)))
     t0 = time.time()
     page.goto(BASE + "#a01")
-    page.wait_for_function("document.getElementById('status').textContent.includes('准备好了')", timeout=120000)
+    page.wait_for_function(f"document.getElementById('status').textContent.includes('{S['ready']}')", timeout=120000)
     print(f"pyodide ready in {time.time() - t0:.1f}s")
     for L in course["lessons"]:
         page.goto(BASE + "#" + L["id"])
         t = time.time()
         st, out = run_code(page, L["solution"])
-        ok = "全部通过" in st and "❌" not in out
+        ok = S["passed"] in st and "❌" not in out
         print(f"{L['id']} solution {'OK ' if ok else 'BAD'} {time.time() - t:5.1f}s  {st[:40]}")
         if not ok: fails.append((L["id"], "solution", st, out[-500:]))
         st, out = run_code(page, L["exercise"])
-        ok = ("没写" in st or "不对" in st) and "❗" not in out   # “找 bug”题的练习本来就是 ❌
+        ok = any(w in st for w in S["unfinished"]) and "❗" not in out   # “找 bug”题的练习本来就是 ❌
         if not ok: fails.append((L["id"], "exercise", st, out[-500:]))
     # progress shown on home
     page.goto(BASE + "#")
@@ -68,7 +79,7 @@ with sync_playwright() as p:
     wrong = [L for L in course["lessons"] if L["id"] == "a02"][0]["solution"].replace("money // price", "money / price")
     st, out = run_code(page, wrong)
     print("mistake hint:", [ln for ln in out.splitlines() if "💡" in ln][:1])
-    if "要整数时用 //" not in out: fails.append(("mistake hint", out[-300:], "", ""))
+    if S["mistake"] not in out: fails.append(("mistake hint", out[-300:], "", ""))
     # saved code persists after reload
     page.evaluate("c => { const t = document.getElementById('code'); t.value = c; t.dispatchEvent(new Event('input')); }", "# my code\n")
     page.wait_for_timeout(500); page.reload(); page.wait_for_selector("#code")
@@ -79,10 +90,15 @@ with sync_playwright() as p:
     m.goto(BASE + "#l05"); m.wait_for_selector("#article h1")
     m.click("#tabCode"); m.wait_for_selector("#code", state="visible")
     if not m.is_hidden("#article"): fails.append(("mobile", "tabs", "", ""))
+    # 语言切换：链接带着当前这一课
+    page.goto(BASE + "#l05"); page.wait_for_selector("#article h1")
+    href = page.get_attribute("#langSwitch", "href")
+    print("language switch:", href)
+    if not href.endswith("#l05"): fails.append(("lang switch", href, "", ""))
     print("console errors:", logs[:5])
     b.close()
-for name, value, want in [("syntax", out_syntax, "语法错误"), ("runtime", out_runtime, "TypeError"),
-                          ("after stop", st_after_stop, "全部通过")]:
+for name, value, want in [("syntax", out_syntax, S["syntax"]), ("runtime", out_runtime, "TypeError"),
+                          ("after stop", st_after_stop, S["passed"])]:
     if want not in value: fails.append((name, value, "", ""))
 if logs: fails.append(("console", " | ".join(logs[:5]), "", ""))
 print("FAILS:", len(fails))

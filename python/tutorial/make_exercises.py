@@ -14,21 +14,27 @@ raise NotImplementedError("TODO")，其余内容原样保留；check.py 原样�
 
     python3 python/tutorial/make_exercises.py           # 重新生成 exercises/
     python3 python/tutorial/make_exercises.py --check   # 只检查 exercises/ 是否和答案同步（CI 用）
+    python3 python/tutorial/make_exercises.py --lang en [--check]   # 英文版（en/ 目录）
 """
 import pathlib
 import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-SRC = HERE / "solutions"
-DST = HERE / "exercises"
+LANG = "en" if "--lang" in sys.argv and sys.argv[sys.argv.index("--lang") + 1] == "en" else "zh"
+ROOT = HERE / "en" if LANG == "en" else HERE
+SRC = ROOT / "solutions"
+DST = ROOT / "exercises"
+TODO_LINE = {"zh": 'raise NotImplementedError("TODO")  # ← 在这里写你的代码',
+             "en": 'raise NotImplementedError("TODO")  # ← write your code here'}[LANG]
+BUG_LINE = {"zh": "# 🐞 下面这段有 bug：找出来，改好", "en": "# 🐞 the code below has a bug: find it and fix it"}[LANG]
 BLOCK = re.compile(r"^([ \t]*)# >>>\n.*?^[ \t]*# <<<\n", re.S | re.M)
 
 
 def _replace(m: re.Match) -> str:
     indent, block = m.group(1), m.group(0)
     if "# ===\n" not in block:
-        return f'{indent}raise NotImplementedError("TODO")  # ← 在这里写你的代码\n'
+        return f"{indent}{TODO_LINE}\n"
     lines = []
     for ln in block.split("# ===\n", 1)[1].splitlines():
         if ln.strip().startswith("# <<<"):
@@ -37,7 +43,7 @@ def _replace(m: re.Match) -> str:
         if not body.startswith("#"):
             raise ValueError(f"有 bug 的版本每一行都要注释掉：{ln!r}")
         lines.append(indent + body[2:] if body.startswith("# ") else indent + body[1:])
-    return f"{indent}# 🐞 下面这段有 bug：找出来，改好\n" + "\n".join(lines) + "\n"
+    return f"{indent}{BUG_LINE}\n" + "\n".join(lines) + "\n"
 
 
 def make(text: str) -> str:
@@ -64,7 +70,7 @@ def blank_names(text: str):
 
 def check_hints() -> list:
     """每个挖空的函数都要有提示，提示里也不能有多余的函数名。"""
-    sys.path.insert(0, str(HERE))
+    sys.path.insert(0, str(ROOT))
     from hints import HINTS
     problems = []
     for src in sorted(SRC.glob("[al][0-9][0-9]_*.py")):
@@ -93,7 +99,8 @@ def main() -> None:
         else:
             dst.write_text(out, encoding="utf-8", newline="\n")
     if check and stale:
-        sys.exit("练习文件和答案不同步，请运行 python3 python/tutorial/make_exercises.py：" + ", ".join(stale))
+        sys.exit("练习文件和答案不同步，请运行 python3 python/tutorial/make_exercises.py"
+                 + (" --lang en" if LANG == "en" else "") + "：" + ", ".join(stale))
     problems = check_hints()
     if problems:
         sys.exit("hints.py 和练习对不上：\n  " + "\n  ".join(problems))

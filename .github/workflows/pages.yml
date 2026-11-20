@@ -39,6 +39,7 @@ jobs:
           (cd _site && python -m http.server 8765 > /dev/null 2>&1 &)
           sleep 1
           python python/tutorial/web/test_site.py http://localhost:8765/python/ _site/python/course.json
+          python python/tutorial/web/test_site.py http://localhost:8765/python/en/ _site/python/en/course.json
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
