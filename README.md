@@ -30,7 +30,8 @@
 <a href="#python-版">Python 版</a> ·
 <a href="#用它学-java"><b>用它学 Java</b></a> ·
 <a href="#用它学-python"><b>用它学 Python</b></a> ·
-<a href="docs/PRD.md">PRD</a>
+<a href="docs/PRD.md">PRD</a> ·
+<a href="ABOUT.md"><b>关于本项目</b></a>
 </p>
 
 </div>
@@ -41,6 +42,22 @@
 它同时是 **Java 课**和 **Python 课**的教材：从没写过代码的人，也能从打印第一行字一路学到读懂这个求解器。
 
 <p align="center"><img src="docs/assets/demo.svg" alt="minicplex 求解一个生产排程整数规划" width="760"></p>
+
+<details>
+<summary><b>📑 完整目录</b>（这份 README 很长，点开按需跳转；想了解项目来历和理念，请看 <a href="ABOUT.md">关于本项目</a>）</summary>
+
+| 想做什么 | 去哪一节 |
+|---|---|
+| 马上跑起来 | [30 秒上手](#30-秒上手) · [编译](#编译) · [命令行用法](#命令行用法) |
+| 学编程 | [用它学 Java](#用它学-java) · [用它学 Python](#用它学-python)（[网页版](https://xudaniel.github.io/minicplex/python/)） |
+| 不懂数学，先看懂原理 | [用大白话讲 minicplex](#用大白话讲-minicplex先看这里) · [术语对照表](#术语对照表) · [它是怎么工作的](#它是怎么工作的) |
+| 学建模 | [入门例子 01～05](#入门例子从最简单开始) · [进阶建模技巧 06～10](#进阶建模技巧0610) · [建模技巧速查表](#建模技巧速查表) · [练习题](#练习题) · [简单和复杂例子](#简单和复杂例子) |
+| 在代码里调用 | [C++ 建模 API](#c-建模-api) · [Java 版](#java-版) · [Python 版](#python-版) · [功能一览](#功能一览) |
+| 读懂源码 | [工作原理](#工作原理) · [代码解析](#代码解析)（单纯形内核、预处理、Gomory 割、分支定界、不变式、复杂度） |
+| 参与开发 | [想改代码？从这里下手](#8-想改代码从这里下手) · [设计取舍与局限](#9-设计取舍与局限) · [开发与测试](#开发与测试) · [目录结构](#目录结构) · [CONTRIBUTING](CONTRIBUTING.md) |
+| 了解项目 | [关于本项目](ABOUT.md)（缘起、理念、历程、FAQ） · [PRD](docs/PRD.md) · [更新日志](CHANGELOG.md) · [后续方向](#后续方向) |
+
+</details>
 
 ## 亮点
 
@@ -335,7 +352,7 @@ flowchart TD
 | 灵敏度分析 | 线性规划的影子价格（对偶值）和既约成本：`Result::duals`、`Result::reducedCosts`，命令行 `--duals` |
 | 求解参数 | 相对 MIP 间隙、节点上限、时间上限、只求 LP 松弛；分支规则、割平面轮数、预处理开关 |
 | 输入输出 | CPLEX LP 格式读取（Minimize/Maximize、Subject To、Bounds、General、Binary、End）与写出 |
-| 语言 | C++17 版（主版本）和 Java 17 版（逐行移植，计算路径完全相同，CI 每次提交逐题核对） |
+| 语言 | C++17 版（主版本）、Java 17 版和 Python 3.9+ 版（都是逐行移植，计算路径完全相同，CI 每次提交逐题核对） |
 | 求解状态 | Optimal（最优）、Infeasible（不可行）、Unbounded（无界）、InfeasibleOrUnbounded、NodeLimit、TimeLimit、IterationLimit |
 
 ## 编译
@@ -1808,6 +1825,7 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：L
 ## 目录结构
 
 ```
+README.md  ABOUT.md（关于本项目）  CHANGELOG.md  CONTRIBUTING.md  LICENSE
 docs/      PRD.md / PRD.en.md（产品需求文档，中 / 英）  ortools-comparison.md（与 OR-Tools 对拍记录）
            releases/（发布说明）  assets/（logo 和演示图）
 include/   model.hpp  solver.hpp  lp_reader.hpp
@@ -1836,3 +1854,5 @@ MPS 文件支持。详见 PRD 的路线图。
 ## 许可证
 
 [MIT](LICENSE)。欢迎提 issue 和 pull request，流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+想知道这个项目为什么存在、坚持哪些原则、一路踩过哪些坑，请看 **[关于本项目（ABOUT.md）](ABOUT.md)**。

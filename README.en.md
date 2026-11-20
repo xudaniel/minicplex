@@ -30,7 +30,8 @@
 <a href="#python-version">Python version</a> ·
 <a href="#learn-java-with-minicplex"><b>Learn Java</b></a> ·
 <a href="#learn-python-with-minicplex"><b>Learn Python</b></a> ·
-<a href="docs/PRD.en.md">PRD</a>
+<a href="docs/PRD.en.md">PRD</a> ·
+<a href="ABOUT.md">About (中文)</a>
 </p>
 
 </div>
