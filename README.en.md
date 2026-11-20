@@ -9,7 +9,9 @@
 <a href="https://github.com/xudaniel/minicplex/releases"><img src="https://img.shields.io/badge/release-1.0.0-0ea5e9" alt="Release 1.0.0"></a>
 <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17">
 <img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
+<img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+">
 <a href="java/tutorial/README.md"><img src="https://img.shields.io/badge/Java%20course-20%20lessons-f59e0b" alt="Java course: 20 lessons"></a>
+<a href="python/tutorial/README.md"><img src="https://img.shields.io/badge/Python%20course-20%20lessons-3776AB" alt="Python course: 20 lessons"></a>
 <img src="https://img.shields.io/badge/dependencies-none-22c55e" alt="No dependencies">
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-64748b" alt="MIT"></a>
 </p>
@@ -24,18 +26,20 @@
 <a href="#examples">Examples</a> ·
 <a href="#code-tour">Code tour</a> ·
 <a href="#java-version">Java version</a> ·
+<a href="#python-version">Python version</a> ·
 <a href="#learn-java-with-minicplex"><b>Learn Java</b></a> ·
+<a href="#learn-python-with-minicplex"><b>Learn Python</b></a> ·
 <a href="docs/PRD.en.md">PRD</a>
 </p>
 
 </div>
 
-**minicplex** is a dependency-free LP / MIP solver written in C++17, with a line-by-line Java 17 port. It reads and
+**minicplex** is a dependency-free LP / MIP solver written in C++17, with line-by-line ports to Java 17 and pure Python. It reads and
 writes CPLEX `.lp` files, offers a Concert-style modelling API and prints a CPLEX-style branch-and-bound log. It
 was written to understand solvers like IBM ILOG CPLEX **from the inside**: the code is short and heavily commented,
 and `--trace` shows every simplex pivot, every cut and every branching decision.
-It is also the textbook for a **Java course** that takes complete beginners from their first `println` to reading
-the solver's own code.
+It is also the textbook for a **Java course** and a **Python course** that take complete beginners from their first
+line of output to reading the solver's own code.
 
 <p align="center"><img src="docs/assets/demo.svg" alt="minicplex solving a production-planning MIP" width="760"></p>
 
@@ -68,9 +72,9 @@ caught bugs in HiGHS itself.
 </td>
 <td width="50%" valign="top">
 
-**☕ C++ and Java, step for step**<br>
-The Java port takes exactly the same path: same nodes, same simplex iterations, same `--trace` line for line.
-CI checks this on every commit.
+**☕🐍 C++, Java and Python, step for step**<br>
+The Java and Python ports take exactly the same path: same nodes, same simplex iterations, same `--trace` line
+for line. CI checks this on every commit.
 
 </td>
 </tr>
@@ -93,9 +97,10 @@ afternoon.
 <tr>
 <td width="50%" valign="top">
 
-**🎓 Learn Java from zero**<br>
-20 lessons (in Chinese): 8 zero-basics lessons, then classes, collections, lambdas, exceptions and testing, taught
-with the solver's real code. Every lesson has a self-grading exercise.
+**🎓 Learn Java or Python from zero**<br>
+Two 20-lesson courses (in Chinese): 8 zero-basics lessons, then classes, collections, exceptions and testing taught
+with the solver's real code; the Python course adds operator overloading and dataclasses. Every lesson has a
+self-grading exercise.
 
 </td>
 <td width="50%" valign="top">
@@ -119,6 +124,7 @@ cmake -S . -B build && cmake --build build -j
 ./build/minicplex examples/bakery.lp --trace    # watch it, step by step
 ctest --test-dir build                          # run the test suite
 java/build.sh && java/tutorial/run.sh A01       # learning Java? run the first exercise (JDK 17+ only)
+python3 python/tutorial/run.py A01              # learning Python? first exercise (Python 3.9+, nothing to install)
 ```
 
 `examples/bakery.lp` is a tiny model in CPLEX LP format: a bakery makes cakes (profit 5) and loaves of bread
@@ -138,7 +144,7 @@ End
 The same model in code:
 
 <table>
-<tr><th>C++</th><th>Java</th></tr>
+<tr><th>C++</th><th>Java</th><th>Python</th></tr>
 <tr>
 <td>
 
@@ -168,6 +174,20 @@ Result r = Solver.solve(m);   // r.objective == 20
 ```
 
 </td>
+<td>
+
+```python
+m = Model()
+cake  = m.add_var(0, INF, VarType.INTEGER, "cake")
+bread = m.add_var(0, INF, VarType.INTEGER, "bread")
+m.add_constr(6 * cake + 4 * bread <= 24, "flour")
+m.add_constr(cake + 2 * bread <= 6, "labor")
+m.set_objective(5 * cake + 4 * bread,
+                ObjSense.MAXIMIZE)
+r = solve(m)   # r.objective == 20
+```
+
+</td>
 </tr>
 </table>
 
@@ -194,6 +214,27 @@ java/build.sh                  # build once (about 10 s, no Maven, no network)
 java/tutorial/run.sh A01       # first beginner exercise
 java/tutorial/run.sh 01        # first main-lesson exercise
 java/tutorial/run.sh all       # see how far you have got
+```
+
+## Learn Python with minicplex
+
+[`python/tutorial/`](python/tutorial/README.md) is the same idea for Python, also in Chinese: 8 zero-basics lessons
+and 12 lessons built on the Python solver's own code, each with a self-grading exercise. It needs Python 3.9+ and
+**nothing else**; the runner `run.py` is itself Python, so it works the same on Windows, macOS and Linux.
+
+| Stage | What it covers | For | Per lesson |
+|---|---|---|---|
+| **Basics A1–A8** | `print` and f-strings, variables, decisions, loops, functions, lists, strings; the fruit-shopping project checked against the solver | People who have never written code | 10–20 minutes |
+| **Lessons 1–12** | Modules and imports, floating-point error, list comprehensions, classes, **operator overloading**, dataclasses and enums, dicts and sets, sorting and heaps, exceptions, text processing, testing; the course-planner project | People who know a little programming | 30–60 minutes |
+
+Examples come straight from the solver: why `2 * x + 3 * y <= 12` turns into a constraint (`__rmul__`, `__add__`,
+`__le__`), why `Result`'s list fields need `field(default_factory=list)`, why the branch-and-bound queue is a heap
+of tuples.
+
+```bash
+python3 python/tutorial/run.py A01        # first beginner exercise
+python3 python/tutorial/run.py 01         # first main-lesson exercise
+python3 python/tutorial/run.py all        # see how far you have got
 ```
 
 ## How it works
@@ -237,7 +278,7 @@ Three ideas carry most of the weight:
 | Sensitivity analysis | Shadow prices (duals) and reduced costs for LPs: `Result::duals`, `Result::reducedCosts`, CLI `--duals` |
 | Parameters | Relative and absolute MIP gap, node limit, time limit, LP relaxation only; branching rule, cut rounds, presolve switch |
 | I/O | CPLEX LP format reader (Minimize/Maximize, Subject To, Bounds, General, Binary, End) and writer |
-| Languages | C++17 (main version) and Java 17 (line-by-line port, identical computation path, checked by CI) |
+| Languages | C++17 (main version), Java 17 and pure Python 3.9+ (line-by-line ports, identical computation path, checked by CI) |
 | Statuses | Optimal, Infeasible, Unbounded, InfeasibleOrUnbounded, NodeLimit, TimeLimit, IterationLimit |
 
 ## Command line
@@ -280,7 +321,7 @@ Nodes:        13
 
 The examples come in four levels: **basics** (01–05, one new idea each) → **modelling techniques** (06–10) →
 **easy** → **hard**. Every C++ example has a Java twin in
-[`java/examples/minicplex/examples/`](java/examples/minicplex/examples/).
+[`java/examples/minicplex/examples/`](java/examples/minicplex/examples/) and a Python twin in [`python/examples/`](python/examples/).
 
 ### Basics (01–05)
 
@@ -425,6 +466,53 @@ Getting there uncovered two real determinism bugs in the C++ version:
 On the benchmark set the Java version takes about 0.72 s in total against about 0.39 s for C++, JIT warm-up
 included.
 
+## Python version
+
+[`python/`](python/README.md) is a third port, in pure Python with the standard library only (about 2,700 lines
+including comments): the simplex kernel, presolve, Gomory cuts, reliability branching, the LP reader and writer, the
+command line with `--trace`, a batch tool, all 15 examples and the tests.
+
+```bash
+python3 python/examples/easy1_bakery.py                    # examples run without installing anything
+cd python && python3 -m minicplex ../examples/bakery.lp     # same options as the C++ CLI
+python3 -m minicplex.bench ../bench/models                  # batch solve, same CSV format as minicplex_bench
+pip install ./python                                        # optional: import minicplex from anywhere
+```
+
+Python has operator overloading, so models read almost exactly like the C++ ones, with Python naming:
+
+```python
+from minicplex import Model, VarType, ObjSense, Params, INF, solve
+
+m = Model()
+chairs = m.add_var(0, INF, VarType.INTEGER, "chairs")
+tables = m.add_var(0, INF, VarType.INTEGER, "tables")
+m.add_constr(2 * chairs + 5 * tables <= 40, "wood")
+m.add_constr(3 * chairs + 2 * tables <= 30, "labor")
+m.add_constr(chairs >= tables, "mix")
+m.set_objective(30 * chairs + 70 * tables, ObjSense.MAXIMIZE)
+r = solve(m, Params(verbose=True))    # r.status, r.objective, r.value(chairs), r.nodes ...
+print(m.to_lp())
+```
+
+| C++ | Python |
+|---|---|
+| `m.addVar(0, INF, VarType::Integer, "x")` | `m.add_var(0, INF, VarType.INTEGER, "x")`; every argument has a default |
+| `Params p; p.trace = true;` | `Params(trace=True)` (a dataclass with the same fields: `relax_integrality`, `cut_rounds`, ...) |
+| `r.x[v.id]` | `r.value(v)` or `r.x[v.id]` |
+| `readLPFile(path)`, `m.writeLP(os)` | `read_file(path)`, `m.to_lp()` / `m.write_lp(path)` |
+| `checkFeasible(m, x)`, `evalObjective(m, x)` | `check_feasible(m, x)`, `eval_objective(m, x)` |
+
+The same parity bar applies: the 15 examples and their `.lp` files match C++ byte for byte, `--trace` matches line
+for line, and the 13 benchmark models plus 650 random models (MIP, LP and multi-knapsack) match in status,
+objective, node count and iteration count. Python's own suite (20 tests, including 500 brute-force IPs under 3
+parameter sets) passes on 3.9 and 3.13 in CI. Getting bit-identical results took a small
+[`jmath.py`](python/minicplex/jmath.py): Python's `round` rounds half to even, `math.ceil`/`math.floor` return
+integers (losing the sign of `-0.0` and failing on infinity), and `min(0.0, -0.0)` disagrees with Java's `Math.min`.
+
+Being interpreted, it is slow: about 20 s for the benchmark set against 0.4 s for C++. That is fine for teaching,
+the examples and models with a few dozen variables.
+
 ## How correctness is checked
 
 | Check | What it does |
@@ -436,7 +524,7 @@ included.
 | Fuzzing | Random models compared with HiGHS (every CI run, new seed) and OR-Tools |
 | Sanitizers | AddressSanitizer + UBSan build of the full test suite |
 | Benchmarks | Results must match the baseline; speed changes are reported |
-| Java vs C++ | Examples, traces, benchmarks and fresh random models must match step for step |
+| Java vs C++, Python vs C++ | Examples, traces, benchmarks and fresh random models must match step for step |
 
 Fuzzing has also found bugs in the reference solvers. HiGHS once reported "optimal 41" for a MIP whose LP
 relaxation is unbounded; the objective decreases without limit along the ray (x1 + 7, x4 − 9), and minicplex
@@ -523,6 +611,8 @@ already. Fuzzing has met this once in about 6,000 models.
 | `java/build.sh` | Build the Java version and run its tests |
 | `tools/compare_java_cpp.py` | Compare C++ and Java benchmark CSVs; `--strict` also requires equal nodes and iterations |
 | `tools/compare_examples_java_cpp.sh` | Run both sets of examples and diff their output |
+| `python3 -m unittest discover -s python/tests` | The Python version's tests |
+| `tools/compare_examples_py_cpp.sh` | Run the C++ and Python examples and diff their output (use `compare_java_cpp.py --label Python` for CSVs) |
 
 ```bash
 ./build/minicplex_gen --kind mixed --count 400 --seed 1 --out fuzz
@@ -531,8 +621,8 @@ python3 tools/fuzz_vs_highs.py fuzz fuzz/ours.csv
 ```
 
 GitHub Actions runs on every commit: build and test on Linux and macOS, the sanitizer build, 500 fresh random models
-against HiGHS, the benchmark comparison, and the Java jobs (JDK 17 and 21) with the step-by-step comparison against
-C++. See [CONTRIBUTING.md](CONTRIBUTING.md) for the checklist.
+against HiGHS, the benchmark comparison, and the Java (JDK 17 and 21) and Python (3.9 and 3.13) jobs with the
+step-by-step comparison against C++ and both courses' reference solutions. See [CONTRIBUTING.md](CONTRIBUTING.md) for the checklist.
 
 ## Repository layout
 
@@ -543,10 +633,11 @@ src/       simplex.cpp  branch_and_bound.cpp  presolve.cpp  lp_reader.cpp  model
 examples/  basics/ (01–10)  *.lp  api_demo.cpp  easy1/easy2/hard_* examples
 tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
            verify_with_ortools.py  fuzz_vs_ortools.py  bench_compare.py
-           compare_java_cpp.py  compare_examples_java_cpp.sh
+           compare_java_cpp.py  compare_examples_java_cpp.sh  compare_examples_py_cpp.sh
 bench/     models/  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
 java/      build.sh  pom.xml  src/main/java/minicplex/  src/test/java/  examples/  tutorial/ (Java course)
+python/    minicplex/ (solver package)  pyproject.toml  examples/  tests/  tutorial/ (Python course)
 ```
 
 ## Roadmap

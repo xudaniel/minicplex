@@ -4,6 +4,19 @@
 
 ## [未发布]
 
+### Python 版
+- 新增 `python/`：整个求解器逐行移植到纯 Python（3.9+，只用标准库）——单纯形内核、预处理、Gomory 割、可靠性分支、LP 读写、命令行 `python -m minicplex`（含 `--trace`、`--duals`）、批量求解 `python -m minicplex.bench`（CSV 与 C++ 同格式）、15 个例子（中文注释与 C++ 逐句对应）、20 个 `unittest` 测试
+- 建模用运算符重载，写法和 C++ 几乎一样：`m.add_constr(2 * x + 3 * y <= 12, "budget")`；`Params`、`Result` 是 dataclass，`Status` 是 enum
+- 一致性：15 个例子输出与导出的 `.lp` 和 C++ 逐字相同；`--trace` 逐行相同；13 个基准模型和 650 道随机题（混合整数、纯 LP、多维背包）的状态、目标值、节点数、迭代次数全部相同
+- 逐位一致需要的细节集中在 `python/minicplex/jmath.py`：C++ 式四舍五入（Python 的 `round` 是一半取偶）、保留 `-0.0` 符号且接受无穷大的 `ceil`/`floor`、和 Java 一样的 `min(0.0, -0.0)`、节点队列里 `-0.0` 排在 `0.0` 前面
+- 可以 `pip install ./python` 安装（命令 `minicplex-py`）；不安装也能直接运行例子
+- 新工具 `tools/compare_examples_py_cpp.sh`；`tools/compare_java_cpp.py` 新增 `--label`；CI 新增 Python 任务（3.9／3.13），每次提交逐题逐步对比
+
+### 用 minicplex 学 Python
+- 新增 `python/tutorial/`：20 节中文 Python 课。入门 A1～A8（print 和 f-string、变量、判断、循环、函数、列表、字符串、小项目“挑水果”）；正式课 01～12（模块和 import、小数误差、列表推导式、类、运算符重载和不可变对象、dataclass 和 enum、字典和集合、排序和堆、异常、文本处理、测试、综合项目“选课助手”），例子全部取自 Python 版源代码
+- 每课一道自动判分的练习（✅ / ❌ / ⏳）；`python3 python/tutorial/run.py A01` 运行，`run.py` 本身是 Python，Windows 也能直接用；练习由 `make_exercises.py` 从答案挖空生成
+- CI 在 Python 3.9 / 3.13 上运行全部参考答案，检查练习和答案同步，并确认挖空的练习只会显示“没写”而不会报错
+
 ### Java 零基础入门（A1～A8）
 - `java/tutorial/` 新增 8 节零基础小课，每节 10～20 分钟、只学一件事：让程序说话、变量和计算、做判断、重复做事、自己写方法、数组、字符串，最后是小项目“挑水果”（两层循环试遍所有买法，再和 minicplex 求解器对答案）
 - 每节一道自动判分的练习和参考答案；`run.sh A01`（或 `A1`）运行，`run.sh all` 包括入门小课；CI 照样运行全部参考答案

@@ -9,7 +9,9 @@
 <a href="https://github.com/xudaniel/minicplex/releases"><img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.0.0-0ea5e9" alt="版本 1.0.0"></a>
 <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17">
 <img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
+<img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+">
 <a href="java/tutorial/README.md"><img src="https://img.shields.io/badge/Java%20%E8%AF%BE-20%20%E8%8A%82-f59e0b" alt="Java 课 20 节"></a>
+<a href="python/tutorial/README.md"><img src="https://img.shields.io/badge/Python%20%E8%AF%BE-20%20%E8%8A%82-3776AB" alt="Python 课 20 节"></a>
 <img src="https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-22c55e" alt="零依赖">
 <a href="LICENSE"><img src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-64748b" alt="MIT"></a>
 </p>
@@ -24,16 +26,18 @@
 <a href="#例子">例子</a> ·
 <a href="#代码解析">代码解析</a> ·
 <a href="#java-版">Java 版</a> ·
+<a href="#python-版">Python 版</a> ·
 <a href="#用它学-java"><b>用它学 Java</b></a> ·
+<a href="#用它学-python"><b>用它学 Python</b></a> ·
 <a href="docs/PRD.md">PRD</a>
 </p>
 
 </div>
 
-**minicplex** 是一个零依赖的 LP / MIP 求解器，C++17 写成，另有一份逐行移植的 Java 版。它能读写 CPLEX `.lp` 文件，
+**minicplex** 是一个零依赖的 LP / MIP 求解器，C++17 写成，另有逐行移植的 Java 版和纯 Python 版。它能读写 CPLEX `.lp` 文件，
 提供类似 Concert 的建模 API，打印类似 CPLEX 的分支定界日志。写它是为了**从内部看懂** IBM ILOG CPLEX 这类求解器：
 代码不长，注释详细，加上 `--trace` 就能看到单纯形的每一次换基、每一个割平面、每一次分支。
-它同时是一门 **Java 课**的教材：从没写过代码的人，也能从打印第一行字一路学到读懂这个求解器。
+它同时是 **Java 课**和 **Python 课**的教材：从没写过代码的人，也能从打印第一行字一路学到读懂这个求解器。
 
 <p align="center"><img src="docs/assets/demo.svg" alt="minicplex 求解一个生产排程整数规划" width="760"></p>
 
@@ -63,8 +67,8 @@
 </td>
 <td width="50%" valign="top">
 
-**☕ C++ 和 Java 两个版本**<br>
-Java 版逐行移植，同一道题两边的节点数、迭代次数、每一步 trace 完全相同，CI 每次提交都会核对。
+**☕🐍 C++、Java、Python 三个版本**<br>
+Java 版和 Python 版都是逐行移植：同一道题三边的节点数、迭代次数、每一步 trace 完全相同，CI 每次提交都会核对。
 
 </td>
 </tr>
@@ -85,8 +89,8 @@ Java 版逐行移植，同一道题两边的节点数、迭代次数、每一步
 <tr>
 <td width="50%" valign="top">
 
-**🎓 用它学 Java，从零开始**<br>
-20 节中文课：8 节零基础小课（打印、变量、循环、数组……），再用求解器的真实代码学类、集合、lambda、异常和测试。每节一道自动判分的练习。
+**🎓 用它学 Java 或 Python，从零开始**<br>
+两门各 20 节的中文课：8 节零基础小课（打印、变量、循环……），再用求解器的真实代码学类、集合、异常和测试；Python 课还讲运算符重载和 dataclass。每节一道自动判分的练习。
 
 </td>
 <td width="50%" valign="top">
@@ -106,6 +110,7 @@ cmake -S . -B build && cmake --build build -j
 ./build/minicplex examples/bakery.lp            # 解一道面包店整数规划
 ./build/minicplex examples/bakery.lp --trace    # 看它一步一步怎么算
 java/build.sh && java/tutorial/run.sh A01       # 想学 Java？做第一道练习（只需要 JDK 17+）
+python3 python/tutorial/run.py A01              # 想学 Python？做第一道练习（只需要 Python 3.9+，什么都不用装）
 ```
 
 `examples/bakery.lp` 就是用 CPLEX LP 格式写的一道小题：
@@ -124,7 +129,7 @@ End
 也可以直接在代码里建模：
 
 <table>
-<tr><th>C++</th><th>Java</th></tr>
+<tr><th>C++</th><th>Java</th><th>Python</th></tr>
 <tr>
 <td>
 
@@ -154,6 +159,20 @@ Result r = Solver.solve(m);   // r.objective == 20
 ```
 
 </td>
+<td>
+
+```python
+m = Model()
+cake  = m.add_var(0, INF, VarType.INTEGER, "cake")
+bread = m.add_var(0, INF, VarType.INTEGER, "bread")
+m.add_constr(6 * cake + 4 * bread <= 24, "flour")
+m.add_constr(cake + 2 * bread <= 6, "labor")
+m.set_objective(5 * cake + 4 * bread,
+                ObjSense.MAXIMIZE)
+r = solve(m)   # r.objective == 20
+```
+
+</td>
 </tr>
 </table>
 
@@ -173,6 +192,25 @@ java/build.sh                  # 编译一次（约 10 秒，不需要 Maven，�
 java/tutorial/run.sh A01       # 入门第一课的练习
 java/tutorial/run.sh 01        # 正式课第一课的练习
 java/tutorial/run.sh all       # 看看一共完成了多少
+```
+
+## 用它学 Python
+
+[`python/tutorial/`](python/tutorial/README.md) 是一门中文 Python 课，结构和 Java 课一样：8 节零基础 + 12 节读真实代码，每节一道自动判分的练习。
+只需要装好 Python 3.9+，**不用装任何包**；运行练习的 `run.py` 本身也是 Python 写的，Windows、macOS、Linux 用法相同。
+
+| 阶段 | 内容 | 适合谁 | 每节 |
+|---|---|---|---|
+| **入门 A1～A8** | `print` 和 f-string、变量和计算、判断、循环、函数、列表、字符串；最后做一个“挑水果”小项目，再和求解器对答案 | 从没写过代码的人 | 10～20 分钟 |
+| **第 1～12 课** | 模块和 import、小数误差、列表推导式、类、**运算符重载**、dataclass 和 enum、字典和集合、排序和堆、异常、文本处理、测试；最后做一个“选课助手” | 学过一点编程的人 | 30～60 分钟 |
+
+正式课的例子全部取自 Python 版求解器的源代码，比如“`2 * x + 3 * y <= 12` 为什么能变成一条约束”（`__mul__`、`__radd__`、`__le__`）、
+“为什么 `Result` 的列表字段要写 `field(default_factory=list)`”、“分支定界的节点队列为什么是一个装元组的堆”。
+
+```bash
+python3 python/tutorial/run.py A01        # 入门第一课的练习
+python3 python/tutorial/run.py 01         # 正式课第一课的练习
+python3 python/tutorial/run.py all        # 看看一共完成了多少
 ```
 
 ## 它是怎么工作的
@@ -702,6 +740,81 @@ CI 每次提交都会在 JDK 17 和 21 上重新跑一遍：Java 测试、例子
 
 同样的算法、同样的步数，Java 版在 `bench/models` 上总用时约 0.72 秒，C++ 版约 0.39 秒（JIT 预热也算在内）。
 对教学和中小模型来说，两个都够用。
+
+## Python 版
+
+> **想用 minicplex 学 Python？** 见上面的[用它学 Python](#用它学-python)：20 节课，每节一道自动判分的练习。
+
+`python/` 目录是整个求解器的纯 Python 移植（约 2,700 行，含注释）：单纯形内核、预处理、Gomory 割、可靠性分支、LP 文件读写、命令行、
+`--trace` 教学输出、批量求解工具、全部 15 个例子和测试。只用标准库，Python 3.9 起可用。
+
+### 运行
+
+```bash
+python3 python/examples/easy1_bakery.py                    # 例子：不用安装，直接运行
+cd python && python3 -m minicplex ../examples/bakery.lp     # 命令行，参数和 C++ 版完全一样（--trace、--duals ……）
+python3 -m minicplex.bench ../bench/models                  # 批量求解，CSV 和 C++ 版同格式
+python3 -m unittest discover -s python/tests -v             # 测试（在仓库根目录运行）
+pip install ./python                                        # 可选：安装后任何地方都能 import minicplex
+```
+
+### 建模 API
+
+Python 和 C++ 一样有运算符重载，所以建模代码几乎和 C++ 一模一样，只是名字换成了 Python 习惯的小写加下划线：
+
+```python
+from minicplex import Model, VarType, ObjSense, Params, INF, solve
+
+m = Model()
+chairs = m.add_var(0, INF, VarType.INTEGER, "chairs")     # 椅子（整数）
+tables = m.add_var(0, INF, VarType.INTEGER, "tables")     # 桌子（整数）
+m.add_constr(2 * chairs + 5 * tables <= 40, "wood")       # 木材
+m.add_constr(3 * chairs + 2 * tables <= 30, "labor")      # 工时
+m.add_constr(chairs >= tables, "mix")                     # 搭配
+m.set_objective(30 * chairs + 70 * tables, ObjSense.MAXIMIZE)
+
+r = solve(m, Params(verbose=True))   # r.status、r.objective、r.value(chairs)、r.nodes ……
+print(m.to_lp())                     # 导出为 CPLEX LP 格式
+```
+
+| C++ | Python |
+|---|---|
+| `m.addVar(0, INF, VarType::Integer, "x")` | `m.add_var(0, INF, VarType.INTEGER, "x")`；参数都有默认值：`m.add_var(name="x")` |
+| `e += 4 * v;`、`LinExpr total;` | `e += 4 * v`、`total = LinExpr()`；也可以 `sum((c * v for ...), LinExpr())` |
+| `Params p; p.trace = true;` | `Params(trace=True)`（dataclass，字段和 C++ 一一对应：`relax_integrality`、`cut_rounds` ……） |
+| `solve(m, p)`、`r.x[v.id]` | `solve(m, p)`、`r.value(v)` 或 `r.x[v.id]` |
+| `toString(r.status)` | `str(r.status)`（输出和 C++ 一样，如 `Optimal`） |
+| `readLPFile(path)`、`m.writeLP(os)` | `read_file(path)`、`m.to_lp()` / `m.write_lp(path)` |
+| `checkFeasible(m, x)`、`evalObjective(m, x)` | `check_feasible(m, x)`、`eval_objective(m, x)` |
+
+注意：和 C++ 一样，`x == 3` 得到的是一条约束而不是 `True`/`False`。想判断两个把手是不是同一个变量，比较 `x.id == y.id`
+（两边都是变量时 `x == y` 在 `if` 里也会按“是不是同一个变量”来算，所以 `x in [x, y]`、`{x: 1}[x]` 照样能用）。
+
+### 例子对照
+
+Python 例子在 `python/examples/`，文件名和 C++ 生成的程序名一样：`basics_01_one_variable.py` … `basics_10_infeasible.py`、
+`easy1_bakery.py`、`easy2_projects.py`、`hard_production_plan.py`、`hard_staff_schedule.py`、`api_demo.py`。中文注释和 C++ 版逐句对应。
+
+### 三个版本一样吗？
+
+一样，而且是“计算路径”一样，不只是答案一样：
+
+| 检查 | 结果 |
+|---|---|
+| 15 个例子的完整输出（除用时外）和导出的 `.lp` 文件 | 和 C++ 逐字相同 |
+| `--trace` 输出 | 逐行相同 |
+| `bench/models` 13 个基准模型 | 状态、目标值、节点数、迭代次数全部相同 |
+| 随机题：混合整数 600 道、纯 LP 40 道、多维背包 10 道 | 全部相同，节点数和迭代次数也相同 |
+| Python 版自己的测试（暴力枚举 500 题 × 3 套参数、Gomory 割有效性、影子价格有限差分、运算符重载……） | 20 个测试全部通过 |
+
+要做到逐位一致，Python 版额外处理了几件事（都在 [`jmath.py`](python/minicplex/jmath.py) 里）：Python 的 `round` 是“一半取偶数”，
+所以自己实现 C++ 的 `std::round`；`math.ceil` / `math.floor` 返回整数，会丢掉 `-0.0` 的符号，也会在遇到无穷大时报错；
+`min` 遇到 `0.0` 和 `-0.0` 时的选择和 Java 的 `Math.min` 不同。数字格式直接用 `"%.*g"`，它和 C 的 `printf` 本来就一致。
+CI 每次提交都在 Python 3.9 和 3.13 上重新跑一遍：测试、例子逐字对比、基准模型对比、300 道新随机题对比。
+
+### 速度
+
+纯解释执行，`bench/models` 上总用时约 20 秒（C++ 约 0.4 秒）。教学、例子和几十个变量的模型都是秒级；更大的模型请用 C++ 或 Java 版。
 
 ## 工作原理
 
@@ -1667,6 +1780,9 @@ cmake -S . -B build-asan -DMINICPLEX_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug \
 | `java/build.sh` | 构建 Java 版并运行它的测试（`java -cp java/build/minicplex.jar minicplex.SolverTest`） |
 | `tools/compare_java_cpp.py` | 对比 C++ 版和 Java 版的 bench CSV；`--strict` 要求节点数、迭代次数也相同 |
 | `tools/compare_examples_java_cpp.sh` | 逐个运行两边的例子，逐字对比输出 |
+| `python3 -m unittest discover -s python/tests` | Python 版的测试 |
+| `python -m minicplex.bench` + `compare_java_cpp.py --label Python` | 对比 C++ 版和 Python 版的 bench CSV |
+| `tools/compare_examples_py_cpp.sh` | 逐个运行 C++ 和 Python 的例子，逐字对比输出 |
 
 对拍示例：
 
@@ -1682,7 +1798,7 @@ python3 tools/fuzz_vs_ortools.py fuzz fuzz/ours.csv   # 第二个标准答案
 **HiGHS 自己也会出错**：极少数题目上 HiGHS 的预处理会内部报错（返回“其他”状态，例如种子 18 的第 311 题，一道很容易手算出不可行的小题）。`tools/fuzz_vs_highs.py` 遇到这种情况会关掉 HiGHS 预处理重解，还不行就逐点暴力枚举当裁判。
 
 GitHub Actions（`.github/workflows/ci.yml`）在每次提交时自动执行：Linux / macOS 编译与测试、Sanitizer 测试、
-500 道随机题与 HiGHS 对拍（每次换随机种子）、基准测试与基线对比、Java 版（JDK 17 / 21）测试并与 C++ 版逐题逐步对比。
+500 道随机题与 HiGHS 对拍（每次换随机种子）、基准测试与基线对比、Java 版（JDK 17 / 21）和 Python 版（3.9 / 3.13）测试并与 C++ 版逐题逐步对比，两门课的参考答案全部通过。
 
 ## 目录结构
 
@@ -1694,7 +1810,7 @@ src/       simplex.cpp  branch_and_bound.cpp  presolve.cpp  lp_reader.cpp  model
 examples/  basics/（01～05 入门、06～10 进阶建模技巧）  *.lp  api_demo.cpp  easy1/easy2/hard_* 例子
 tools/     gen_random.cpp  bench.cpp  verify_with_highs.py  fuzz_vs_highs.py
            verify_with_ortools.py  fuzz_vs_ortools.py  bench_compare.py
-           compare_java_cpp.py  compare_examples_java_cpp.sh
+           compare_java_cpp.py  compare_examples_java_cpp.sh  compare_examples_py_cpp.sh
 bench/     models/（基准模型）  baseline.csv  baseline_v0.1.csv
 tests/     test_solver.cpp
 .github/   workflows/ci.yml（持续集成）
@@ -1702,6 +1818,9 @@ java/      build.sh  pom.xml  tutorial/（Java 教程：A1～A8 零基础 + 12 �
            src/main/java/minicplex/（求解器、命令行、tools/ 基准与生成器）
            src/test/java/minicplex/SolverTest.java
            examples/minicplex/examples/（15 个例子，与 C++ 一一对应）
+python/    minicplex/（求解器包：model.py lp_engine.py solver.py lp_reader.py presolve.py ……）  pyproject.toml
+           tutorial/（Python 教程：A1～A8 零基础 + 12 课；lessons/、exercises/、solutions/、run.py）
+           examples/（15 个例子）  tests/test_solver.py
 ```
 
 ## 后续方向
