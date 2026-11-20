@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fourier Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column of four game cabinets on oscilloscope graph paper.
+   Same world as the Hash/Fourier course: ink on cool paper, teal for waves,
+   vermilion only for the thing you are aiming at or just hit. */
+:root {
+  --paper: #EDF0F4;
+  --grid: #DCE2EA;
+  --card: #FBFCFD;
+  --ink: #141B2B;
+  --muted: #586377;
+  --line: #C5CDD8;
+  --off: #E1E6ED;
+  --hot: #D93A22;
+  --wave: #0B7A85;
+  --ok: #1F7F52;
+  --f-display: "ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0C111D; --grid: #151C2C; --card: #141B2B; --ink: #E7ECF5;
+    --muted: #95A1B8; --line: #2B3650; --off: #1F2940;
+    --hot: #FF6A48; --wave: #42C4CE; --ok: #4CC38A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0C111D; --grid: #151C2C; --card: #141B2B; --ink: #E7ECF5;
+  --muted: #95A1B8; --line: #2B3650; --off: #1F2940;
+  --hot: #FF6A48; --wave: #42C4CE; --ok: #4CC38A;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+}
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 18px; }
+h1, h2 { font-family: var(--f-display); font-weight: 400; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.nav { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--paper) 90%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.nav .wrap { display: flex; gap: 6px; padding-top: 8px; padding-bottom: 8px; align-items: center; }
+.nav button { height: 32px; padding: 0 10px; font-size: 13px; background: transparent; border: 1.5px solid var(--line); border-radius: 3px; cursor: pointer; white-space: nowrap; }
+.nav button.jump { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nav button.jump.full { background: var(--wave); border-color: var(--wave); color: #fff; }
+.nav .stars { font-family: var(--f-mono); font-size: 13px; font-weight: 600; padding: 0 4px; white-space: nowrap; }
+
+.top { padding: 36px 0 4px; display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+h1 { font-size: clamp(54px, 15vw, 104px); line-height: .98; letter-spacing: .01em; }
+h1 span { color: var(--wave); }
+.lead { max-width: 36em; font-size: 17px; }
+#heroWave { height: 64px; }
+
+.game { margin-top: 52px; padding-top: 18px; border-top: 3px solid var(--ink); scroll-margin-top: 60px; display: flex; flex-direction: column; gap: 14px; }
+.game-head { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: baseline; }
+.tag { font-family: var(--f-mono); font-weight: 600; font-size: 14px; color: var(--wave); border: 1.5px solid var(--wave); border-radius: 3px; padding: 0 7px; }
+.game-head h2 { font-size: 34px; line-height: 1.15; }
+.how { grid-column: 1 / -1; margin-top: 6px; max-width: 40em; }
+.goals { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.goals li { display: grid; grid-template-columns: 20px 1fr; align-items: baseline; }
+.goals li::before { content: "☆"; font-size: 15px; }
+.goals li.done { color: var(--ink); font-weight: 700; }
+.goals li.done::before { content: "★"; color: var(--wave); }
+
+.bench { background: var(--card); border: 1.5px solid var(--ink); border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.cap { font-size: 13px; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { min-height: 40px; padding: 7px 14px; cursor: pointer; background: var(--wave); color: #fff; border: 0; border-radius: 4px; font-weight: 700; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); font-weight: 500; }
+.btn[hidden] { display: none; }
+.seg { display: flex; border: 1.5px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { flex: 1; min-height: 38px; padding: 6px 4px; background: transparent; border: 0; border-left: 1.5px solid var(--line); cursor: pointer; font-size: 13px; white-space: nowrap; }
+.seg button:first-child { border-left: 0; }
+.seg button.on { background: var(--ink); color: var(--paper); }
+.seg button.won::after { content: " ★"; color: var(--wave); }
+.seg button.on.won::after { color: var(--paper); }
+canvas { display: block; width: 100%; }
+input[type="range"] { width: 100%; accent-color: var(--wave); margin: 0; height: 26px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 0; margin-right: 5px; border-top: 2.5px solid var(--sw); vertical-align: 3px; }
+.legend .dash::before { border-top-style: dashed; }
+.big { font-family: var(--f-mono); font-weight: 600; font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.big small { font-family: var(--f-body); font-weight: 400; font-size: 14px; color: var(--muted); }
+.meter { position: relative; height: 12px; background: var(--off); border-radius: 2px; overflow: hidden; }
+.meter i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--wave); transition: width .15s; }
+.note { font-size: 15px; border-left: 4px solid var(--wave); padding-left: 12px; }
+.note[hidden] { display: none; }
+.note.bad { border-left-color: var(--hot); }
+
+.oscs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 18px; }
+.osc { display: flex; flex-direction: column; gap: 2px; }
+.osc .name { font-size: 13px; font-weight: 700; }
+.osc label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.opts button { padding: 8px 8px 4px; background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.opts button:not(:disabled):hover { border-color: var(--ink); }
+.opts button:disabled { cursor: default; }
+.opts button canvas { height: 84px; }
+.opts button .lab { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.opts button.right { border-color: var(--ok); box-shadow: inset 0 0 0 2px var(--ok); }
+.opts button.wrong { border-color: var(--hot); opacity: .6; }
+
+.cells { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.cells button { aspect-ratio: 1; min-width: 0; padding: 0; background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; cursor: pointer;
+  font-family: var(--f-mono); font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
+.cells button:not(:disabled):hover { border-color: var(--ink); }
+.cells button:disabled { cursor: default; }
+.cells button small { font-size: 10px; color: var(--muted); }
+.cells button.miss { background: var(--off); color: var(--muted); border-style: dashed; }
+.cells button.hit { background: var(--wave); border-color: var(--wave); color: #fff; font-weight: 600; }
+.cells button.hit small { color: #fff; }
+.cells button.reveal { border: 2px solid var(--hot); color: var(--hot); }
+
+.pad { position: relative; width: 100%; max-width: 440px; align-self: center; }
+.pad canvas { aspect-ratio: 1; height: auto; background: var(--paper); border: 1.5px dashed var(--line); border-radius: 4px; touch-action: none; cursor: crosshair; }
+
+.end { margin: 56px 0 0; padding: 20px 0 48px; border-top: 3px solid var(--ink); display: flex; flex-direction: column; gap: 8px; }
+.end .fine { font-size: 13px; color: var(--muted); max-width: 44em; }
+.stats { display: flex; flex-wrap: wrap; gap: 2px 16px; font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--ink); font-weight: 600; }
+.nav #soundBtn.off { color: var(--muted); text-decoration: line-through; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 10; max-width: calc(100% - 36px);
+  background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 4px; font-weight: 700; font-size: 15px;
+  opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+@keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.7); } 100% { transform: scale(1); } }
+.goals li.just::before { display: inline-block; animation: pop .6s ease; }
+.end h2 { font-size: 34px; }
+.records { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 4px 0 6px; font-size: 14px; }
+.records dt { font-weight: 700; }
+.records dd { margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+.end.cleared h2 { color: var(--wave); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Games"><div class="wrap">
+  <button class="jump" type="button" data-jump="tune" data-i18n="nav1"></button>
+  <button class="jump" type="button" data-jump="snap" data-i18n="nav2"></button>
+  <button class="jump" type="button" data-jump="hunt" data-i18n="nav3"></button>
+  <button class="jump" type="button" data-jump="circ" data-i18n="nav4"></button>
+  <span class="stars" id="starCount"></span>
+  <button type="button" id="soundBtn">♪</button>
+  <button type="button" id="langBtn"></button>
+</div></nav>
+
+<main class="wrap">
+<header class="top">
+  <div class="eyebrow" data-i18n="eyebrow"></div>
+  <h1 data-i18n-html="title"></h1>
+  <canvas id="heroWave" aria-hidden="true"></canvas>
+  <p class="lead" data-i18n="lead"></p>
+</header>
+
+<!-- ================= 1 ================= -->
+<section class="game" id="tune">
+  <div class="game-head"><span class="tag">G1</span><h2 data-i18n="g1title"></h2><p class="how" data-i18n="g1how"></p></div>
+  <ul class="goals"><li data-goal="tune0" data-i18n="g1goal0"></li><li data-goal="tune1" data-i18n="g1goal1"></li><li data-goal="tune2" data-i18n="g1goal2"></li></ul>
+  <div class="bench">
+    <div class="seg" id="tuneSeg"></div>
+    <canvas id="tuneWave" style="height:170px" role="img" aria-label="Target wave and your wave"></canvas>
+    <div class="legend"><span class="dash" style="--sw:var(--hot)" data-i18n="legTarget"></span><span style="--sw:var(--wave)" data-i18n="legMine"></span></div>
+    <div class="big"><span id="tunePct"></span><small> % <span data-i18n="match"></span></small></div>
+    <div class="meter"><i id="tuneBar"></i></div>
+    <div class="stats"><span id="tuneTime"></span><span id="tuneBest"></span></div>
+    <p class="note" id="tuneNote" hidden></p>
+    <div class="oscs" id="oscs"></div>
+    <div class="row">
+      <button class="btn ghost" type="button" id="tunePlayT" data-i18n="playTarget"></button>
+      <button class="btn ghost" type="button" id="tunePlayM" data-i18n="playMine"></button>
+      <button class="btn ghost" type="button" id="tuneHint"></button>
+      <button class="btn" type="button" id="tuneNew" data-i18n="newRandom" hidden></button>
+    </div>
+    <canvas id="tuneSpec" style="height:110px" role="img" aria-label="Spectrum of the target" hidden></canvas>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="game" id="snap">
+  <div class="game-head"><span class="tag">G2</span><h2 data-i18n="g2title"></h2><p class="how" data-i18n="g2how"></p></div>
+  <ul class="goals"><li data-goal="snap0" data-i18n="g2goal0"></li><li data-goal="snap1" data-i18n="g2goal1"></li><li data-goal="snap2" data-i18n="g2goal2"></li></ul>
+  <div class="bench">
+    <div class="row" style="justify-content:space-between;align-items:baseline"><span class="num" id="snapRound"></span><span class="big" id="snapPts"></span></div>
+    <div class="meter" aria-hidden="true"><i id="snapBonus"></i></div>
+    <div class="stats"><span id="snapClock"></span><span id="snapScore"></span><span id="snapStreak"></span><span id="snapBest"></span></div>
+    <canvas id="snapWave" style="height:140px" role="img" aria-label="Wave to identify"></canvas>
+    <span class="cap" data-i18n="snapAsk"></span>
+    <div class="opts" id="snapOpts"></div>
+    <p class="note" id="snapNote" hidden></p>
+    <div class="row"><button class="btn" type="button" id="snapNext" hidden></button></div>
+  </div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="game" id="hunt">
+  <div class="game-head"><span class="tag">G3</span><h2 data-i18n="g3title"></h2><p class="how" data-i18n="g3how"></p></div>
+  <ul class="goals"><li data-goal="hunt0" data-i18n="g3goal0"></li><li data-goal="hunt1" data-i18n="g3goal1"></li><li data-goal="hunt2" data-i18n="g3goal2"></li></ul>
+  <div class="bench">
+    <div class="seg" id="huntSeg"></div>
+    <canvas id="huntWave" style="height:150px" role="img" aria-label="Signal with hidden waves"></canvas>
+    <div class="row" style="justify-content:space-between"><span class="num" id="huntLeft"></span><span class="num" id="huntFound"></span></div>
+    <div class="stats"><span id="huntBest"></span></div>
+    <div class="cells" id="huntCells"></div>
+    <p class="note" id="huntNote"></p>
+    <canvas id="huntProd" style="height:90px" role="img" aria-label="Signal times probe" hidden></canvas>
+    <span class="cap" id="huntProdCap" data-i18n="prodCap" hidden></span>
+    <div class="row"><button class="btn ghost" type="button" id="huntNew" data-i18n="newBoard"></button></div>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="game" id="circ">
+  <div class="game-head"><span class="tag">G4</span><h2 data-i18n="g4title"></h2><p class="how" data-i18n="g4how"></p></div>
+  <ul class="goals"><li data-goal="circ0" data-i18n="g4goal0"></li><li data-goal="circ1" data-i18n="g4goal1"></li><li data-goal="circ2" data-i18n="g4goal2"></li></ul>
+  <div class="bench">
+    <div class="pad"><canvas id="pad" role="img" aria-label="Drawing pad"></canvas></div>
+    <div class="legend"><span style="--sw:var(--line)" data-i18n="legDrawn"></span><span style="--sw:var(--wave)" data-i18n="legCopy"></span><span style="--sw:var(--muted)" data-i18n="legArms"></span></div>
+    <label class="cap" for="circM"><span id="circMLabel"></span></label>
+    <input type="range" id="circM" min="1" max="60" step="1">
+    <div class="big"><span id="circFid"></span><small> % <span data-i18n="fidelity"></span></small></div>
+    <p class="cap" id="circNeed"></p>
+    <div class="stats"><span id="circRec"></span></div>
+    <p class="note" id="circNote" hidden></p>
+    <div class="row">
+      <button class="btn ghost" type="button" id="circHeart" data-i18n="heartDemo"></button>
+      <button class="btn ghost" type="button" id="circClear" data-i18n="clearPad"></button>
+    </div>
+  </div>
+</section>
+
+<section class="end" id="end">
+  <h2 id="endTitle"></h2>
+  <p class="num" id="endStars"></p>
+  <dl class="records" id="records"></dl>
+  <p class="fine" data-i18n="fine"></p>
+</section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/*CORE-START*/
+function mulberry(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function pick(rand, arr) { return arr[Math.floor(rand() * arr.length)]; }
+function pickFreqs(rand, n, max) {
+  const set = new Set();
+  while (set.size < n) set.add(1 + Math.floor(rand() * max));
+  return Array.from(set).sort((a, b) => a - b);
+}
+function mixAt(parts, t) {
+  let v = 0;
+  for (const p of parts) v += p.a * Math.sin(2 * Math.PI * p.f * t + (p.ph || 0));
+  return v;
+}
+function sampleParts(parts, N) {
+  const x = new Float64Array(N);
+  for (let n = 0; n < N; n++) x[n] = mixAt(parts, n / N);
+  return x;
+}
+/* amplitude of each frequency 0..kmax, straight DFT as in fourier.c */
+function spectrum(x, kmax) {
+  const N = x.length, out = [];
+  for (let k = 0; k <= kmax; k++) {
+    let re = 0, im = 0;
+    for (let n = 0; n < N; n++) {
+      const a = 2 * Math.PI * ((k * n) % N) / N;
+      re += x[n] * Math.cos(a); im -= x[n] * Math.sin(a);
+    }
+    out.push(Math.hypot(re, im) * (k === 0 ? 1 : 2) / N);
+  }
+  return out;
+}
+function probe(parts, k, N) {
+  N = N || 64;
+  const x = sampleParts(parts, N);
+  let ss = 0, sc = 0;
+  for (let n = 0; n < N; n++) {
+    const a = 2 * Math.PI * ((k * n) % N) / N;
+    ss += x[n] * Math.sin(a); sc += x[n] * Math.cos(a);
+  }
+  ss = ss * 2 / N; sc = sc * 2 / N;
+  return { sin: ss, cos: sc, amp: Math.hypot(ss, sc) };
+}
+function matchPct(target, mine) {
+  const N = 256, a = sampleParts(target, N), b = sampleParts(mine, N);
+  let e = 0, r = 0;
+  for (let i = 0; i < N; i++) { e += (a[i] - b[i]) * (a[i] - b[i]); r += a[i] * a[i]; }
+  if (r === 0) return e === 0 ? 100 : 0;
+  return Math.max(0, 1 - Math.sqrt(e / r)) * 100;
+}
+
+/* ---- Tune It ---- */
+const TUNE_LEVELS = {
+  1: [{ f: 4, a: 0.8 }],
+  2: [{ f: 2, a: 1 }, { f: 9, a: 0.4 }],
+  3: [{ f: 3, a: 0.7 }, { f: 5, a: 0.5 }, { f: 11, a: 0.3 }],
+  4: [{ f: 1, a: 1 }, { f: 3, a: 0.35 }, { f: 5, a: 0.2 }]
+};
+function tuneRandom(rand) {
+  return pickFreqs(rand, 3, 12).map(f => ({ f, a: Math.round((0.2 + rand() * 0.8) * 20) / 20 }));
+}
+
+/* ---- Spectrum Snap ---- */
+const SNAP_AMPS = [0.3, 0.5, 0.8, 1];
+const SNAP_PLAN = [1, 1, 1, 2, 2, 2, 3, 3];
+function partsKey(ps) { return ps.slice().sort((a, b) => a.f - b.f).map(p => p.f + ':' + p.a).join(','); }
+function snapRound(rand, nWaves) {
+  const fs = pickFreqs(rand, nWaves, 12);
+  const parts = fs.map(f => ({ f, a: pick(rand, SNAP_AMPS) }));
+  if (nWaves >= 2 && parts.every(p => p.a === parts[0].a)) parts[0].a = parts[0].a === 1 ? 0.5 : 1;
+  const opts = [parts], seen = new Set([partsKey(parts)]);
+  const add = ps => {
+    if (opts.length >= 4 || !ps) return;
+    if (ps.some(p => p.f < 1 || p.f > 12)) return;
+    if (new Set(ps.map(p => p.f)).size !== ps.length) return;
+    const k = partsKey(ps);
+    if (seen.has(k)) return;
+    seen.add(k); opts.push(ps);
+  };
+  const clone = () => parts.map(p => ({ f: p.f, a: p.a }));
+  const big = parts.reduce((m, p, i) => (p.a > parts[m].a ? i : m), 0);
+  const cands = [];
+  if (nWaves >= 2) {                                   // swapped heights
+    const c = clone(); const t = c[0].a; c[0].a = c[c.length - 1].a; c[c.length - 1].a = t; cands.push(c);
+    const sum = parts[0].f + parts[1].f;               // "frequencies add up" mistake
+    cands.push([{ f: sum, a: Math.max(parts[0].a, parts[1].a) }]);
+  }
+  for (const d of [1, -1, 2, -2]) { const c = clone(); c[big].f += d; cands.push(c); }
+  for (const d of [1, -1]) cands.push(clone().map(p => ({ f: p.f + d, a: p.a })));
+  { const c = clone(); c[big].f *= 2; cands.push(c); }
+  // mix the order a little so the wrong answers are not always the same kind
+  for (let i = cands.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const t = cands[i]; cands[i] = cands[j]; cands[j] = t; }
+  cands.forEach(add);
+  let guard = 0;
+  while (opts.length < 4 && guard++ < 200) add(pickFreqs(rand, nWaves, 12).map(f => ({ f, a: pick(rand, SNAP_AMPS) })));
+  const order = [0, 1, 2, 3];
+  for (let i = 3; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const t = order[i]; order[i] = order[j]; order[j] = t; }
+  return { parts, options: order.map(i => opts[i]), answer: order.indexOf(0) };
+}
+function barsOf(parts, kmax) {
+  const b = new Array(kmax + 1).fill(0);
+  for (const p of parts) if (p.f <= kmax) b[p.f] += p.a;
+  return b;
+}
+
+/* ---- Frequency Hunt ---- */
+const HUNT_LEVELS = { 1: { n: 2, probes: 6, ph: false }, 2: { n: 3, probes: 6, ph: false }, 3: { n: 3, probes: 5, ph: true } };
+function huntBoard(rand, level) {
+  const L = HUNT_LEVELS[level];
+  return pickFreqs(rand, L.n, 16).map(f => ({ f, a: pick(rand, [0.5, 0.75, 1]), ph: L.ph ? rand() * 2 * Math.PI : 0 }));
+}
+
+/* ---- Circle Artist ---- */
+function resample(pts, N) {
+  const P = pts.concat([pts[0]]);
+  const cum = [0];
+  for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+  const total = cum[cum.length - 1];
+  const out = [];
+  let j = 1;
+  for (let i = 0; i < N; i++) {
+    const d = total * i / N;
+    while (j < cum.length - 1 && cum[j] < d) j++;
+    const seg = cum[j] - cum[j - 1];
+    const u = seg > 0 ? (d - cum[j - 1]) / seg : 0;
+    out.push([P[j - 1][0] + (P[j][0] - P[j - 1][0]) * u, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * u]);
+  }
+  return { pts: out, length: total };
+}
+/* complex DFT of a closed path; every coefficient is one spinning circle */
+function epicycles(pts) {
+  const N = pts.length, all = [];
+  for (let k = -N / 2; k < N / 2; k++) {
+    let re = 0, im = 0;
+    for (let n = 0; n < N; n++) {
+      const idx = (((k * n) % N) + N) % N;
+      const a = 2 * Math.PI * idx / N;
+      const c = Math.cos(a), s = Math.sin(a);
+      re += pts[n][0] * c + pts[n][1] * s;
+      im += pts[n][1] * c - pts[n][0] * s;
+    }
+    re /= N; im /= N;
+    all.push({ k, re, im, mag: Math.hypot(re, im) });
+  }
+  const c0 = all.find(c => c.k === 0);
+  const rest = all.filter(c => c.k !== 0).sort((a, b) => b.mag - a.mag);
+  let total = 0; for (const c of rest) total += c.mag * c.mag;
+  const fid = [0]; let cum = 0;
+  for (const c of rest) { cum += c.mag * c.mag; fid.push(total > 0 ? (1 - Math.sqrt(Math.max(0, total - cum) / total)) * 100 : 100); }
+  return { c0, rest, fid };
+}
+function circlesNeeded(ep, pct) {
+  for (let m = 0; m < ep.fid.length; m++) if (ep.fid[m] >= pct) return m;
+  return ep.fid.length - 1;
+}
+function reconAt(ep, M, tau, arms) {
+  let x = ep.c0.re, y = ep.c0.im;
+  for (let j = 0; j < M && j < ep.rest.length; j++) {
+    const c = ep.rest[j], a = 2 * Math.PI * c.k * tau;
+    const cs = Math.cos(a), sn = Math.sin(a);
+    if (arms) arms.push([x, y, c.mag]);
+    x += c.re * cs - c.im * sn; y += c.re * sn + c.im * cs;
+  }
+  return [x, y];
+}
+function heartShape() {
+  const raw = [];
+  for (let i = 0; i < 240; i++) {
+    const t = 2 * Math.PI * i / 240, s = Math.sin(t);
+    raw.push([16 * s * s * s, -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))]);
+  }
+  return raw.map(p => [0.5 + p[0] / 46, 0.47 + p[1] / 46]);
+}
+const CIRCLE_GOALS = { onePct: 90, twoPct: 90, manyPct: 95, manyMin: 8 };
+function circleGoals(ep) {
+  const n90 = circlesNeeded(ep, CIRCLE_GOALS.onePct), n95 = circlesNeeded(ep, CIRCLE_GOALS.manyPct);
+  return [n90 === 1, n90 === 2, n95 >= CIRCLE_GOALS.manyMin];
+}
+
+/* ---- scoring ---- */
+/* Spectrum Snap: 100 for a right answer, up to 100 more for speed (gone after 10 s), 20 per answer already in the streak */
+function snapPoints(correct, seconds, streakBefore) {
+  if (!correct) return 0;
+  return 100 + Math.max(0, Math.round(100 * (1 - seconds / 10))) + 20 * streakBefore;
+}
+const SNAP_MAX = 2160;
+
+/*CORE-END*/
+
+/* ================= text ================= */
+const TXT = {
+  en: {
+    nav1: 'Tune', nav2: 'Snap', nav3: 'Hunt', nav4: 'Circles', langBtn: '中文',
+    eyebrow: 'FOUR GAMES · TWELVE STARS',
+    title: 'Fourier <span>Arcade</span>',
+    lead: 'Every wiggly line is a stack of plain sine waves. These four games make you find them by eye, by ear and by hand. All of the maths runs live in your browser, with the same transform as fourier.c.',
+    stars: '★ {n}/12',
+    g1title: 'Tune It', g1how: 'The dashed line is the target. Move the three oscillators until your wave sits exactly on top of it.',
+    g1goal0: 'Match "Two waves"', g1goal1: 'Match "Three waves"', g1goal2: 'Match "Square-ish"',
+    lv1: 'Warm-up', lv2: 'Two waves', lv3: 'Three waves', lv4: 'Square-ish', lv5: 'Random',
+    legTarget: 'Target', legMine: 'Your wave', match: 'match',
+    osc: 'Oscillator {x}', freq: 'Frequency', amp: 'Height',
+    playTarget: 'Hear target', playMine: 'Hear mine', hintShow: 'Show target spectrum (hint)', hintHide: 'Hide spectrum', newRandom: 'New random target',
+    tuneSolved: 'Locked in. Your wave and the target are the same wave.',
+    tuneSquare: 'Locked in. You just built the start of a square wave: odd frequencies 1, 3, 5 with heights of about 1, 1/3, 1/5. Keep adding 7, 9, 11 and the corners get sharper.',
+    g2title: 'Spectrum Snap', g2how: 'One wave, four spectra. Pick the spectrum that belongs to the wave. Eight rounds, and they get harder.',
+    g2goal0: 'Finish a run with 5 of 8', g2goal1: 'Finish a run with 7 of 8', g2goal2: 'A perfect 8 of 8',
+    snapAsk: 'Which spectrum is this wave? Bars sit at frequencies 1 to 12; bar height is the wave\'s height.',
+    round: 'Round {i} of 8', score: '{s} right',
+    snapRight: 'Right. ', snapWrong: 'Not that one. ',
+    snapWhy1: 'Count the humps: {f} full waves fit across the window, so the bar sits at {f}.',
+    snapWhy2: 'The wave is built from frequencies {list}. Adding waves never moves a bar: each one keeps its own slot and its own height.',
+    next: 'Next wave', finish: 'See result', again: 'Play again',
+    snapEnd: 'Run finished: {s} of 8 right.',
+    g3title: 'Frequency Hunt', g3how: 'Hidden waves are mixed into the signal. Each tap probes one frequency and tells you how much of it is in there. Find them all before you run out of probes.',
+    g3goal0: 'Clear board 1: two waves, 6 probes', g3goal1: 'Clear board 2: three waves, 6 probes', g3goal2: 'Clear board 3: three shifted waves, 5 probes',
+    board: 'Board {n}', left: 'Probes left: {n}', found: 'Found {a} of {b}',
+    huntStart: 'Tip: count the tall humps to find the slow wave, then count the small ripples for the fast one.',
+    huntMiss: 'Frequency {k}: exactly 0. Even one step away from a real frequency, the products cancel completely.',
+    huntHit: 'Frequency {k}: height {a}. Found one.',
+    huntHitPh: 'Frequency {k}: the sine probe gives {s}, the cosine probe gives {c}. Together that is height {a}. Found one.',
+    huntWon: 'Board cleared with {n} probes to spare.', huntWon0: 'Board cleared on the very last probe.',
+    huntLost: 'Out of probes. The outlined cells are the ones you missed.',
+    prodCap: 'Signal × your last probe. Area above the line counts as plus, below as minus.',
+    newBoard: 'New board',
+    g4title: 'Circle Artist', g4how: 'Draw one closed shape in a single stroke. The transform turns it into spinning circles that redraw it. Fewer circles make a rougher copy.',
+    g4goal0: 'Draw a shape that one circle copies at 90%', g4goal1: 'Draw a shape that needs exactly two circles for 90%', g4goal2: 'Draw a shape that needs 8 or more circles for 95%',
+    legDrawn: 'Your drawing', legCopy: 'The circles\' copy', legArms: 'Circles and arms',
+    circM: 'Circles used: {m}', fidelity: 'copy accuracy',
+    circNeed: 'This shape needs {a} for 90% and {b} for 95%.', circle1: '1 circle', circleN: '{n} circles',
+    circDemo: 'This is the demo heart. Draw your own shape to earn stars.',
+    circSmall: 'Too small to read. Draw a bigger closed shape.',
+    circGot0: 'One circle is one frequency. A circle is the simplest shape there is.',
+    circGot1: 'Two circles: usually one big and one small spinning the opposite way. That is all an oval is.',
+    circGot2: 'Loops, crossings and uneven shapes spread a drawing over many frequencies, so it takes many circles.',
+    heartDemo: 'Heart demo', clearPad: 'Clear', drawHere: 'Draw here',
+    endStars: 'Stars collected: {n} of 12.',
+    soundOn: 'Sound is on. Click to mute.', soundOff: 'Sound is off. Click to turn it on.',
+    newStar: '★ New star: {g}',
+    time: 'Time {t} s', best: 'Best {t} s', noBest: 'No best time yet',
+    pts: '{p} pts', clock: '{t} s', streak: 'Streak {n}', snapBest: 'Best run {p} pts', snapBonusNote: 'speed bonus',
+    snapEndPts: ' {p} points out of a possible 2160.', newBest: ' New best.',
+    huntBest: 'Best on this board: {n} probes to spare', huntNoBest: 'No win on this board yet',
+    circRec: 'Roundest so far: one circle copies {a}%. Busiest so far: {b} for 95%.', circNoRec: 'No drawings yet.',
+    boardTitle: 'Scoreboard', clearedTitle: 'Arcade cleared',
+    clearedLine: 'All twelve stars. You can still beat your own records below.',
+    recTune: 'Tune It', recSnap: 'Spectrum Snap', recHunt: 'Frequency Hunt', recCirc: 'Circle Artist',
+    recNone: 'nothing yet', recSpare: '{n} to spare', recRound: 'roundest {a}%', recMany: 'busiest {n} circles',
+    fine: 'Stars and language are saved in this browser only. Companion to the Hash and Fourier course; the transform here is the same double loop as fourier.c, rewritten in JavaScript.'
+  },
+  zh: {
+    nav1: '调音', nav2: '认谱', nav3: '寻频', nav4: '画圆', langBtn: 'EN',
+    eyebrow: '四个游戏 · 十二颗星',
+    title: '傅里叶<span>游戏厅</span>',
+    lead: '每一条弯弯曲曲的线，都是几个简单正弦波叠出来的。这四个游戏让你用眼睛、耳朵和手把它们找出来。所有计算都在你的浏览器里现场跑，用的是和 fourier.c 一样的变换。',
+    stars: '★ {n}/12',
+    g1title: '调音', g1how: '虚线是目标。拖动三个振荡器，让你的波和它完全重合。',
+    g1goal0: '对上「两个波」', g1goal1: '对上「三个波」', g1goal2: '对上「像方波」',
+    lv1: '热身', lv2: '两个波', lv3: '三个波', lv4: '像方波', lv5: '随机',
+    legTarget: '目标', legMine: '你的波', match: '重合',
+    osc: '振荡器 {x}', freq: '频率', amp: '振幅',
+    playTarget: '听目标', playMine: '听我的', hintShow: '看目标的频谱（提示）', hintHide: '收起频谱', newRandom: '换一个随机目标',
+    tuneSolved: '对上了。你的波和目标是同一个波。',
+    tuneSquare: '对上了。你刚搭出了方波的开头：奇数频率 1、3、5，振幅大约是 1、1/3、1/5。继续加 7、9、11，棱角会越来越分明。',
+    g2title: '认谱', g2how: '一个波，四张频谱。选出属于这个波的那一张。一共八轮，越来越难。',
+    g2goal0: '一局答对 5 题', g2goal1: '一局答对 7 题', g2goal2: '八题全对',
+    snapAsk: '这个波的频谱是哪一张？柱子站在频率 1 到 12 上，柱高就是那个波的振幅。',
+    round: '第 {i} 轮，共 8 轮', score: '答对 {s} 题',
+    snapRight: '对了。', snapWrong: '不是这张。',
+    snapWhy1: '数一数波峰：窗口里正好放下 {f} 个完整的波，所以柱子在 {f}。',
+    snapWhy2: '这个波由频率 {list} 叠成。波相加时柱子不会挪位置：每个波各占一格，各有各的高度。',
+    next: '下一个波', finish: '看结果', again: '再来一局',
+    snapEnd: '这一局结束：8 题答对 {s} 题，',
+    g3title: '寻频', g3how: '信号里藏着几个波。每点一次，就用一个频率去探，告诉你里面有多少。在探针用完之前把它们全找出来。',
+    g3goal0: '通过第 1 关：两个波，6 根探针', g3goal1: '通过第 2 关：三个波，6 根探针', g3goal2: '通过第 3 关：三个挪过位置的波，5 根探针',
+    board: '第 {n} 关', left: '剩余探针：{n}', found: '找到 {a} / {b}',
+    huntStart: '提示：先数大的波峰，找出慢的那个波；再数小的波纹，找出快的那个。',
+    huntMiss: '频率 {k}：正好是 0。哪怕只差一格，乘积也会完全抵消。',
+    huntHit: '频率 {k}：振幅 {a}。找到一个。',
+    huntHitPh: '频率 {k}：sin 探针得 {s}，cos 探针得 {c}，合起来振幅是 {a}。找到一个。',
+    huntWon: '过关，还剩 {n} 根探针。', huntWon0: '过关，正好用完最后一根探针。',
+    huntLost: '探针用完了。红框是你漏掉的频率。',
+    prodCap: '信号 × 你上一根探针。横线上面的面积算正，下面的算负。',
+    newBoard: '换一题',
+    g4title: '画圆', g4how: '一笔画一个封闭的图形。变换会把它拆成一串转动的圆，再把它重新画出来。圆越少，画得越粗糙。',
+    g4goal0: '画一个只用一个圆就能还原 90% 的图形', g4goal1: '画一个正好需要两个圆才到 90% 的图形', g4goal2: '画一个需要 8 个以上的圆才到 95% 的图形',
+    legDrawn: '你画的', legCopy: '圆画出来的', legArms: '圆和转臂',
+    circM: '用几个圆：{m}', fidelity: '还原度',
+    circNeed: '这个图形到 90% 需要 {a}，到 95% 需要 {b}。', circle1: '1 个圆', circleN: '{n} 个圆',
+    circDemo: '这是示范用的心形。自己画一个才能拿星。',
+    circSmall: '太小了，认不出来。画一个大一点的封闭图形。',
+    circGot0: '一个圆就是一个频率。圆是最简单的图形。',
+    circGot1: '两个圆：通常是一大一小，转的方向相反。椭圆就是这么来的。',
+    circGot2: '绕圈、交叉、不匀称的图形，会把自己摊到很多频率上，所以要很多圆。',
+    heartDemo: '示范心形', clearPad: '清空', drawHere: '在这里画',
+    endStars: '已经拿到 {n} / 12 颗星。',
+    soundOn: '声音已开，点一下静音。', soundOff: '声音已关，点一下打开。',
+    newStar: '★ 新的一颗星：{g}',
+    time: '用时 {t} 秒', best: '最快 {t} 秒', noBest: '还没有最快纪录',
+    pts: '{p} 分', clock: '{t} 秒', streak: '连对 {n}', snapBest: '最高一局 {p} 分', snapBonusNote: '速度加分',
+    snapEndPts: '得了 {p} 分，满分 2160。', newBest: '新纪录。',
+    huntBest: '这一关最好成绩：剩 {n} 根探针', huntNoBest: '这一关还没赢过',
+    circRec: '画得最圆的一次：一个圆还原 {a}%。最复杂的一次：到 95% 要 {b}。', circNoRec: '还没有画过。',
+    boardTitle: '成绩榜', clearedTitle: '通关了',
+    clearedLine: '十二颗星全部拿到。下面的纪录还可以继续刷。',
+    recTune: '调音', recSnap: '认谱', recHunt: '寻频', recCirc: '画圆',
+    recNone: '还没有', recSpare: '剩 {n} 根', recRound: '最圆 {a}%', recMany: '最复杂 {n} 个圆',
+    fine: '星星和语言设置只存在这个浏览器里。这是 Hash 与傅里叶互动课的配套游戏；这里的变换和 fourier.c 是同一个两层循环，用 JavaScript 重写。'
+  }
+};
+
+/* ================= state ================= */
+const $ = id => document.getElementById(id);
+const KEY = 'fourier-arcade-v1';
+const S = { lang: 'en', sound: true,
+  stars: { tune: [false, false, false], snap: [false, false, false], hunt: [false, false, false], circ: [false, false, false] },
+  best: { tune: {}, snap: 0, hunt: {}, round: 0, many: 0 } };
+const GOAL_KEYS = { tune: 'g1goal', snap: 'g2goal', hunt: 'g3goal', circ: 'g4goal' };
+function tr(key, vars) {
+  let s = (TXT[S.lang] && TXT[S.lang][key]) || TXT.en[key] || key;
+  if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  return s;
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function restore(data) {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+  const src = Object.assign({}, saved, data || {});
+  if (src.lang === 'en' || src.lang === 'zh') S.lang = src.lang;
+  if (typeof src.sound === 'boolean') S.sound = src.sound;
+  const b = src.best;
+  if (b && typeof b === 'object') {
+    const num = v => (Number.isFinite(v) && v >= 0 ? v : 0);
+    if (b.tune && typeof b.tune === 'object') for (let l = 1; l <= 5; l++) if (num(b.tune[l]) > 0) S.best.tune[l] = b.tune[l];
+    if (b.hunt && typeof b.hunt === 'object') for (let l = 1; l <= 3; l++) if (Number.isFinite(b.hunt[l]) && b.hunt[l] >= 0) S.best.hunt[l] = b.hunt[l];
+    S.best.snap = num(b.snap); S.best.round = num(b.round); S.best.many = num(b.many);
+  }
+  if (src.stars && typeof src.stars === 'object') {
+    for (const g of Object.keys(S.stars)) {
+      const a = src.stars[g];
+      if (Array.isArray(a) && a.length === 3) S.stars[g] = a.map(Boolean);
+    }
+  }
+}
+let toastTimer = 0;
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+function countStars() { let n = 0; for (const g of Object.keys(S.stars)) n += S.stars[g].filter(Boolean).length; return n; }
+/* returns true when the star is new */
+function star(game, i) {
+  if (S.stars[game][i]) return false;
+  S.stars[game][i] = true; save(); renderStars();
+  const li = document.querySelector('[data-goal="' + game + i + '"]');
+  if (li) { li.classList.add('just'); setTimeout(() => li.classList.remove('just'), 700); }
+  toast(tr('newStar', { g: tr(GOAL_KEYS[game] + i) }));
+  if (countStars() === 12) setTimeout(() => { sfxFanfare(); toast(tr('clearedTitle') + ' ★ 12/12'); }, 1300);
+  return true;
+}
+function renderRecords() {
+  const n = countStars(), cleared = n === 12;
+  $('end').classList.toggle('cleared', cleared);
+  $('endTitle').textContent = tr(cleared ? 'clearedTitle' : 'boardTitle');
+  $('endStars').textContent = cleared ? tr('clearedLine') : tr('endStars', { n });
+  const sep = S.lang === 'zh' ? '；' : ' · ';
+  const tuneBits = [];
+  for (let l = 1; l <= 5; l++) if (S.best.tune[l]) tuneBits.push(tr('lv' + l) + ' ' + S.best.tune[l].toFixed(1) + (S.lang === 'zh' ? ' 秒' : ' s'));
+  const huntBits = [];
+  for (let l = 1; l <= 3; l++) if (S.best.hunt[l] !== undefined) huntBits.push(tr('board', { n: l }) + (S.lang === 'zh' ? '：' : ': ') + tr('recSpare', { n: S.best.hunt[l] }));
+  const circBits = [];
+  if (S.best.round > 0) circBits.push(tr('recRound', { a: S.best.round.toFixed(1) }));
+  if (S.best.many > 0) circBits.push(tr('recMany', { n: S.best.many }));
+  const rows = [
+    ['recTune', tuneBits.join(sep)], ['recSnap', S.best.snap > 0 ? tr('pts', { p: S.best.snap }) : ''],
+    ['recHunt', huntBits.join(sep)], ['recCirc', circBits.join(sep)]];
+  const dl = $('records'); dl.textContent = '';
+  rows.forEach(([k, v]) => {
+    const dt = document.createElement('dt'); dt.textContent = tr(k);
+    const dd = document.createElement('dd'); dd.textContent = v || tr('recNone');
+    dl.appendChild(dt); dl.appendChild(dd);
+  });
+}
+function renderStars() {
+  let n = 0;
+  for (const g of Object.keys(S.stars)) {
+    S.stars[g].forEach((v, i) => {
+      if (v) n++;
+      const li = document.querySelector('[data-goal="' + g + i + '"]');
+      if (li) li.classList.toggle('done', v);
+    });
+    const jb = document.querySelector('.jump[data-jump="' + g + '"]');
+    if (jb) jb.classList.toggle('full', S.stars[g].every(Boolean));
+  }
+  $('starCount').textContent = tr('stars', { n });
+  renderRecords();
+}
+
+/* ================= drawing helpers ================= */
+const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function prep(cv) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const w = cv.clientWidth || 300, h = cv.clientHeight || 150;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+  c.font = '10px ' + (tok('--f-mono') || 'monospace');
+  return { c, w, h };
+}
+function fmt(v) { const r = Math.abs(v) < 0.005 ? 0 : v; return r.toFixed(2); }
+function ymaxOf(parts) { return Math.max(1.2, parts.reduce((s, p) => s + p.a, 0) * 1.05); }
+
+/* curves: [{fn, color, width, dash, alpha}], optional quarter guides and area fill */
+function drawCurves(cv, curves, ymax, opts) {
+  const { c, w, h } = prep(cv);
+  const T = 6, B = 6, ph = h - T - B, mid = T + ph / 2;
+  const y = v => mid - v / ymax * (ph / 2);
+  c.lineWidth = 1; c.strokeStyle = tok('--line');
+  if (opts && opts.guides) {
+    c.setLineDash([2, 4]);
+    for (let q = 1; q < 4; q++) { const X = Math.round(w * q / 4) + .5; c.beginPath(); c.moveTo(X, T); c.lineTo(X, h - B); c.stroke(); }
+    c.setLineDash([]);
+  }
+  c.beginPath(); c.moveTo(0, mid + .5); c.lineTo(w, mid + .5); c.stroke();
+  const steps = Math.max(240, Math.round(w * 1.5));
+  for (const cu of curves) {
+    const path = () => { c.beginPath(); for (let i = 0; i <= steps; i++) { const t = i / steps, X = t * w, Y = y(cu.fn(t)); i ? c.lineTo(X, Y) : c.moveTo(X, Y); } };
+    if (cu.fill) {
+      const region = (y0, y1, color) => { c.save(); c.beginPath(); c.rect(0, y0, w, y1 - y0); c.clip(); path(); c.lineTo(w, mid); c.lineTo(0, mid); c.closePath(); c.fillStyle = color; c.globalAlpha = .5; c.fill(); c.restore(); };
+      region(0, mid, tok('--wave')); region(mid, h, tok('--muted'));
+    }
+    path();
+    c.strokeStyle = cu.color; c.lineWidth = cu.width || 2; c.setLineDash(cu.dash || []); c.globalAlpha = cu.alpha || 1; c.lineJoin = 'round'; c.stroke();
+    c.setLineDash([]); c.globalAlpha = 1;
+  }
+}
+/* bars for frequencies 1..kmax; small = thumbnail without the value axis */
+function drawBars(cv, bars, kmax, small) {
+  const { c, w, h } = prep(cv);
+  const L = small ? 4 : 28, R = 4, T = 6, B = 16, pw = w - L - R, ph = h - T - B;
+  const top = Math.max(1, Math.ceil(Math.max.apply(null, bars) * 2 - 1e-9) / 2);
+  const muted = tok('--muted'), line = tok('--line');
+  const y = v => T + ph - v / top * ph;
+  c.lineWidth = 1; c.textBaseline = 'middle'; c.textAlign = 'right';
+  for (let v = 0; v <= top + 1e-9; v += 0.5) {
+    c.strokeStyle = line; c.beginPath(); c.moveTo(L, Math.round(y(v)) + .5); c.lineTo(w - R, Math.round(y(v)) + .5); c.stroke();
+    if (!small) { c.fillStyle = muted; c.fillText(v.toFixed(1), L - 5, y(v)); }
+  }
+  const bw = pw / kmax;
+  c.fillStyle = tok('--wave');
+  for (let k = 1; k <= kmax; k++) { const bh = bars[k] / top * ph; if (bh > 0.3) c.fillRect(L + (k - 1) * bw + bw * .2, T + ph - bh, bw * .6, bh); }
+  c.fillStyle = muted; c.textAlign = 'center'; c.textBaseline = 'top';
+  const every = bw >= 15;                                   // room to label every slot?
+  for (let k = 1; k <= kmax; k++) if (every || bars[k] > 0 || k === 1 || k === kmax) c.fillText(String(k), L + (k - .5) * bw, T + ph + 4);
+}
+
+/* ================= sound ================= */
+let actx = null;
+/* force = true for the explicit "Hear" buttons, which work even when game sounds are muted */
+function audio(force) {
+  if (!force && !S.sound) return null;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  } catch (e) { return null; }
+}
+/* notes: [{f, at, dur, g, type}] */
+function tones(notes) {
+  const ctx = audio(false); if (!ctx) return;
+  try {
+    const t0 = ctx.currentTime + 0.02;
+    for (const n of notes) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      const a = t0 + (n.at || 0), d = n.dur || 0.15, vol = n.g || 0.12;
+      o.type = n.type || 'sine'; o.frequency.value = n.f;
+      g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(vol, a + 0.012);
+      g.gain.setValueAtTime(vol, a + d * 0.6); g.gain.linearRampToValueAtTime(0, a + d);
+      o.connect(g); g.connect(ctx.destination); o.start(a); o.stop(a + d + 0.02);
+    }
+  } catch (e) {}
+}
+/* the waves you just matched, one by one, then together */
+function sfxChord(parts) {
+  const ps = parts.filter(p => p.a > 0).slice().sort((a, b) => a.f - b.f), notes = [];
+  const vol = 0.16 / Math.max(1, ps.reduce((s, p) => s + p.a, 0));
+  ps.forEach((p, i) => notes.push({ f: 110 * p.f, at: i * 0.13, dur: 0.16, g: vol * Math.max(p.a, 0.4) }));
+  ps.forEach(p => notes.push({ f: 110 * p.f, at: ps.length * 0.13 + 0.05, dur: 0.7, g: vol * p.a }));
+  tones(notes);
+}
+const sfxRight = () => tones([{ f: 660, dur: 0.1 }, { f: 880, at: 0.09, dur: 0.16 }]);
+const sfxWrong = () => tones([{ f: 196, dur: 0.22, type: 'triangle', g: 0.14 }]);
+const sfxHit = k => tones([{ f: 110 * k, dur: 0.4, g: 0.14 }]);
+const sfxMiss = () => tones([{ f: 82, dur: 0.12, type: 'triangle', g: 0.1 }]);
+const sfxLose = () => tones([{ f: 294, dur: 0.18, type: 'triangle' }, { f: 220, at: 0.17, dur: 0.3, type: 'triangle' }]);
+const sfxStar = () => tones([{ f: 784, dur: 0.1 }, { f: 1047, at: 0.09, dur: 0.1 }, { f: 1319, at: 0.18, dur: 0.22 }]);
+const sfxFanfare = () => tones([{ f: 523, dur: 0.14 }, { f: 659, at: 0.13, dur: 0.14 }, { f: 784, at: 0.26, dur: 0.14 },
+  { f: 1047, at: 0.39, dur: 0.5 }, { f: 784, at: 0.39, dur: 0.5, g: 0.07 }, { f: 659, at: 0.39, dur: 0.5, g: 0.07 }]);
+function playParts(parts) {
+  try {
+    if (!audio(true)) return;
+    const t0 = actx.currentTime + 0.03;
+    const level = 0.22 / Math.max(1, parts.reduce((s, p) => s + p.a, 0));
+    const master = actx.createGain();
+    master.gain.setValueAtTime(0, t0);
+    master.gain.linearRampToValueAtTime(level, t0 + 0.04);
+    master.gain.setValueAtTime(level, t0 + 0.8);
+    master.gain.linearRampToValueAtTime(0, t0 + 0.95);
+    master.connect(actx.destination);
+    for (const p of parts) {
+      if (!(p.a > 0)) continue;
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.value = 110 * p.f; g.gain.value = p.a;
+      o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 1);
+    }
+  } catch (e) {}
+}
+
+/* ================= G1 Tune It ================= */
+const tune = { level: 1, target: TUNE_LEVELS[1], mine: null, hint: false, solved: false, won: {}, t0: null, time: null, timed: false };
+function tuneReset(level, target) {
+  tune.level = level;
+  tune.target = target || TUNE_LEVELS[level] || tuneRandom(mulberry((Math.random() * 1e9) | 0));
+  tune.mine = [{ f: 1, a: 0.5 }, { f: 2, a: 0 }, { f: 3, a: 0 }];
+  tune.solved = false; tune.hint = false; tune.t0 = null; tune.time = null; tune.timed = false;
+  ['A', 'B', 'C'].forEach((x, i) => { $('osc-f' + i).value = tune.mine[i].f; $('osc-a' + i).value = tune.mine[i].a; });
+  renderTune();
+}
+function buildTune() {
+  const seg = $('tuneSeg');
+  for (let l = 1; l <= 5; l++) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.level = l;
+    b.addEventListener('click', () => tuneReset(l, l === 5 ? tuneRandom(mulberry((Math.random() * 1e9) | 0)) : null));
+    seg.appendChild(b);
+  }
+  const box = $('oscs');
+  ['A', 'B', 'C'].forEach((x, i) => {
+    const o = document.createElement('div'); o.className = 'osc';
+    o.innerHTML = '<span class="name" data-osc="' + x + '"></span>' +
+      '<label for="osc-f' + i + '"><span data-i18n="freq"></span><span class="num" id="osc-f' + i + 'v"></span></label><input type="range" id="osc-f' + i + '" min="1" max="12" step="1">' +
+      '<label for="osc-a' + i + '"><span data-i18n="amp"></span><span class="num" id="osc-a' + i + 'v"></span></label><input type="range" id="osc-a' + i + '" min="0" max="1" step="0.05">';
+    box.appendChild(o);
+  });
+  for (let i = 0; i < 3; i++) {
+    const moved = () => { if (tune.t0 === null && !tune.timed) tune.t0 = performance.now(); };
+    $('osc-f' + i).addEventListener('input', e => { moved(); tune.mine[i].f = Number(e.target.value); renderTune(); });
+    $('osc-a' + i).addEventListener('input', e => { moved(); tune.mine[i].a = Number(e.target.value); renderTune(); });
+  }
+  $('tunePlayT').addEventListener('click', () => playParts(tune.target));
+  $('tunePlayM').addEventListener('click', () => playParts(tune.mine));
+  $('tuneHint').addEventListener('click', () => { tune.hint = !tune.hint; renderTune(); });
+  $('tuneNew').addEventListener('click', () => tuneReset(5, tuneRandom(mulberry((Math.random() * 1e9) | 0))));
+}
+function renderTune() {
+  if (!tune.mine) return;
+  document.querySelectorAll('#tuneSeg button').forEach(b => {
+    const l = Number(b.dataset.level);
+    b.textContent = tr('lv' + l);
+    b.classList.toggle('on', l === tune.level);
+    b.classList.toggle('won', !!tune.won[l]);
+  });
+  document.querySelectorAll('[data-osc]').forEach(el => { el.textContent = tr('osc', { x: el.dataset.osc }); });
+  for (let i = 0; i < 3; i++) { $('osc-f' + i + 'v').textContent = tune.mine[i].f; $('osc-a' + i + 'v').textContent = tune.mine[i].a.toFixed(2); }
+  const pct = matchPct(tune.target, tune.mine);
+  const ym = Math.max(ymaxOf(tune.target), ymaxOf(tune.mine));
+  drawCurves($('tuneWave'), [
+    { fn: t => mixAt(tune.mine, t), color: tok('--wave'), width: 2.5 },
+    { fn: t => mixAt(tune.target, t), color: tok('--hot'), width: 1.8, dash: [6, 4] }
+  ], ym);
+  $('tunePct').textContent = pct >= 99.95 ? '100' : pct.toFixed(1);
+  $('tuneBar').style.width = pct + '%';
+  const solved = pct >= 99.5;
+  if (solved && !tune.solved) {
+    tune.won[tune.level] = true;
+    if (!tune.timed && tune.t0 !== null) {            // the clock runs from your first move to the first lock-in
+      tune.time = (performance.now() - tune.t0) / 1000; tune.timed = true; tune.t0 = null;
+      const old = S.best.tune[tune.level];
+      if (!old || tune.time < old) { S.best.tune[tune.level] = Math.max(0.1, Math.round(tune.time * 10) / 10); save(); renderRecords(); }
+    }
+    sfxChord(tune.target);
+    if (tune.level >= 2 && tune.level <= 4) star('tune', tune.level - 2);
+  }
+  tune.solved = solved;
+  renderTuneClock();
+  const note = $('tuneNote');
+  note.hidden = !solved;
+  if (solved) note.textContent = tr(tune.level === 4 ? 'tuneSquare' : 'tuneSolved');
+  $('tuneNew').hidden = tune.level !== 5;
+  $('tuneHint').textContent = tr(tune.hint ? 'hintHide' : 'hintShow');
+  const sp = $('tuneSpec'); sp.hidden = !tune.hint;
+  if (tune.hint) drawBars(sp, spectrum(sampleParts(tune.target, 64), 12), 12, false);
+  document.querySelectorAll('#tuneSeg button').forEach(b => b.classList.toggle('won', !!tune.won[Number(b.dataset.level)]));
+}
+
+function renderTuneClock() {
+  const secs = tune.timed ? tune.time : (tune.t0 !== null ? (performance.now() - tune.t0) / 1000 : 0);
+  $('tuneTime').innerHTML = '<b>' + tr('time', { t: secs.toFixed(1) }) + '</b>';
+  const b = S.best.tune[tune.level];
+  $('tuneBest').textContent = b ? tr('best', { t: b.toFixed(1) }) : tr('noBest');
+}
+
+/* ================= G2 Spectrum Snap ================= */
+const snap = { rand: mulberry(11), i: 0, score: 0, round: null, picked: null, over: false,
+  pts: 0, gained: 0, streak: 0, t0: null, secs: 0, visible: true, newBest: false };
+function snapNewRun(seed) { snap.rand = mulberry(seed); snap.i = 0; snap.score = 0; snap.pts = 0; snap.streak = 0; snap.over = false; snap.newBest = false; snapNewRound(); }
+function snapNewRound() { snap.round = snapRound(snap.rand, SNAP_PLAN[snap.i]); snap.picked = null; snap.t0 = null; snap.secs = 0; snap.gained = 0; renderSnap(); }
+/* the clock for a round starts once its four options are actually on screen */
+function snapClock(now) {
+  if (snap.over || snap.picked !== null || !snap.round) return;
+  if (snap.t0 === null) { if (snap.visible && !document.hidden) snap.t0 = now; else return; }
+  snap.secs = (now - snap.t0) / 1000;
+  $('snapClock').innerHTML = '<b>' + tr('clock', { t: snap.secs.toFixed(1) }) + '</b>';
+  $('snapBonus').style.width = Math.max(0, 1 - snap.secs / 10) * 100 + '%';
+}
+function buildSnap() {
+  const box = $('snapOpts');
+  for (let i = 0; i < 4; i++) {
+    const b = document.createElement('button'); b.type = 'button';
+    b.innerHTML = '<span class="lab">' + 'ABCD'[i] + '</span><canvas></canvas>';
+    b.addEventListener('click', () => {
+      if (snap.picked !== null || snap.over) return;
+      if (snap.t0 !== null) snap.secs = (performance.now() - snap.t0) / 1000;
+      snap.picked = i;
+      const ok = i === snap.round.answer;
+      snap.gained = snapPoints(ok, snap.secs, snap.streak);
+      snap.pts += snap.gained;
+      if (ok) { snap.score++; snap.streak++; sfxRight(); } else { snap.streak = 0; sfxWrong(); }
+      renderSnap();
+    });
+    box.appendChild(b);
+  }
+  try { new IntersectionObserver(es => { snap.visible = es[0].isIntersecting; }, { threshold: 0.5 }).observe(box); } catch (e) { snap.visible = true; }
+  $('snapNext').addEventListener('click', () => {
+    if (snap.over) { snapNewRun((Math.random() * 1e9) | 0); return; }
+    if (snap.i >= 7) {
+      snap.over = true;
+      if (snap.pts > S.best.snap) { S.best.snap = snap.pts; snap.newBest = true; save(); renderRecords(); }
+      if (snap.score >= 5) sfxStar();
+      if (snap.score >= 5) star('snap', 0);
+      if (snap.score >= 7) star('snap', 1);
+      if (snap.score >= 8) star('snap', 2);
+      renderSnap(); return;
+    }
+    snap.i++; snapNewRound();
+  });
+}
+function renderSnap() {
+  const r = snap.round; if (!r) return;
+  $('snapRound').textContent = tr('round', { i: snap.i + 1 });
+  $('snapScore').textContent = tr('score', { s: snap.score });
+  $('snapPts').textContent = tr('pts', { p: snap.pts });
+  $('snapStreak').textContent = tr('streak', { n: snap.streak });
+  $('snapBest').textContent = tr('snapBest', { p: S.best.snap });
+  $('snapClock').innerHTML = '<b>' + tr('clock', { t: snap.secs.toFixed(1) }) + '</b>';
+  $('snapBonus').style.width = (snap.picked !== null || snap.over ? 0 : Math.max(0, 1 - snap.secs / 10) * 100) + '%';
+  drawCurves($('snapWave'), [{ fn: t => mixAt(r.parts, t), color: tok('--ink'), width: 2 }], ymaxOf(r.parts), { guides: true });
+  const btns = $('snapOpts').children;
+  for (let i = 0; i < 4; i++) {
+    const b = btns[i], done = snap.picked !== null;
+    b.disabled = done || snap.over;
+    b.classList.toggle('right', done && i === r.answer);
+    b.classList.toggle('wrong', done && i === snap.picked && i !== r.answer);
+    b.setAttribute('aria-label', 'ABCD'[i]);
+    drawBars(b.querySelector('canvas'), barsOf(r.options[i], 12), 12, true);
+  }
+  const note = $('snapNote'), next = $('snapNext');
+  if (snap.over) {
+    note.hidden = false; note.classList.remove('bad');
+    note.textContent = tr('snapEnd', { s: snap.score }) + tr('snapEndPts', { p: snap.pts }) + (snap.newBest ? tr('newBest') : '');
+    next.hidden = false; next.textContent = tr('again');
+  } else if (snap.picked !== null) {
+    const ok = snap.picked === r.answer;
+    note.hidden = false; note.classList.toggle('bad', !ok);
+    const fs = r.parts.map(p => p.f);
+    const sep = S.lang === 'zh' ? '、' : ', ';
+    note.textContent = tr(ok ? 'snapRight' : 'snapWrong') + (ok ? '+' + tr('pts', { p: snap.gained }) + (S.lang === 'zh' ? '。' : '. ') : '') + (fs.length === 1 ? tr('snapWhy1', { f: fs[0] }) : tr('snapWhy2', { list: fs.join(sep) }));
+    next.hidden = false; next.textContent = tr(snap.i >= 7 ? 'finish' : 'next');
+  } else { note.hidden = true; next.hidden = true; }
+}
+
+/* ================= G3 Frequency Hunt ================= */
+const hunt = { level: 1, parts: null, probes: {}, left: 0, status: 'play', last: null, won: {} };
+function huntNew(level, seed) {
+  hunt.level = level; hunt.parts = huntBoard(mulberry(seed), level);
+  hunt.probes = {}; hunt.left = HUNT_LEVELS[level].probes; hunt.status = 'play'; hunt.last = null;
+  renderHunt();
+}
+function buildHunt() {
+  const seg = $('huntSeg');
+  for (let l = 1; l <= 3; l++) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.level = l;
+    b.addEventListener('click', () => huntNew(l, (Math.random() * 1e9) | 0));
+    seg.appendChild(b);
+  }
+  const cells = $('huntCells');
+  for (let k = 1; k <= 16; k++) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.k = k;
+    b.addEventListener('click', () => huntProbe(k));
+    cells.appendChild(b);
+  }
+  $('huntNew').addEventListener('click', () => huntNew(hunt.level, (Math.random() * 1e9) | 0));
+}
+function huntProbe(k) {
+  if (hunt.status !== 'play' || hunt.probes[k]) return;
+  const r = probe(hunt.parts, k, 64);
+  hunt.probes[k] = r; hunt.left--; hunt.last = k;
+  const all = hunt.parts.every(p => hunt.probes[p.f]);
+  if (r.amp > 0.01) sfxHit(k); else sfxMiss();
+  if (all) {
+    hunt.status = 'won'; hunt.won[hunt.level] = true;
+    const old = S.best.hunt[hunt.level];
+    if (old === undefined || hunt.left > old) { S.best.hunt[hunt.level] = hunt.left; save(); renderRecords(); }
+    const ps = hunt.parts; setTimeout(() => sfxChord(ps), 450);
+    star('hunt', hunt.level - 1);
+  } else if (hunt.left <= 0) { hunt.status = 'lost'; setTimeout(sfxLose, 300); }
+  renderHunt();
+}
+function renderHunt() {
+  if (!hunt.parts) return;
+  document.querySelectorAll('#huntSeg button').forEach(b => {
+    const l = Number(b.dataset.level);
+    b.textContent = tr('board', { n: l });
+    b.classList.toggle('on', l === hunt.level);
+    b.classList.toggle('won', !!hunt.won[l]);
+  });
+  drawCurves($('huntWave'), [{ fn: t => mixAt(hunt.parts, t), color: tok('--ink'), width: 2 }], ymaxOf(hunt.parts), { guides: true });
+  const hidden = new Set(hunt.parts.map(p => p.f));
+  let found = 0;
+  document.querySelectorAll('#huntCells button').forEach(b => {
+    const k = Number(b.dataset.k), r = hunt.probes[k];
+    const isHit = r && r.amp > 0.01;
+    if (isHit) found++;
+    b.className = r ? (isHit ? 'hit' : 'miss') : (hunt.status === 'lost' && hidden.has(k) ? 'reveal' : '');
+    b.disabled = !!r || hunt.status !== 'play';
+    b.innerHTML = String(k) + (r ? '<small>' + fmt(r.amp) + '</small>' : '');
+    b.setAttribute('aria-label', String(k));
+  });
+  $('huntLeft').textContent = tr('left', { n: hunt.left });
+  $('huntFound').textContent = tr('found', { a: found, b: hunt.parts.length });
+  const hb = S.best.hunt[hunt.level];
+  $('huntBest').textContent = hb === undefined ? tr('huntNoBest') : tr('huntBest', { n: hb });
+  const note = $('huntNote'); note.classList.remove('bad');
+  let msg = tr('huntStart');
+  if (hunt.last !== null) {
+    const r = hunt.probes[hunt.last];
+    if (r.amp <= 0.01) msg = tr('huntMiss', { k: hunt.last });
+    else if (HUNT_LEVELS[hunt.level].ph) msg = tr('huntHitPh', { k: hunt.last, s: fmt(r.sin), c: fmt(r.cos), a: fmt(r.amp) });
+    else msg = tr('huntHit', { k: hunt.last, a: fmt(r.amp) });
+  }
+  if (hunt.status === 'won') msg += ' ' + (hunt.left > 0 ? tr('huntWon', { n: hunt.left }) : tr('huntWon0'));
+  if (hunt.status === 'lost') { msg += ' ' + tr('huntLost'); note.classList.add('bad'); }
+  note.textContent = msg;
+  const pc = $('huntProd'), cap = $('huntProdCap');
+  pc.hidden = cap.hidden = hunt.last === null;
+  if (hunt.last !== null) {
+    const k = hunt.last;
+    drawCurves(pc, [{ fn: t => mixAt(hunt.parts, t) * Math.sin(2 * Math.PI * k * t), color: tok('--ink'), width: 1.5, fill: true }], ymaxOf(hunt.parts));
+  }
+}
+
+/* ================= G4 Circle Artist ================= */
+const circ = { pts: null, ep: null, M: 20, tau: 0, path: [], raw: [], drawing: false, demo: true, visible: true, got: null, msg: null, last: 0 };
+function circSet(rawPts, demo) {
+  const r = resample(rawPts, 256);
+  circ.pts = r.pts; circ.ep = epicycles(r.pts); circ.demo = demo; circ.tau = 0; circ.got = null; circ.msg = null;
+  if (!demo) {
+    const g = circleGoals(circ.ep);
+    let fresh = false;
+    g.forEach((ok, i) => { if (ok) { if (star('circ', i)) fresh = true; circ.got = i; } });
+    const round = Math.round(circ.ep.fid[1] * 10) / 10, many = circlesNeeded(circ.ep, 95);
+    let rec = false;
+    if (round > S.best.round) { S.best.round = round; rec = true; }
+    if (many > S.best.many) { S.best.many = many; rec = true; }
+    if (rec) { save(); renderRecords(); }
+    if (fresh) sfxStar(); else if (rec) sfxRight();
+  }
+  circPath(); renderCirc();
+}
+function circPath() {
+  circ.path = [];
+  for (let n = 0; n <= 256; n++) circ.path.push(reconAt(circ.ep, circ.M, n / 256));
+}
+function padPoint(e) {
+  const cv = $('pad'), r = cv.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height];
+}
+function buildCirc() {
+  const cv = $('pad');
+  cv.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    circ.drawing = true; circ.raw = [padPoint(e)]; circ.msg = null; drawPad();
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!circ.drawing) return;
+    const p = padPoint(e), q = circ.raw[circ.raw.length - 1];
+    if (Math.hypot(p[0] - q[0], p[1] - q[1]) > 0.006) { circ.raw.push(p); drawPad(); }
+  });
+  const finish = () => {
+    if (!circ.drawing) return;
+    circ.drawing = false;
+    const raw = circ.raw; circ.raw = [];
+    let len = 0; for (let i = 1; i < raw.length; i++) len += Math.hypot(raw[i][0] - raw[i - 1][0], raw[i][1] - raw[i - 1][1]);
+    if (raw.length < 12 || len < 0.5) { circ.msg = 'circSmall'; renderCirc(); return; }
+    circSet(raw, false);
+  };
+  cv.addEventListener('pointerup', finish);
+  cv.addEventListener('pointercancel', finish);
+  $('circM').addEventListener('input', e => { circ.M = Number(e.target.value); if (circ.ep) circPath(); renderCirc(); });
+  $('circHeart').addEventListener('click', () => circSet(heartShape(), true));
+  $('circClear').addEventListener('click', () => { circ.pts = null; circ.ep = null; circ.path = []; circ.msg = null; circ.got = null; renderCirc(); });
+  try { new IntersectionObserver(es => { circ.visible = es[0].isIntersecting; }).observe(cv); } catch (e) {}
+}
+function renderCirc() {
+  $('circM').value = circ.M;
+  $('circMLabel').textContent = tr('circM', { m: circ.M });
+  const n = k => (k === 1 ? tr('circle1') : tr('circleN', { n: k }));
+  if (circ.ep) {
+    const f = circ.ep.fid[Math.min(circ.M, circ.ep.fid.length - 1)];
+    $('circFid').textContent = f.toFixed(1);
+    $('circNeed').textContent = tr('circNeed', { a: n(circlesNeeded(circ.ep, 90)), b: n(circlesNeeded(circ.ep, 95)) });
+  } else { $('circFid').textContent = '–'; $('circNeed').textContent = ''; }
+  $('circRec').textContent = S.best.round > 0 ? tr('circRec', { a: S.best.round.toFixed(1), b: n(S.best.many) }) : tr('circNoRec');
+  const note = $('circNote');
+  const key = circ.msg || (circ.ep && circ.demo ? 'circDemo' : (circ.got !== null ? 'circGot' + circ.got : null));
+  note.hidden = !key; note.classList.toggle('bad', key === 'circSmall');
+  if (key) note.textContent = tr(key);
+  drawPad();
+}
+function drawPad() {
+  const cv = $('pad');
+  const { c, w, h } = prep(cv);
+  const X = p => p[0] * w, Y = p => p[1] * h;
+  const line = tok('--line'), wave = tok('--wave'), muted = tok('--muted'), ink = tok('--ink');
+  if (circ.drawing) {
+    c.strokeStyle = ink; c.lineWidth = 2.5; c.lineJoin = 'round'; c.lineCap = 'round';
+    c.beginPath(); circ.raw.forEach((p, i) => (i ? c.lineTo(X(p), Y(p)) : c.moveTo(X(p), Y(p)))); c.stroke();
+    return;
+  }
+  if (!circ.ep) {
+    c.fillStyle = muted; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = '15px ' + (tok('--f-body') || 'sans-serif');
+    c.fillText(tr('drawHere'), w / 2, h / 2);
+    return;
+  }
+  // the original drawing
+  c.strokeStyle = line; c.lineWidth = 5; c.lineJoin = 'round';
+  c.beginPath(); circ.pts.forEach((p, i) => (i ? c.lineTo(X(p), Y(p)) : c.moveTo(X(p), Y(p)))); c.closePath(); c.stroke();
+  // the circles' copy: whole path faint, the part already traced bold
+  const upto = still() ? 256 : Math.floor(circ.tau * 256);
+  c.strokeStyle = wave; c.lineWidth = 1; c.globalAlpha = .35;
+  c.beginPath(); circ.path.forEach((p, i) => (i ? c.lineTo(X(p), Y(p)) : c.moveTo(X(p), Y(p)))); c.stroke();
+  c.globalAlpha = 1; c.lineWidth = 2.5;
+  c.beginPath(); for (let i = 0; i <= upto; i++) { const p = circ.path[i]; i ? c.lineTo(X(p), Y(p)) : c.moveTo(X(p), Y(p)); } c.stroke();
+  // circles and arms
+  const arms = []; const tip = reconAt(circ.ep, circ.M, still() ? 0 : circ.tau, arms);
+  c.strokeStyle = muted; c.lineWidth = 1;
+  arms.forEach((a, i) => {
+    c.globalAlpha = .35; c.beginPath(); c.arc(a[0] * w, a[1] * h, a[2] * w, 0, 2 * Math.PI); c.stroke();
+    const nx = i + 1 < arms.length ? arms[i + 1] : tip;
+    c.globalAlpha = .9; c.beginPath(); c.moveTo(a[0] * w, a[1] * h); c.lineTo(nx[0] * w, nx[1] * h); c.stroke();
+  });
+  c.globalAlpha = 1; c.fillStyle = tok('--hot');
+  c.beginPath(); c.arc(tip[0] * w, tip[1] * h, 4, 0, 2 * Math.PI); c.fill();
+}
+function tick(now) {
+  if (circ.ep && !circ.drawing && circ.visible && !still() && !document.hidden) {
+    const dt = Math.min(0.1, (now - (circ.last || now)) / 1000);
+    circ.tau = (circ.tau + dt / 8) % 1;
+    drawPad();
+  }
+  circ.last = now;
+  snapClock(now);
+  if (tune.t0 !== null && !tune.timed) renderTuneClock();
+  requestAnimationFrame(tick);
+}
+
+/* ================= shell ================= */
+const HERO = [{ f: 1, a: 1 }, { f: 3, a: 0.35 }, { f: 5, a: 0.2 }, { f: 7, a: 0.14 }];
+function drawHero() { drawCurves($('heroWave'), [{ fn: t => mixAt(HERO, t * 3), color: tok('--wave'), width: 2.5 }], 1.25); }
+function applyText() {
+  document.documentElement.lang = S.lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = tr(el.dataset.i18nHtml); });
+  $('langBtn').textContent = tr('langBtn');
+  renderSound();
+  renderAll();
+}
+function renderSound() {
+  const b = $('soundBtn');
+  b.classList.toggle('off', !S.sound);
+  b.setAttribute('aria-label', tr(S.sound ? 'soundOn' : 'soundOff'));
+  b.title = tr(S.sound ? 'soundOn' : 'soundOff');
+  b.setAttribute('aria-pressed', String(S.sound));
+}
+function renderAll() { renderStars(); drawHero(); renderTune(); renderSnap(); renderHunt(); renderCirc(); }
+
+function start(data) {
+  restore(data);
+  buildTune(); buildSnap(); buildHunt(); buildCirc();
+  document.querySelectorAll('.jump').forEach(b => b.addEventListener('click', () => $(b.dataset.jump).scrollIntoView({ behavior: still() ? 'auto' : 'smooth', block: 'start' })));
+  $('langBtn').addEventListener('click', () => { S.lang = S.lang === 'en' ? 'zh' : 'en'; save(); applyText(); });
+  $('soundBtn').addEventListener('click', () => { S.sound = !S.sound; save(); renderSound(); if (S.sound) sfxRight(); });
+  // browsers only allow sound after a click, so wake the audio on the first one
+  document.addEventListener('click', () => { if (S.sound) audio(false); }, true);
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  tune.mine = [{ f: 1, a: 0.5 }, { f: 2, a: 0 }, { f: 3, a: 0 }];
+  tuneReset(1);
+  snapNewRun(11);
+  huntNew(1, 2026);
+  circSet(heartShape(), true);
+  applyText();
+  let timer = 0;
+  window.addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(renderAll, 120); });
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll); } catch (e) {}
+  try { new MutationObserver(renderAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderAll).catch(() => {});
+  requestAnimationFrame(tick);
+}
+try { window.claude?.hot?.snapshot?.(() => JSON.parse(JSON.stringify(S))); } catch (e) {}
+if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>

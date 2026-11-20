@@ -20,6 +20,8 @@
 | `fft.c` | 快速傅里叶变换（FFT），并和 DFT 对比结果与运算次数 |
 | `course/index.html` | 互动课程，单个文件，用浏览器直接打开 |
 | `tests/course_test.js` | 把课程页面里的算法取出来，和 C 版的结果逐项对比 |
+| `arcade/index.html` | 傅里叶游戏厅：四个小游戏，单个文件，中英文可切换（[说明](arcade/README.md)） |
+| `arcade/test.js` | 检查游戏厅里的算法和出题逻辑 |
 
 ## 编译和运行
 
@@ -38,6 +40,7 @@ gcc fourier.c -o fourier && ./fourier
 gcc fft.c -o fft && ./fft
 
 node tests/course_test.js course/index.html   # 核对课程页面里的算法
+node arcade/test.js arcade/index.html         # 核对游戏厅里的算法
 ```
 
 ## 一、Hash
@@ -168,12 +171,26 @@ FFT 找到的峰：频率 50 振幅 1.000   频率 120 振幅 0.500
 
 在线版：<https://claude.ai/artifact/WvQeusC72b8onKfcf4tWtz>（默认只有作者能打开，分享后别人才能看）
 
+## 四、傅里叶游戏厅
+
+`arcade/index.html` 是课程下半场的配套游戏，同样是单个文件，中英文可切换。四个游戏，一共十二颗星：
+
+| # | 游戏 | 玩法 |
+|---|---|---|
+| G1 | 调音 | 拖三个振荡器，让自己的波和目标完全重合；最后一关搭出方波的开头 |
+| G2 | 认谱 | 看波形，从四张频谱里选出对的那张；八轮，计时、计连对 |
+| G3 | 寻频 | 用有限的探针，把藏在信号里的频率全找出来 |
+| G4 | 画圆 | 一笔画一个图形，看一串转动的圆把它重新画出来 |
+
+规则、计分和原理见 [`arcade/README.md`](arcade/README.md)。
+
 ## 怎么核对的
 
 - `hash_demo.c`：7 种长度的输入（0、1、55、56、64、120 字节和一句中文）和系统的 `sha256sum` 逐一对比，全部一致。55 和 56 字节是补位要不要多加一块的边界。
 - `simple_hash.c` 和 `simple_hash.py`：两边结果一致。
 - `fourier.c`、`fft.c`：峰的位置和振幅用 Python 独立算过，一致。
 - 课程页面：例句的 hash、121 位不同、第 8 到 12 轮的位数，都和 C 版一致。
+- 游戏厅：`arcade/test.js` 检查四个游戏的算法和出题逻辑，另用无头浏览器自动玩过一遍，详见 `arcade/README.md`。
 
 ## 说明
 
