@@ -130,6 +130,12 @@ jobs:
           python python/tutorial/run.py all --solution
           code=0; python python/tutorial/run.py all > /dev/null || code=$?
           test "$code" -ne 2   # 练习文件都要能跑起来（“找 bug”题本来就是 ❌，退出码 1 不算错；2 = 有文件跑不起来）
+      - name: Python 教程英文版：同样的检查
+        run: |
+          python python/tutorial/make_exercises.py --lang en --check
+          python python/tutorial/en/run.py all --solution
+          code=0; python python/tutorial/en/run.py all > /dev/null || code=$?
+          test "$code" -ne 2
       - name: 构建 C++ 版
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j 4
       - name: 例子输出逐字对比

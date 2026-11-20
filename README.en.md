@@ -11,8 +11,8 @@
 <img src="https://img.shields.io/badge/Java-17%2B-ED8B00?logo=openjdk&logoColor=white" alt="Java 17+">
 <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+">
 <a href="java/tutorial/README.md"><img src="https://img.shields.io/badge/Java%20course-20%20lessons-f59e0b" alt="Java course: 20 lessons"></a>
-<a href="python/tutorial/README.md"><img src="https://img.shields.io/badge/Python%20course-26%20lessons-3776AB" alt="Python course: 26 lessons"></a>
-<a href="https://xudaniel.github.io/minicplex/python/"><img src="https://img.shields.io/badge/learn%20online-no%20install-16a34a" alt="Learn Python online: no install"></a>
+<a href="python/tutorial/en/README.md"><img src="https://img.shields.io/badge/Python%20course-26%20lessons-3776AB" alt="Python course: 26 lessons"></a>
+<a href="https://xudaniel.github.io/minicplex/python/en/"><img src="https://img.shields.io/badge/learn%20online-no%20install-16a34a" alt="Learn Python online: no install"></a>
 <img src="https://img.shields.io/badge/dependencies-none-22c55e" alt="No dependencies">
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-64748b" alt="MIT"></a>
 </p>
@@ -126,7 +126,7 @@ cmake -S . -B build && cmake --build build -j
 ./build/minicplex examples/bakery.lp --trace    # watch it, step by step
 ctest --test-dir build                          # run the test suite
 java/build.sh && java/tutorial/run.sh A01       # learning Java? run the first exercise (JDK 17+ only)
-python3 python/tutorial/run.py A01              # learning Python? first exercise (Python 3.9+, nothing to install)
+python3 python/tutorial/en/run.py A01           # learning Python? first exercise (Python 3.9+, nothing to install)
 # or skip installing Python altogether: https://xudaniel.github.io/minicplex/python/
 ```
 
@@ -221,9 +221,10 @@ java/tutorial/run.sh all       # see how far you have got
 
 ## Learn Python with minicplex
 
-[`python/tutorial/`](python/tutorial/README.md) is the same idea for Python, also in Chinese: 8 zero-basics lessons,
-12 lessons built on the Python solver's own code and 6 advanced ones, 26 in all, each with a self-grading exercise.
-**[Take it in the browser](https://xudaniel.github.io/minicplex/python/)**: lesson text, editor and grading on one page, with Python running in the
+The Python course is **in English** ([`python/tutorial/en/`](python/tutorial/en/README.md)) and in Chinese
+([`python/tutorial/`](python/tutorial/README.md)): 8 zero-basics lessons, 12 lessons built on the Python solver's own code
+and 6 advanced ones, 26 in all, each with a self-grading exercise, hints and explanations of common mistakes.
+**[Take it in the browser](https://xudaniel.github.io/minicplex/python/en/)**: lesson text, editor and grading on one page, with Python running in the
 browser (Pyodide); nothing to install, no account, works on phones. Offline it needs Python 3.9+ and nothing else;
 the runner `run.py` is itself Python, so it works the same on Windows, macOS and Linux.
 
@@ -238,9 +239,9 @@ Examples come straight from the solver: why `2 * x + 3 * y <= 12` turns into a c
 of tuples.
 
 ```bash
-python3 python/tutorial/run.py A01        # first beginner exercise
-python3 python/tutorial/run.py 01         # first main-lesson exercise
-python3 python/tutorial/run.py all        # see how far you have got
+python3 python/tutorial/en/run.py A01     # first beginner exercise
+python3 python/tutorial/en/run.py 01      # first main-lesson exercise
+python3 python/tutorial/en/run.py all     # see how far you have got
 ```
 
 ## How it works

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn Python with minicplex · online exercises</title>
+<meta name="description" content="A 26-lesson Python course: 8 lessons for complete beginners, 12 lessons reading a real solver's code, and 6 advanced ones. Write code and get it graded in your browser, nothing to install.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐍%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="app.css?v=__VERSION__">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#">🐍 <span class="txt">Learn Python with minicplex</span></a>
+  <nav class="lesson-nav" id="lessonNav" hidden>
+    <a id="navPrev" class="btn ghost" href="#">← Previous</a>
+    <a class="btn ghost" href="#">Contents</a>
+    <a id="navNext" class="btn ghost" href="#">Next →</a>
+  </nav>
+  <a id="langSwitch" class="lang" href="../" lang="zh-CN" title="中文版">中文</a>
+  <a class="gh" href="https://github.com/xudaniel/minicplex/tree/main/python/tutorial/en" target="_blank" rel="noopener">GitHub</a>
+</header>
+
+<main id="home" hidden>
+  <section class="hero">
+    <h1>Learn Python with minicplex</h1>
+    <p>26 lessons: first 8 short lessons for complete beginners; then classes, operator overloading, dataclasses, exceptions and testing, learned from the source code of a solver that really solves optimisation problems; and finally advanced lessons on debugging, decorators, generators, files and command-line programs.</p>
+    <p class="muted">Start right away: Python runs inside your browser, with nothing to install and no sign-up. Each lesson has an exercise graded with one click; your code is saved in this browser automatically.</p>
+    <p class="progress" id="progress"></p>
+  </section>
+  <section>
+    <h2>Stage 0: Basics for complete beginners <span class="muted">10–20 minutes each</span></h2>
+    <ol class="cards" id="stage0"></ol>
+  </section>
+  <section>
+    <h2>Lessons 1–12: Learn Python by reading real code <span class="muted">30–60 minutes each</span></h2>
+    <ol class="cards" id="stage1"></ol>
+  </section>
+  <section>
+    <h2>Advanced lessons 13–18: what real projects use every day <span class="muted">debugging, decorators, generators, files, command line</span></h2>
+    <ol class="cards" id="stage2"></ol>
+  </section>
+  <footer class="muted">
+    Prefer working on your own computer? <a href="https://github.com/xudaniel/minicplex/blob/main/python/tutorial/en/README.md" target="_blank" rel="noopener">Download the project</a> and run <code>python3 python/tutorial/en/run.py A01</code>; the exercises are exactly the same as here.
+    · version __VERSION__
+  </footer>
+</main>
+
+<main id="lesson" class="lesson" hidden>
+  <div class="tabs" role="tablist">
+    <button id="tabRead" class="tab active" role="tab">📖 Lesson</button>
+    <button id="tabCode" class="tab" role="tab">✏️ Exercise</button>
+  </div>
+  <article id="article" class="article"></article>
+  <section id="workspace" class="workspace">
+    <div class="toolbar">
+      <span id="fileName" class="file"></span>
+      <span class="spacer"></span>
+      <button id="btnReset" class="btn ghost" title="Restore the original exercise">↺ Reset</button>
+      <button id="btnHint" class="btn ghost" title="Stuck? Hints, one level at a time">💡 Hint</button>
+      <button id="btnAnswer" class="btn ghost" title="Show the answer">📖 Answer</button>
+      <button id="btnStop" class="btn danger" hidden>■ Stop</button>
+      <button id="btnRun" class="btn primary" title="Ctrl + Enter">▶ Run &amp; check</button>
+    </div>
+    <div class="editor">
+      <pre class="gutter" id="gutter" aria-hidden="true"></pre>
+      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Code editor"></textarea>
+    </div>
+    <div id="status" class="status"></div>
+    <pre id="output" class="output" aria-live="polite"></pre>
+    <div id="hintBox" class="answer hints" hidden>
+      <div class="toolbar"><b>💡 Hints</b><span class="muted">Look at level 1 first and think; ask for the next level only if you're still stuck.</span><span class="spacer"></span>
+        <button id="btnHideHint" class="btn ghost">Close</button></div>
+      <div id="hintList"></div>
+    </div>
+    <div id="answerBox" class="answer" hidden>
+      <div class="toolbar"><b>Answer</b><span class="spacer"></span>
+        <button id="btnUseAnswer" class="btn ghost">Replace my code with the answer</button>
+        <button id="btnHideAnswer" class="btn ghost">Close</button></div>
+      <pre id="answerCode"></pre>
+      <p class="muted">The answer is not the only way to write it. Once you understand it, close it and try writing it again yourself.</p>
+    </div>
+  </section>
+</main>
+
+<div id="loading" class="loading">Loading the course…</div>
+<script src="app.js?v=__VERSION__"></script>
+</body>
+</html>

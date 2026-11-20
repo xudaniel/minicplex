@@ -200,6 +200,7 @@ java/tutorial/run.sh all       # 看看一共完成了多少
 
 [`python/tutorial/`](python/tutorial/README.md) 是一门中文 Python 课：8 节零基础 + 12 节读真实代码 + 6 节进阶，一共 26 节，每节一道自动判分的练习。
 **🌐 [打开网页就能学](https://xudaniel.github.io/minicplex/python/)**：课文、编辑器、自动判分在同一个页面里，Python 在浏览器里运行，不用安装、不用注册，手机也能用。
+这门课也有完整的**英文版**（[`python/tutorial/en/`](python/tutorial/en/README.md)，[网页版](https://xudaniel.github.io/minicplex/python/en/)），网页右上角可以一键切换中英文。
 想在自己电脑上写也行：只需要 Python 3.9+，**不用装任何包**；运行练习的 `run.py` 本身也是 Python 写的，Windows、macOS、Linux 用法相同。
 
 | 阶段 | 内容 | 适合谁 | 每节 |

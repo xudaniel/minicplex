@@ -21,8 +21,9 @@ code, pre { font-family: var(--mono); font-size: 0.92em; }
   background: var(--bg); border-bottom: 1px solid var(--line); }
 .brand { font-weight: 700; text-decoration: none; color: var(--fg); white-space: nowrap; }
 .lesson-nav { display: flex; gap: 4px; margin-left: auto; }
-.gh { margin-left: auto; font-size: 14px; }
-.lesson-nav:not([hidden]) + .gh { margin-left: 8px; }
+.gh, .lang { font-size: 14px; white-space: nowrap; }
+.lang { margin-left: auto; }
+.lesson-nav:not([hidden]) + .lang { margin-left: 8px; }
 
 .btn { font: inherit; font-size: 14px; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--soft); color: var(--fg); cursor: pointer; text-decoration: none; white-space: nowrap; }
@@ -98,6 +99,7 @@ footer { margin-top: 32px; font-size: 14px; }
   .brand { font-size: 15px; }
   .lesson-nav .btn { padding: 4px 8px; }
   .gh { display: none; }
+  body.in-lesson .lang { display: none; }
   body.in-lesson .brand .txt { display: none; }
   .file { display: none; }
   .toolbar .btn { padding: 5px 9px; }
