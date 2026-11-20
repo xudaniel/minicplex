@@ -75,6 +75,12 @@ footer { margin-top: 32px; font-size: 14px; }
 .output .todo { color: var(--todo); }
 .output .err { color: var(--bad); font-weight: 600; }
 .output .sum { font-weight: 700; }
+.output .hint { color: var(--accent); }
+.hints .fn { border-top: 1px solid var(--line); padding: 8px 0; }
+.hints .fn:first-child { border-top: 0; }
+.hints .fn code.name { font-weight: 700; }
+.hints .lvl { margin: 6px 0 0; padding: 6px 10px; background: var(--soft); border-radius: 6px; white-space: pre-wrap; font: 13px/1.5 var(--mono); }
+.hints .more { margin-top: 6px; font-size: 13px; padding: 3px 10px; }
 .answer { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; max-height: 45vh; overflow: auto; }
 .answer pre { font-size: 13px; line-height: 1.5; }
 .loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); }

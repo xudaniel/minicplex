@@ -44,6 +44,41 @@ def make(text: str) -> str:
     return BLOCK.sub(_replace, text)
 
 
+def blank_names(text: str):
+    """练习里每个挖空（或“找 bug”）的地方属于哪个函数，按出现顺序。
+    块缩进在函数里面时，属于上面最近的 def；块从行首开始（整个函数都在块里）时，属于块里的第一个 def。"""
+    lines = text.splitlines()
+    names, cur = [], None
+    for i, ln in enumerate(lines):
+        m = re.match(r"\s*(?:def|class)\s+(\w+)", ln)
+        if m:
+            cur = m.group(1)
+        if ln.strip() == "# >>>":
+            if ln.startswith("#"):
+                nxt = next(re.match(r"def\s+(\w+)", x) for x in lines[i + 1:] if re.match(r"def\s+(\w+)", x))
+                names.append(nxt.group(1))
+            else:
+                names.append(cur)
+    return names
+
+
+def check_hints() -> list:
+    """每个挖空的函数都要有提示，提示里也不能有多余的函数名。"""
+    sys.path.insert(0, str(HERE))
+    from hints import HINTS
+    problems = []
+    for src in sorted(SRC.glob("[al][0-9][0-9]_*.py")):
+        lid = src.name[:3]
+        want = blank_names(src.read_text(encoding="utf-8"))
+        have = [name for name, *_ in HINTS.get(lid, [])]
+        if want != have:
+            problems.append(f"{lid}：练习里是 {want}，hints.py 里是 {have}")
+        for name, levels in HINTS.get(lid, []):
+            if len(levels) < 2:
+                problems.append(f"{lid}.{name}：至少要 2 级提示")
+    return problems
+
+
 def main() -> None:
     check = "--check" in sys.argv
     DST.mkdir(parents=True, exist_ok=True)
@@ -59,6 +94,9 @@ def main() -> None:
             dst.write_text(out, encoding="utf-8", newline="\n")
     if check and stale:
         sys.exit("练习文件和答案不同步，请运行 python3 python/tutorial/make_exercises.py：" + ", ".join(stale))
+    problems = check_hints()
+    if problems:
+        sys.exit("hints.py 和练习对不上：\n  " + "\n  ".join(problems))
     print("练习文件已同步" if check else f"已生成 {len(files)} 个练习文件")
 
 

@@ -4,6 +4,7 @@
 再把结果排成表格。把前 11 课学到的东西串起来：字符串解析、dataclass、集合、建模、异常、格式化输出。
 运行：python3 python/tutorial/run.py 12
 """
+import unicodedata
 from dataclasses import dataclass
 
 from check import lesson, eq, raises, that, done
@@ -47,10 +48,16 @@ def choose(courses, max_hours, min_credits):
     raise NotImplementedError("TODO")  # ← 在这里写你的代码
 
 
+def _pad(s, width):
+    """按屏幕显示宽度补空格（第 10 课的 pad）：一个汉字占 2 格，这样中英文混排的表格也是齐的。"""
+    w = sum(2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1 for ch in s)
+    return s + " " * max(0, width - w)
+
+
 def report(courses, chosen):
-    """把选中的课排成表格（这段不用写，看看第 10 课的格式化在这里怎么用）。"""
+    """把选中的课排成表格（这段不用写，看看第 10 课的格式化和 pad 在这里怎么用）。"""
     rows = [c for c in courses if c.name in chosen]
-    lines = [f"  {c.name:<6} {c.day}  {c.credits} 学分  {c.hours} 小时  兴趣 {c.interest}" for c in rows]
+    lines = [f"  {_pad(c.name, 8)} {c.day}  {c.credits} 学分  {c.hours} 小时  兴趣 {c.interest}" for c in rows]
     lines.append(f"  合计：{sum(c.credits for c in rows)} 学分，{sum(c.hours for c in rows)} 小时，"
                  f"兴趣 {sum(c.interest for c in rows)}")
     return "\n".join(lines)

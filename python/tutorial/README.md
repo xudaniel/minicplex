@@ -51,9 +51,26 @@ $ python3 python/tutorial/run.py 02
 ```
 
 ✅ 对了，❌ 不对（会告诉你期望值和实际值），⏳ 还没写。全部 ✅ 就完成了这一课。
+常见的错误还会多给一句原因，比如：
 
-卡住了？参考答案在 [`solutions/`](solutions/)，用 `run.py 02 --solution` 运行。
-建议先自己写，写完再对照：参考答案不是唯一写法。
+```text
+❌ 10 元买 3 元的东西：最多 3 个：期望 3，实际 3.3333333333333335
+   💡 期望整数，你算出了小数：要整数时用 //（整除），不是 /。
+```
+
+**卡住了？** 一级一级地要提示（网页上点 **💡 提示**）：
+
+```bash
+python3 python/tutorial/run.py 02 --hint      # 每个函数先给个方向
+python3 python/tutorial/run.py 02 --hint 2    # 还不行？给出接近代码的写法
+```
+
+实在想不出来，参考答案在 [`solutions/`](solutions/)，用 `run.py 02 --solution` 运行。建议先自己写，写完再对照：参考答案不是唯一写法。
+
+几种特别的题：标着 **🤔 先猜后跑** 的，先别运行，把你猜的结果写在 `return` 后面，再运行看看猜得对不对；
+第 13 课是 **🐞 找 bug**：代码已经写好了，但有错，要找出来改好。
+
+看看一共完成了多少：`python3 python/tutorial/run.py all` 会打印一张进度表。
 
 ## 课程目录
 
@@ -115,6 +132,7 @@ $ python3 python/tutorial/run.py 02
 - 参考答案由 CI 在 Python 3.9 和 3.13 上自动运行，保证永远能通过；练习文件由
   [`make_exercises.py`](make_exercises.py) 从答案生成（答案里 `# >>>` 和 `# <<<` 之间的部分会被挖空；
   “找 bug”题在答案后面加 `# ===` 和一段注释掉的有 bug 的版本，练习里放的就是那个版本）。
-- 想加一道题：在 `solutions/` 里写好答案并用 `# >>>`、`# <<<` 标出要挖空的部分，再运行 `python3 python/tutorial/make_exercises.py`。
+- 想加一道题：在 `solutions/` 里写好答案并用 `# >>>`、`# <<<` 标出要挖空的部分，在 [`hints.py`](hints.py) 里给这个函数写两级提示，
+  再运行 `python3 python/tutorial/make_exercises.py`。CI 会检查每个挖空的函数都有提示。
 - 网页版由 [`make_web.py`](make_web.py) 从同一套课文和练习生成，GitHub Actions 每次先在真浏览器里把 26 课的答案和练习跑一遍（[`web/test_site.py`](web/test_site.py)），通过了才发布。Python 运行时（Pyodide）和网站放在一起，打不开 CDN 的地方也能用。
 - 判分框架 [`check.py`](solutions/check.py) 只有 100 来行，学生读得懂；退出码 0 = 全对，1 = 有错，3 = 没写完，方便批量收作业。

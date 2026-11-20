@@ -90,6 +90,8 @@ adders = [lambda x: x + k for k in range(3)]
 
 打开 [`exercises/l14_functions.py`](../exercises/l14_functions.py)，运行 `python3 python/tutorial/run.py 14`。
 
+最后一题是 **🤔 先猜后跑**：先别运行，读题目里那几行代码，把你猜的结果写在 `return` 后面，再运行看看猜得对不对。猜错了也没关系，想明白为什么才是重点。
+
 ## 8. 想一想
 
 `print(*["a", "b", "c"], sep="-")` 输出什么？

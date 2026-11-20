@@ -42,6 +42,15 @@ def make_adders(n):
     raise NotImplementedError("TODO")  # ← 在这里写你的代码
 
 
+def guess_late_binding():
+    """🤔 先猜后跑：先别运行！读下面这几行，猜猜结果是什么，把你猜的写在 return 后面，再运行看看猜得对不对。
+
+        adders = [lambda x: x + k for k in range(3)]
+        [f(10) for f in adders]   ← 结果是什么？
+    """
+    raise NotImplementedError("TODO")  # ← 在这里写你的代码
+
+
 lesson("第 14 课：函数进阶")
 eq("total(1, 2, 3) 是 6", 6, lambda: total(1, 2, 3))
 eq("total() 是 0", 0, lambda: total())
@@ -56,4 +65,5 @@ eq("swap_pairs", [(2, 1), ("b", "a")], lambda: swap_pairs([(1, 2), ("a", "b")]))
 eq("计数器：1, 2, 3", [1, 2, 3], lambda: (lambda c: [c(), c(), c()])(make_counter()))
 eq("两个计数器各数各的", (2, 1), lambda: (lambda a, b: (a(), a(), b())[1:])(make_counter(), make_counter()))
 eq("make_adders(3) 分别加 0、1、2", [10, 11, 12], lambda: [f(10) for f in make_adders(3)])
+eq("🤔 猜一猜：循环里造的三个 lambda", [12, 12, 12], guess_late_binding)
 done()

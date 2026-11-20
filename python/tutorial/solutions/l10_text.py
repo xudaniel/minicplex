@@ -4,6 +4,8 @@ LP 文件是纯文本。minicplex 先把文本切成一个个“记号”（数�
 输出结果时又要把数字排成整齐的表格。这一课把这两件事各做一个迷你版。
 运行：python3 python/tutorial/run.py 10
 """
+import unicodedata
+
 from check import lesson, eq, raises, done
 
 
@@ -60,6 +62,21 @@ def format_row(name, value):
     # <<<
 
 
+def display_width(s):
+    """字符串在屏幕上占几格：中文（以及全角符号）一个字占 2 格，英文、数字占 1 格。
+    提示：unicodedata.east_asian_width(ch) 返回 "W" 或 "F" 时是宽字符（占 2 格）。"""
+    # >>>
+    return sum(2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1 for ch in s)
+    # <<<
+
+
+def pad(s, width):
+    """在右边补空格，让 s 在屏幕上正好占 width 格（已经够宽就原样返回）。f"{s:<10}" 按字符数补，中文会歪；这里按显示宽度补。"""
+    # >>>
+    return s + " " * max(0, width - display_width(s))
+    # <<<
+
+
 def report(values):
     """values 是 {名字: 值}。每个值一行（用 format_row），按名字排序，最后一行是 "合计"，用换行 "\\n".join 连起来。"""
     # >>>
@@ -78,4 +95,9 @@ eq('parse_bound("y >= 2.5")', ("y", ">=", 2.5), lambda: parse_bound("y >= 2.5"))
 raises("parse_bound 遇到不完整的行报错", ValueError, lambda: parse_bound("x <="))
 eq("format_row", "cake          3.00", lambda: format_row("cake", 3))
 eq("report", "bread         1.50\ncake          3.00\n合计            4.50", lambda: report({"cake": 3, "bread": 1.5}))
+eq('display_width("abc")', 3, lambda: display_width("abc"))
+eq('display_width("数据库")：每个汉字占 2 格', 6, lambda: display_width("数据库"))
+eq('display_width("Python课")', 8, lambda: display_width("Python课"))
+eq('pad("运筹学", 8) 补到 8 格', "运筹学  ", lambda: pad("运筹学", 8))
+eq('pad("Python", 8)', "Python  ", lambda: pad("Python", 8))
 done()

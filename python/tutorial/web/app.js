@@ -61,6 +61,8 @@
     setCode(store.get("code:" + L.id) ?? L.exercise);
     $("output").textContent = "";
     $("answerBox").hidden = true;
+    $("hintBox").hidden = true;
+    $("btnHint").hidden = !(L.hints && L.hints.length);
     setStatus(isDone(L.id) ? "✅ 这一课你已经完成了。" : "写完点 ▶ 运行判分（Ctrl + Enter）。", isDone(L.id));
     ensureWorker();
   }
@@ -154,6 +156,7 @@
       else if (line.startsWith("⏳")) span.className = "todo";
       else if (line.startsWith("❗")) span.className = "err";
       else if (line.startsWith("-- ")) span.className = "sum";
+      else if (line.trimStart().startsWith("💡")) span.className = "hint";
       out.appendChild(span);
     }
     out.scrollTop = out.scrollHeight;
@@ -232,6 +235,34 @@
     ensureWorker();  // 重新准备一个，下次运行不用等太久
   }
 
+  // ---------------------------------------------------------------- 提示：每个函数一级一级地给
+  function renderHints() {
+    const box = $("hintList");
+    box.innerHTML = "";
+    for (const [name, levels] of current.hints) {
+      const key = `hint:${current.id}:${name}`;
+      const shown = Number(store.get(key) || 0);
+      const div = document.createElement("div");
+      div.className = "fn";
+      div.innerHTML = `<code class="name"></code>`;
+      div.querySelector(".name").textContent = name;
+      for (let k = 0; k < shown && k < levels.length; k++) {
+        const p = document.createElement("div");
+        p.className = "lvl";
+        p.textContent = `${k + 1}. ${levels[k]}`;
+        div.appendChild(p);
+      }
+      if (shown < levels.length) {
+        const b = document.createElement("button");
+        b.className = "btn ghost more";
+        b.textContent = shown === 0 ? "看第 1 级提示" : `再给一点（第 ${shown + 1} 级）`;
+        b.onclick = () => { store.set(key, String(shown + 1)); renderHints(); };
+        div.appendChild(b);
+      }
+      box.appendChild(div);
+    }
+  }
+
   // ---------------------------------------------------------------- 路由
   function route() {
     const id = location.hash.slice(1);
@@ -276,6 +307,14 @@
       $("answerBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
     };
     $("btnHideAnswer").onclick = () => { $("answerBox").hidden = true; };
+    $("btnHint").onclick = () => {
+      if (!$("hintBox").hidden) { $("hintBox").hidden = true; return; }
+      renderHints();
+      $("hintBox").hidden = false;
+      $("answerBox").hidden = true;
+      $("hintBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+    $("btnHideHint").onclick = () => { $("hintBox").hidden = true; };
     $("btnUseAnswer").onclick = () => {
       if (confirm("用参考答案替换你的代码？")) { setCode(current.solution); onInput(); $("answerBox").hidden = true; }
     };

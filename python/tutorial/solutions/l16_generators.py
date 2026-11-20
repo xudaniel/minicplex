@@ -79,6 +79,19 @@ def knapsack_solver(values, weights, capacity):
     return solve(m).objective
 
 
+def guess_exhausted():
+    """🤔 先猜后跑：先别运行！读下面这几行，猜猜结果是什么，把你猜的写在 return 后面，再运行看看猜得对不对。
+
+        g = (x * x for x in range(3))
+        first = list(g)
+        second = list(g)
+        (first, second) 是什么？
+    """
+    # >>>
+    return ([0, 1, 4], [])
+    # <<<
+
+
 lesson("第 16 课：生成器和迭代器")
 eq("countdown(3) 产出 3, 2, 1", [3, 2, 1], lambda: list(countdown(3)))
 that("countdown 是生成器（不是列表）", lambda: hasattr(countdown(3), "__next__"))
@@ -92,4 +105,5 @@ eq("assignments(2, [0, 1])", [(0, 0), (0, 1), (1, 0), (1, 1)], lambda: list(assi
 that("和 itertools.product 的结果一样", lambda: list(assignments(3, "ab")) == list(itertools.product("ab", repeat=3)))
 that("暴力背包和求解器答案一样", lambda: knapsack_brute([10, 13, 7, 8, 6], [5, 6, 4, 3, 2], 12)
      == knapsack_solver([10, 13, 7, 8, 6], [5, 6, 4, 3, 2], 12))
+eq("🤔 猜一猜：同一个生成器 list 两次", ([0, 1, 4], []), guess_exhausted)
 done()

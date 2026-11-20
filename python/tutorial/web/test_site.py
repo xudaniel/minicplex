@@ -55,6 +55,20 @@ with sync_playwright() as p:
     page.wait_for_timeout(4000)
     st_after_stop, out = run_code(page, course["lessons"][0]["solution"])
     print("after stop, rerun:", st_after_stop[:30])
+    # 提示面板：一级一级地给
+    page.goto(BASE + "#a02")
+    page.click("#btnHint")
+    page.locator("#hintList .more").first.click()
+    lvl1 = page.locator("#hintList .lvl").count()
+    page.locator("#hintList .more").first.click()
+    lvl2 = page.locator("#hintList .lvl").count()
+    print("hint levels shown:", lvl1, lvl2)
+    if (lvl1, lvl2) != (1, 2): fails.append(("hints", f"{lvl1} {lvl2}", "", ""))
+    # 常见错误的 💡 说明：A2 里把 // 写成 /
+    wrong = [L for L in course["lessons"] if L["id"] == "a02"][0]["solution"].replace("money // price", "money / price")
+    st, out = run_code(page, wrong)
+    print("mistake hint:", [ln for ln in out.splitlines() if "💡" in ln][:1])
+    if "要整数时用 //" not in out: fails.append(("mistake hint", out[-300:], "", ""))
     # saved code persists after reload
     page.evaluate("c => { const t = document.getElementById('code'); t.value = c; t.dispatchEvent(new Event('input')); }", "# my code\n")
     page.wait_for_timeout(500); page.reload(); page.wait_for_selector("#code")
