@@ -2,6 +2,7 @@
 
 > **这一课学：** `True` 和 `False`；比较 `== != < <= > >=`；`if / elif / else`；`and`、`or`、`not`
 > **大约：** 15 分钟 · **练习：** `python3 python/tutorial/run.py A03`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#a03)
 
 [← 变量和计算](a2-variables.md) · [目录](../README.md) · 下一课：[重复做事 →](a4-loops.md)
 

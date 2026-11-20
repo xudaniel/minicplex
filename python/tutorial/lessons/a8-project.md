@@ -2,6 +2,7 @@
 
 > **这一课学：** 把前 7 节串起来：函数、判断、两层循环、元组；第一次用 minicplex 求解器
 > **大约：** 20 分钟 · **练习：** `python3 python/tutorial/run.py A08`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#a08)
 
 [← 字符串](a7-strings.md) · [目录](../README.md) · 下一课：[第 1 课：第一个模型 →](01-first-model.md)
 

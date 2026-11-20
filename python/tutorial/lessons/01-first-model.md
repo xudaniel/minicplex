@@ -3,6 +3,7 @@
 > **这一课学：** 模块和 `import`；运行一个 Python 程序的几种方式；用 minicplex 建模的四个步骤
 > **用到的代码：** [`examples/basics_01_one_variable.py`](../../examples/basics_01_one_variable.py)、[`minicplex/__init__.py`](../../minicplex/__init__.py)
 > **练习：** `python3 python/tutorial/run.py 01`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l01)
 
 [← 入门 A8](a8-project.md) · [目录](../README.md) · 下一课：[数字和小数误差 →](02-numbers.md)
 

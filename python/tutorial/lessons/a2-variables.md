@@ -2,6 +2,7 @@
 
 > **这一课学：** 变量；整数 `int` 和小数 `float`；`+ - * /`；整除 `//` 和取余 `%`
 > **大约：** 15 分钟 · **练习：** `python3 python/tutorial/run.py A02`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#a02)
 
 [← 让程序说话](a1-hello.md) · [目录](../README.md) · 下一课：[做判断 →](a3-decisions.md)
 

@@ -3,6 +3,7 @@
 > **这一课学：** `unittest`；`random.Random(seed)` 可复现的随机数；暴力枚举作为“标准答案”；对拍；`itertools.product`；`math.isclose`
 > **用到的代码：** [`tests/test_solver.py`](../../tests/test_solver.py)、[`tools/compare_java_cpp.py`](../../../tools/compare_java_cpp.py)
 > **练习：** `python3 python/tutorial/run.py 11`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l11)
 
 [← 字符串和文本处理](10-text.md) · [目录](../README.md) · 下一课：[综合项目：选课助手 →](12-project.md)
 

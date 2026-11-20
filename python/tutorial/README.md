@@ -7,6 +7,9 @@
 先摆出 minicplex（一个能真正解优化题的求解器：约 2,700 行纯 Python，含注释，零依赖）里的一段代码，再讲它用到的 Python 知识，
 以及**为什么这样写**。学完你不仅会 Python 语法，还能读懂一个完整的项目。
 
+> **🌐 打开网页就能学：[https://xudaniel.github.io/minicplex/python/](https://xudaniel.github.io/minicplex/python/)**
+> 课文、编辑器、自动判分都在一个页面里。Python 在你的浏览器里运行，不用安装任何东西，不用注册，手机也能用；写的代码和进度自动保存在这个浏览器里。
+
 这个 Python 版不是“简化版”：它和 C++ 版逐行对应，在同一道题上走完全相同的计算路径，CI 每次提交都在 600 多道题上核对一遍。
 你读到的，就是真正在跑的代码。
 
@@ -19,6 +22,8 @@
   [用大白话讲 minicplex](../../README.md#用大白话讲-minicplex先看这里)（5 分钟）。
 
 ## 准备
+
+**用网页版的话，什么都不用准备**，直接打开上面的链接。想在自己电脑上写（用 VS Code、PyCharm 等）也可以：练习文件和网页上的完全一样。
 
 只需要 Python 3.9 或更新版本（`python3 --version` 查看；Windows 上可能是 `python` 或 `py`）。不用安装任何包，不用 IDE。
 
@@ -99,4 +104,5 @@ $ python3 python/tutorial/run.py 02
 - 参考答案由 CI 在 Python 3.9 和 3.13 上自动运行，保证永远能通过；练习文件由
   [`make_exercises.py`](make_exercises.py) 从答案生成（答案里 `# >>>` 和 `# <<<` 之间的部分会被挖空）。
 - 想加一道题：在 `solutions/` 里写好答案并用 `# >>>`、`# <<<` 标出要挖空的部分，再运行 `python3 python/tutorial/make_exercises.py`。
+- 网页版由 [`make_web.py`](make_web.py) 从同一套课文和练习生成，GitHub Actions 每次先在真浏览器里把 20 课的答案和练习跑一遍（[`web/test_site.py`](web/test_site.py)），通过了才发布。Python 运行时（Pyodide）和网站放在一起，打不开 CDN 的地方也能用。
 - 判分框架 [`check.py`](solutions/check.py) 只有 100 来行，学生读得懂；退出码 0 = 全对，1 = 有错，3 = 没写完，方便批量收作业。

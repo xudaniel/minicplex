@@ -3,6 +3,7 @@
 > **这一课学：** `@dataclass` 自动生成 `__init__`/`__repr__`/`__eq__`；默认值；`field(default_factory=list)`；`frozen=True`；`Enum`；类型标注
 > **用到的代码：** [`solver.py`](../../minicplex/solver.py) 的 `Params`、`Result`、`Status`、`Branching`
 > **练习：** `python3 python/tutorial/run.py 06`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l06)
 
 [← 运算符重载和不可变对象](05-operators.md) · [目录](../README.md) · 下一课：[字典和集合 →](07-dicts-sets.md)
 

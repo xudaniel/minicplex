@@ -12,6 +12,7 @@
 <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white" alt="Python 3.9+">
 <a href="java/tutorial/README.md"><img src="https://img.shields.io/badge/Java%20%E8%AF%BE-20%20%E8%8A%82-f59e0b" alt="Java 课 20 节"></a>
 <a href="python/tutorial/README.md"><img src="https://img.shields.io/badge/Python%20%E8%AF%BE-20%20%E8%8A%82-3776AB" alt="Python 课 20 节"></a>
+<a href="https://xudaniel.github.io/minicplex/python/"><img src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E5%AD%A6-%E4%B8%8D%E7%94%A8%E5%AE%89%E8%A3%85-16a34a" alt="在线学 Python：不用安装"></a>
 <img src="https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-22c55e" alt="零依赖">
 <a href="LICENSE"><img src="https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-64748b" alt="MIT"></a>
 </p>
@@ -111,6 +112,7 @@ cmake -S . -B build && cmake --build build -j
 ./build/minicplex examples/bakery.lp --trace    # 看它一步一步怎么算
 java/build.sh && java/tutorial/run.sh A01       # 想学 Java？做第一道练习（只需要 JDK 17+）
 python3 python/tutorial/run.py A01              # 想学 Python？做第一道练习（只需要 Python 3.9+，什么都不用装）
+# 连 Python 都不想装？直接打开网页版：https://xudaniel.github.io/minicplex/python/
 ```
 
 `examples/bakery.lp` 就是用 CPLEX LP 格式写的一道小题：
@@ -197,7 +199,8 @@ java/tutorial/run.sh all       # 看看一共完成了多少
 ## 用它学 Python
 
 [`python/tutorial/`](python/tutorial/README.md) 是一门中文 Python 课，结构和 Java 课一样：8 节零基础 + 12 节读真实代码，每节一道自动判分的练习。
-只需要装好 Python 3.9+，**不用装任何包**；运行练习的 `run.py` 本身也是 Python 写的，Windows、macOS、Linux 用法相同。
+**🌐 [打开网页就能学](https://xudaniel.github.io/minicplex/python/)**：课文、编辑器、自动判分在同一个页面里，Python 在浏览器里运行，不用安装、不用注册，手机也能用。
+想在自己电脑上写也行：只需要 Python 3.9+，**不用装任何包**；运行练习的 `run.py` 本身也是 Python 写的，Windows、macOS、Linux 用法相同。
 
 | 阶段 | 内容 | 适合谁 | 每节 |
 |---|---|---|---|

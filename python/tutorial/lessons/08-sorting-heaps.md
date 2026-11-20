@@ -3,6 +3,7 @@
 > **这一课学：** `sorted` 和 `key=`；`lambda`；元组的比较规则；稳定排序；`heapq`（优先队列）
 > **用到的代码：** [`solver.py`](../../minicplex/solver.py) 的节点队列 `push` 和强分支候选的排序、[`lp_engine.py`](../../minicplex/lp_engine.py) 的割平面排序
 > **练习：** `python3 python/tutorial/run.py 08`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l08)
 
 [← 字典和集合](07-dicts-sets.md) · [目录](../README.md) · 下一课：[异常 →](09-exceptions.md)
 

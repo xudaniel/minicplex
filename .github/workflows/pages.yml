@@ -1,0 +1,56 @@
+name: 网页版 Python 课
+
+# 生成 https://xudaniel.github.io/minicplex/python/ ：课文 + 编辑器 + 在浏览器里运行判分（Pyodide）。
+# 每次都先在真浏览器里把 20 课的答案和练习跑一遍，通过了才发布（只有 main 分支发布）。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 生成网站 + 浏览器里跑全部练习
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: 准备工具和 Pyodide（Python 运行时随网站一起发布，打不开 CDN 的地方也能用）
+        run: |
+          pip install markdown playwright
+          python -m playwright install --with-deps chromium
+          VERSION=$(sed -n 's/^const VERSION = "\(.*\)";/\1/p' python/tutorial/web/worker.mjs)
+          (cd /tmp && npm pack "pyodide@$VERSION" --silent && tar xzf "pyodide-$VERSION.tgz")
+      - name: 生成网站
+        run: python python/tutorial/make_web.py --out _site --pyodide /tmp/package
+      - name: 在浏览器里跑一遍全部练习
+        run: |
+          (cd _site && python -m http.server 8765 > /dev/null 2>&1 &)
+          sleep 1
+          python python/tutorial/web/test_site.py http://localhost:8765/python/ _site/python/course.json
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    name: 发布到 GitHub Pages
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}python/
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

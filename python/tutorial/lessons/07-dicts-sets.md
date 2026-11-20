@@ -3,6 +3,7 @@
 > **这一课学：** `dict` 的增删查；`in`、`get`；字典的顺序；按键排序；`set` 去重、交集；`Counter` 和 `defaultdict`
 > **用到的代码：** [`model.py`](../../minicplex/model.py) 的 `Model._index` 和 `_merge`、`Constraint.make`
 > **练习：** `python3 python/tutorial/run.py 07`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l07)
 
 [← dataclass 和 enum](06-dataclass-enum.md) · [目录](../README.md) · 下一课：[排序、lambda 和堆 →](08-sorting-heaps.md)
 

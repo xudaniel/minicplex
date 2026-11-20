@@ -2,6 +2,7 @@
 
 > **这一课学：** `def`；参数和返回值；默认参数；按名字传参；文档字符串
 > **大约：** 20 分钟 · **练习：** `python3 python/tutorial/run.py A05`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#a05)
 
 [← 重复做事](a4-loops.md) · [目录](../README.md) · 下一课：[列表 →](a6-lists.md)
 

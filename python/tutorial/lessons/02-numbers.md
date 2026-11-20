@@ -3,6 +3,7 @@
 > **这一课学：** `int` 和 `float`；浮点误差；相对误差比较；无穷大和 NaN；三种“四舍五入”；`-0.0`
 > **用到的代码：** [`jmath.py`](../../minicplex/jmath.py)、[`lp_engine.py`](../../minicplex/lp_engine.py) 开头的容差常量和 `_is_integral`
 > **练习：** `python3 python/tutorial/run.py 02`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l02)
 
 [← 第一个模型](01-first-model.md) · [目录](../README.md) · 下一课：[列表和推导式 →](03-lists.md)
 

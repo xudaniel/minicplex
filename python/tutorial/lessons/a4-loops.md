@@ -2,6 +2,7 @@
 
 > **这一课学：** `for` 和 `range`；`while`；累加器；`break`
 > **大约：** 20 分钟 · **练习：** `python3 python/tutorial/run.py A04`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#a04)
 
 [← 做判断](a3-decisions.md) · [目录](../README.md) · 下一课：[自己写函数 →](a5-functions.md)
 

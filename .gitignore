@@ -5,3 +5,4 @@ fuzz/
 __pycache__/
 /*.lp
 target/
+python/tutorial/web/_site/

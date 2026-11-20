@@ -3,6 +3,7 @@
 > **这一课学：** 把前面的东西串成一个完整的小应用：读文本 → 解析成对象 → 建模型 → 求解 → 出报表
 > **用到的代码：** 前面全部；对照 [`hard_staff_schedule.py`](../../examples/hard_staff_schedule.py)（一个更大的同类项目）
 > **练习：** `python3 python/tutorial/run.py 12`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l12)
 
 [← 测试](11-testing.md) · [目录](../README.md)
 

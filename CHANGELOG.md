@@ -4,6 +4,12 @@
 
 ## [未发布]
 
+### 网页版 Python 课
+- 新增 https://xudaniel.github.io/minicplex/python/ ：课文、编辑器、自动判分在同一页，Python 在浏览器里运行（Pyodide，放在 Web Worker 里，死循环可以一键停止），不用安装、不用注册，手机上分“课文 / 练习”两个标签
+- 写的代码和完成进度自动保存在浏览器里；出错时用中文指出第几行、什么错、常见原因
+- Python 运行时随网站一起发布（另有 jsDelivr / unpkg 备用），打不开 CDN 的地方也能用
+- `python/tutorial/make_web.py` 从同一套课文和练习生成；新增 `.github/workflows/pages.yml`：每次先在无头 Chromium 里跑完 20 课的答案和练习（`web/test_site.py`），通过才发布
+
 ### Python 版
 - 新增 `python/`：整个求解器逐行移植到纯 Python（3.9+，只用标准库）——单纯形内核、预处理、Gomory 割、可靠性分支、LP 读写、命令行 `python -m minicplex`（含 `--trace`、`--duals`）、批量求解 `python -m minicplex.bench`（CSV 与 C++ 同格式）、15 个例子（中文注释与 C++ 逐句对应）、20 个 `unittest` 测试
 - 建模用运算符重载，写法和 C++ 几乎一样：`m.add_constr(2 * x + 3 * y <= 12, "budget")`；`Params`、`Result` 是 dataclass，`Status` 是 enum

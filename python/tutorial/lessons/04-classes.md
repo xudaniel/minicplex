@@ -3,6 +3,7 @@
 > **这一课学：** `class`、`__init__`、`self`；属性和方法；默认参数代替“重载”；`@property`；`__repr__`；`__slots__`
 > **用到的代码：** [`model.py`](../../minicplex/model.py) 的 `VarInfo`、`Model.add_var`、`Model.num_vars`
 > **练习：** `python3 python/tutorial/run.py 04`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l04)
 
 [← 列表和推导式](03-lists.md) · [目录](../README.md) · 下一课：[运算符重载和不可变对象 →](05-operators.md)
 

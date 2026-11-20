@@ -1,0 +1,98 @@
+:root {
+  --bg: #ffffff; --fg: #1f2328; --muted: #656d76; --line: #d0d7de; --soft: #f6f8fa;
+  --accent: #3776ab; --accent-fg: #fff; --ok: #1a7f37; --bad: #cf222e; --todo: #9a6700;
+  --code-bg: #f6f8fa; --editor-bg: #fbfbfc;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8d96a0; --line: #30363d; --soft: #161b22;
+    --accent: #4d8fd1; --code-bg: #161b22; --editor-bg: #0b0f14; --ok: #3fb950; --bad: #f85149; --todo: #d29922; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI",
+  "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+a { color: var(--accent); }
+code, pre { font-family: var(--mono); font-size: 0.92em; }
+.muted { color: var(--muted); font-weight: normal; font-size: 0.92em; }
+[hidden] { display: none !important; }
+
+.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+  background: var(--bg); border-bottom: 1px solid var(--line); }
+.brand { font-weight: 700; text-decoration: none; color: var(--fg); white-space: nowrap; }
+.lesson-nav { display: flex; gap: 4px; margin-left: auto; }
+.gh { margin-left: auto; font-size: 14px; }
+.lesson-nav:not([hidden]) + .gh { margin-left: 8px; }
+
+.btn { font: inherit; font-size: 14px; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--soft); color: var(--fg); cursor: pointer; text-decoration: none; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.danger { background: var(--bad); color: #fff; border-color: var(--bad); }
+.btn.ghost { background: transparent; }
+.btn[aria-disabled="true"] { opacity: .4; pointer-events: none; }
+
+#home { max-width: 920px; margin: 0 auto; padding: 24px 16px 48px; }
+.hero h1 { margin: 8px 0; font-size: 30px; }
+.progress { font-weight: 600; }
+.cards { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.cards a { display: flex; gap: 10px; align-items: baseline; padding: 12px 14px; border: 1px solid var(--line);
+  border-radius: 10px; text-decoration: none; color: var(--fg); background: var(--bg); height: 100%; }
+.cards a:hover { border-color: var(--accent); }
+.cards .num { font-family: var(--mono); color: var(--muted); min-width: 2.2em; }
+.cards .done { margin-left: auto; }
+footer { margin-top: 32px; font-size: 14px; }
+
+.lesson { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: calc(100vh - 51px); }
+.tabs { display: none; }
+.article { overflow-y: auto; padding: 8px 28px 48px; border-right: 1px solid var(--line); }
+.article h1 { font-size: 26px; }
+.article h2 { font-size: 20px; margin-top: 1.6em; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.article pre { background: var(--code-bg); padding: 10px 12px; border-radius: 8px; overflow-x: auto; line-height: 1.45; }
+.article :not(pre) > code { background: var(--code-bg); padding: 1px 5px; border-radius: 5px; }
+.article blockquote { margin: 1em 0; padding: 6px 14px; border-left: 4px solid var(--accent); background: var(--soft); border-radius: 0 8px 8px 0; }
+.article table { border-collapse: collapse; display: block; overflow-x: auto; }
+.article th, .article td { border: 1px solid var(--line); padding: 4px 10px; }
+.article details { background: var(--soft); border-radius: 8px; padding: 8px 14px; }
+.article summary { cursor: pointer; font-weight: 600; }
+
+.workspace { display: flex; flex-direction: column; min-height: 0; padding: 8px 12px 12px; gap: 8px; }
+.toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.file { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.editor { position: relative; display: flex; flex: 1 1 55%; min-height: 220px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--editor-bg); overflow: hidden; }
+.gutter { margin: 0; padding: 10px 8px 10px 10px; text-align: right; color: var(--muted); user-select: none;
+  font: 14px/1.5 var(--mono); overflow: hidden; border-right: 1px solid var(--line); min-width: 3em; }
+#code { flex: 1; border: 0; outline: none; resize: none; padding: 10px; margin: 0; background: transparent;
+  color: var(--fg); font: 14px/1.5 var(--mono); tab-size: 4; white-space: pre; overflow: auto; }
+.status { font-size: 14px; color: var(--muted); min-height: 1.4em; }
+.status.ok { color: var(--ok); font-weight: 600; }
+.output { flex: 1 1 35%; min-height: 120px; margin: 0; padding: 10px 12px; overflow: auto; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--code-bg); font: 13.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-word; }
+.output .ok { color: var(--ok); }
+.output .bad { color: var(--bad); }
+.output .todo { color: var(--todo); }
+.output .err { color: var(--bad); font-weight: 600; }
+.output .sum { font-weight: 700; }
+.answer { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; max-height: 45vh; overflow: auto; }
+.answer pre { font-size: 13px; line-height: 1.5; }
+.loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); }
+
+@media (max-width: 860px) {
+  .lesson { display: block; height: auto; }
+  .tabs { display: flex; position: sticky; top: 51px; z-index: 4; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .tab { flex: 1; font: inherit; padding: 10px; border: 0; background: transparent; color: var(--muted); border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+  .article { border-right: 0; padding: 4px 16px 32px; }
+  .lesson.show-code .article, .lesson:not(.show-code) .workspace { display: none; }
+  .workspace { padding: 10px; }
+  .editor { height: 55vh; flex: none; }
+  .output { min-height: 30vh; flex: none; }
+  .brand { font-size: 15px; }
+  .lesson-nav .btn { padding: 4px 8px; }
+  .gh { display: none; }
+  body.in-lesson .brand .txt { display: none; }
+  .file { display: none; }
+  .toolbar .btn { padding: 5px 9px; }
+}

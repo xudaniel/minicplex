@@ -2,6 +2,7 @@
 
 > **这一课学：** 下标和切片；`split`、`upper`、`isdigit`；`in`；字符串不能改
 > **大约：** 20 分钟 · **练习：** `python3 python/tutorial/run.py A07`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#a07)
 
 [← 列表](a6-lists.md) · [目录](../README.md) · 下一课：[小项目：挑水果 →](a8-project.md)
 
