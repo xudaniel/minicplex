@@ -41,7 +41,7 @@ def _run(what, check):
             _todo += 1
             print(f"⏳ {what}（还没写，找 TODO）")
             return
-    except Exception as e:  # noqa: BLE001  学生代码里出什么错都要接住
+    except (Exception, SystemExit) as e:  # noqa: BLE001  学生代码里出什么错都要接住
         err = f"抛出了异常 {type(e).__name__}: {e}"
     if err is None:
         _pass += 1
@@ -86,7 +86,7 @@ def raises(what, error_type, code):
             if _is_todo(e):
                 raise
             return None if issubclass(NotImplementedError, error_type) else f"抛出了 {type(e).__name__}"
-        except Exception as e:  # noqa: BLE001
+        except (Exception, SystemExit) as e:  # noqa: BLE001  argparse 出错时用 SystemExit 退出
             return None if isinstance(e, error_type) else f"抛出了 {type(e).__name__}：{e}"
         return f"没有抛出 {error_type.__name__}"
     _run(what, check)
