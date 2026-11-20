@@ -21,7 +21,9 @@
 | `course/index.html` | 互动课程，单个文件，用浏览器直接打开 |
 | `tests/course_test.js` | 把课程页面里的算法取出来，和 C 版的结果逐项对比 |
 | `arcade/index.html` | 傅里叶游戏厅：四个小游戏，单个文件，中英文可切换（[说明](arcade/README.md)） |
-| `arcade/test.js` | 检查游戏厅里的算法和出题逻辑 |
+| `arcade/test.js` | 检查傅里叶游戏厅里的算法和出题逻辑 |
+| `arcade/hash.html` | 哈希游戏厅：挖矿和撞车赌局，单个文件，中英文可切换 |
+| `arcade/hash_test.js` | 检查哈希游戏厅里的 SHA-256、挖矿和撞车 |
 
 ## 编译和运行
 
@@ -40,7 +42,8 @@ gcc fourier.c -o fourier && ./fourier
 gcc fft.c -o fft && ./fft
 
 node tests/course_test.js course/index.html   # 核对课程页面里的算法
-node arcade/test.js arcade/index.html         # 核对游戏厅里的算法
+node arcade/test.js arcade/index.html         # 核对傅里叶游戏厅里的算法
+node arcade/hash_test.js arcade/hash.html     # 核对哈希游戏厅里的算法
 ```
 
 ## 一、Hash
@@ -171,9 +174,11 @@ FFT 找到的峰：频率 50 振幅 1.000   频率 120 振幅 0.500
 
 在线版：<https://claude.ai/artifact/WvQeusC72b8onKfcf4tWtz>（默认只有作者能打开，分享后别人才能看）
 
-## 四、傅里叶游戏厅
+## 四、游戏厅
 
-`arcade/index.html` 是课程下半场的配套游戏，同样是单个文件，中英文可切换。四个游戏，一共十二颗星：
+课程的上下半场各有一个配套的游戏厅，都是单个文件，中英文可切换。
+
+`arcade/index.html` 是傅里叶游戏厅，对应下半场。四个游戏，一共十二颗星：
 
 | # | 游戏 | 玩法 |
 |---|---|---|
@@ -181,6 +186,13 @@ FFT 找到的峰：频率 50 振幅 1.000   频率 120 振幅 0.500
 | G2 | 认谱 | 看波形，从四张频谱里选出对的那张；八轮，计时、计连对 |
 | G3 | 寻频 | 用有限的探针，把藏在信号里的频率全找出来 |
 | G4 | 画圆 | 一笔画一个图形，看一串转动的圆把它重新画出来 |
+
+`arcade/hash.html` 是哈希游戏厅，对应上半场。两个游戏，一共六颗星：
+
+| # | 游戏 | 玩法 |
+|---|---|---|
+| H1 | 挖矿 | 给一句话换编号，直到指纹开头有足够多位 0；可以手挖，也可以让机器挖 |
+| H2 | 撞车赌局 | 先下注平均扔多少句会撞车，再跑 200 场看猜得准不准 |
 
 规则、计分和原理见 [`arcade/README.md`](arcade/README.md)。
 
@@ -190,7 +202,7 @@ FFT 找到的峰：频率 50 振幅 1.000   频率 120 振幅 0.500
 - `simple_hash.c` 和 `simple_hash.py`：两边结果一致。
 - `fourier.c`、`fft.c`：峰的位置和振幅用 Python 独立算过，一致。
 - 课程页面：例句的 hash、121 位不同、第 8 到 12 轮的位数，都和 C 版一致。
-- 游戏厅：`arcade/test.js` 检查四个游戏的算法和出题逻辑，另用无头浏览器自动玩过一遍，详见 `arcade/README.md`。
+- 游戏厅：`arcade/test.js` 和 `arcade/hash_test.js` 检查六个游戏的算法和出题逻辑，两个页面都用无头浏览器自动玩过一遍，详见 `arcade/README.md`。
 
 ## 说明
 
