@@ -1,6 +1,6 @@
 # 第 10 课：字符串和文本处理
 
-> **这一课学：** 用下标扫描文本（手写词法分析器）；`split`、`strip`、`join`；f-string 的格式说明符；`%` 格式化；拼接大量文本的正确姿势
+> **这一课学：** 用下标扫描文本（手写词法分析器）；`split`、`strip`、`join`；f-string 的格式说明符；`%` 格式化；拼接大量文本的正确姿势；中文的显示宽度
 > **用到的代码：** [`lp_reader.py`](../../minicplex/lp_reader.py) 的 `_tokenize`、[`fmt.py`](../../minicplex/fmt.py)、[`model.py`](../../minicplex/model.py) 的 `to_lp`
 > **练习：** `python3 python/tutorial/run.py 10`
 > **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l10)
@@ -75,12 +75,19 @@ return "".join(out)
 
 ## 5. 中文和对齐
 
-`f"{name:<6}"` 按**字符数**补空格，而一个汉字在屏幕上占两个英文字母宽，所以中英文混排时表格会歪（第 12 课的选课表就能看到）。
-需要精确对齐时，可以用 `unicodedata.east_asian_width` 计算显示宽度；minicplex 的例子里干脆手工对齐了表头。
+`f"{name:<6}"` 按**字符数**补空格，而一个汉字在屏幕上占两个英文字母宽，所以中英文混排时表格会歪：
+
+```text
+Python 4 学分        ← f"{name:<6}" 的结果
+数据库    3 学分     ← 三个字只补了 3 个空格，却占了 6 格宽
+```
+
+办法是按**显示宽度**补空格。标准库的 `unicodedata.east_asian_width(ch)` 告诉你一个字符是不是“宽字符”（返回 `"W"` 或 `"F"`），
+宽字符算 2 格，其余算 1 格。练习里要写 `display_width` 和 `pad`，第 12 课的选课表就用它对齐。
 
 ## 6. 动手
 
-打开 [`exercises/l10_text.py`](../exercises/l10_text.py)：写一个迷你词法分析器、解析一行上下界、排一张小报表。运行 `python3 python/tutorial/run.py 10`。
+打开 [`exercises/l10_text.py`](../exercises/l10_text.py)：写一个迷你词法分析器、解析一行上下界、排一张小报表，再写按显示宽度对齐的 `pad`。运行 `python3 python/tutorial/run.py 10`。
 
 ## 7. 想一想
 

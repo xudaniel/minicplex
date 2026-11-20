@@ -56,6 +56,19 @@ def doubled(nums):
     # <<<
 
 
+def guess_alias():
+    """🤔 先猜后跑：先别运行！读下面这几行，猜猜结果是什么，把你猜的写在 return 后面，再运行看看猜得对不对。
+
+        a = [1, 2]
+        b = a
+        b.append(3)
+        a 现在是什么？
+    """
+    # >>>
+    return [1, 2, 3]
+    # <<<
+
+
 lesson("入门 A6：列表")
 eq("一周一共 62700 步", 62700, lambda: total(WEEK))
 eq("最多的一天 15000 步", 15000, lambda: most(WEEK))
@@ -64,4 +77,5 @@ near("平均每天约 8957 步", 62700 / 7, lambda: average(WEEK))
 eq("达到 8000 步的有 4 天", 4, lambda: days_over(WEEK, 8000))
 eq("doubled([1, 2, 3]) 是 [2, 4, 6]", [2, 4, 6], lambda: doubled([1, 2, 3]))
 eq("doubled([]) 是 []", [], lambda: doubled([]))
+eq("🤔 猜一猜：b = a 之后改 b，a 变成了什么", [1, 2, 3], guess_alias)
 done()

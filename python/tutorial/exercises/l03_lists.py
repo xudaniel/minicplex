@@ -37,6 +37,16 @@ def knapsack_solver(values, weights, capacity):
     raise NotImplementedError("TODO")  # ← 在这里写你的代码
 
 
+def guess_grid():
+    """🤔 先猜后跑：先别运行！读下面这几行，猜猜结果是什么，把你猜的写在 return 后面，再运行看看猜得对不对。
+
+        g = [[0] * 3] * 2
+        g[0][0] = 99
+        g 现在是什么？
+    """
+    raise NotImplementedError("TODO")  # ← 在这里写你的代码
+
+
 A = [1, 2, 3,
      4, 5, 6]  # 2 行 3 列
 VALUES, WEIGHTS = [10, 13, 7, 8, 6, 9, 11, 4], [5, 6, 4, 3, 2, 5, 6, 1]
@@ -58,4 +68,5 @@ that("改第 0 行不会影响第 1 行", grid_rows_are_separate)
 eq("暴力背包（前 4 件，容量 10）：最大价值 21", 21, lambda: knapsack_brute(VALUES[:4], WEIGHTS[:4], 10))
 near("求解器也得到 21", 21, lambda: knapsack_solver(VALUES[:4], WEIGHTS[:4], 10))
 that("8 件东西、容量 15：两边答案一样", lambda: knapsack_brute(VALUES, WEIGHTS, 15) == knapsack_solver(VALUES, WEIGHTS, 15))
+eq("🤔 猜一猜：[[0] * 3] * 2 改了一格之后", [[99, 0, 0], [99, 0, 0]], guess_grid)
 done()

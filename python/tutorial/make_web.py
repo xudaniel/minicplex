@@ -17,6 +17,8 @@ import subprocess
 
 import markdown
 
+from hints import HINTS
+
 HERE = pathlib.Path(__file__).resolve().parent          # python/tutorial
 REPO = HERE.parents[1]
 GITHUB = "https://github.com/xudaniel/minicplex"
@@ -54,7 +56,9 @@ def rewrite_links(text, md_path, ids_by_file):
 
 
 DO_IT = """在本页的编辑器里，把每个 `raise NotImplementedError("TODO")` 换成你的代码（注意保持缩进），
-然后点 **▶ 运行判分**（或按 Ctrl + Enter）。✅ 是对了，❌ 是不对（会告诉你期望什么、实际得到什么），⏳ 是还没写。
+然后点 **▶ 运行判分**（或按 Ctrl + Enter）。✅ 是对了，❌ 是不对（会告诉你期望什么、实际得到什么，常见错误还会给一句 💡 原因），⏳ 是还没写。
+卡住了就点 **💡 提示**：每个函数有两级提示，先给方向，再给接近代码的写法。
+标着 **🤔 先猜后跑** 的题：先别运行，把你猜的结果写在 `return` 后面，再运行看看猜得对不对。
 你写的代码会自动保存在这个浏览器里，下次打开还在。
 """
 
@@ -96,7 +100,7 @@ def main():
         lessons.append({"id": lid, "title": title, "html": html,
                         "exercise": ex.read_text(encoding="utf-8"),
                         "solution": sol.read_text(encoding="utf-8"),
-                        "file": ex.name})
+                        "file": ex.name, "hints": HINTS.get(lid, [])})
     pkg = {f"minicplex/{p.name}": p.read_text(encoding="utf-8") for p in sorted((REPO / "python/minicplex").glob("*.py"))}
     pkg["tutorial/lib/check.py"] = (HERE / "solutions/check.py").read_text(encoding="utf-8")
     try:

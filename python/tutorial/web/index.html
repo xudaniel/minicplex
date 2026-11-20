@@ -55,7 +55,8 @@
       <span id="fileName" class="file"></span>
       <span class="spacer"></span>
       <button id="btnReset" class="btn ghost" title="恢复成最初的练习">↺ 重置</button>
-      <button id="btnAnswer" class="btn ghost" title="看参考答案">💡 答案</button>
+      <button id="btnHint" class="btn ghost" title="卡住了？一级一级给提示">💡 提示</button>
+      <button id="btnAnswer" class="btn ghost" title="看参考答案">📖 答案</button>
       <button id="btnStop" class="btn danger" hidden>■ 停止</button>
       <button id="btnRun" class="btn primary" title="Ctrl + Enter">▶ 运行判分</button>
     </div>
@@ -65,6 +66,11 @@
     </div>
     <div id="status" class="status"></div>
     <pre id="output" class="output" aria-live="polite"></pre>
+    <div id="hintBox" class="answer hints" hidden>
+      <div class="toolbar"><b>💡 提示</b><span class="muted">先只看第一级，想一想；还不行再要下一级。</span><span class="spacer"></span>
+        <button id="btnHideHint" class="btn ghost">收起</button></div>
+      <div id="hintList"></div>
+    </div>
     <div id="answerBox" class="answer" hidden>
       <div class="toolbar"><b>参考答案</b><span class="spacer"></span>
         <button id="btnUseAnswer" class="btn ghost">用答案替换我的代码</button>

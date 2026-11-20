@@ -41,6 +41,16 @@ def mask_phone(phone):
     # <<<
 
 
+def guess_compare():
+    """🤔 先猜后跑：先别运行！读下面这几行，猜猜结果是什么，把你猜的写在 return 后面，再运行看看猜得对不对。
+
+        "3" < "10"   ← 是 True 还是 False？
+    """
+    # >>>
+    return False
+    # <<<
+
+
 lesson("入门 A7：字符串")
 eq('initials("ada lovelace") 是 "AL"', "AL", lambda: initials("ada lovelace"))
 eq('initials("Guido van Rossum") 是 "GVR"', "GVR", lambda: initials("Guido van Rossum"))
@@ -48,4 +58,5 @@ eq('"abc123" 里有数字', True, lambda: has_digit("abc123"))
 eq('"password" 里没有数字', False, lambda: has_digit("password"))
 eq('reverse("上海自来水") 是 "水来自海上"', "水来自海上", lambda: reverse("上海自来水"))
 eq('mask_phone("13812345678")', "138****5678", lambda: mask_phone("13812345678"))
+eq('🤔 猜一猜："3" < "10"', "3" < "10", guess_compare)
 done()
