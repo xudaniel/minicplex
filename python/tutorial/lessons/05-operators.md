@@ -3,6 +3,7 @@
 > **这一课学：** `__add__`、`__radd__`、`__mul__`、`__le__` 等“魔法方法”；`NotImplemented`；为什么 `sum()` 需要 `__radd__`；不可变对象；复制
 > **用到的代码：** [`model.py`](../../minicplex/model.py) 的 `LinExpr` 和 `Var`
 > **练习：** `python3 python/tutorial/run.py 05`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l05)
 
 [← 类和对象](04-classes.md) · [目录](../README.md) · 下一课：[dataclass 和 enum →](06-dataclass-enum.md)
 

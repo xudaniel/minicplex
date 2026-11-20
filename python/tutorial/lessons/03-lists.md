@@ -3,6 +3,7 @@
 > **这一课学：** 一维列表存二维表格；切片；推导式和生成器表达式；`zip`、`enumerate`、`itertools.product`；`[[0] * n] * m` 的坑
 > **用到的代码：** [`lp_engine.py`](../../minicplex/lp_engine.py) 的 `T[i * N + j]` 和 `_pivot`、[`basics_08_min_max.py`](../../examples/basics_08_min_max.py)
 > **练习：** `python3 python/tutorial/run.py 03`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l03)
 
 [← 数字和小数误差](02-numbers.md) · [目录](../README.md) · 下一课：[类和对象 →](04-classes.md)
 

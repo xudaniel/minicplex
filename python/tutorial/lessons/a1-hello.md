@@ -2,6 +2,7 @@
 
 > **这一课学：** 一个 Python 程序长什么样；打印一行字；字符串、`+` 拼接和 f-string；注释
 > **大约：** 10 分钟 · **练习：** `python3 python/tutorial/run.py A01`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#a01)
 
 [目录](../README.md) · 下一课：[变量和计算 →](a2-variables.md)
 

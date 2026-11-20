@@ -2,6 +2,7 @@
 
 > **这一课学：** 列表 `[...]`；下标；`len`；`for x in 列表`；`append`；`sum`、`max`
 > **大约：** 20 分钟 · **练习：** `python3 python/tutorial/run.py A06`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#a06)
 
 [← 自己写函数](a5-functions.md) · [目录](../README.md) · 下一课：[字符串 →](a7-strings.md)
 

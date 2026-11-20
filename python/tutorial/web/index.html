@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>用 minicplex 学 Python · 在线练习</title>
+<meta name="description" content="20 节中文 Python 课：8 节零基础 + 12 节读真实求解器代码。打开网页就能写代码、自动判分，不用安装。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐍%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="app.css?v=__VERSION__">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#">🐍 <span class="txt">用 minicplex 学 Python</span></a>
+  <nav class="lesson-nav" id="lessonNav" hidden>
+    <a id="navPrev" class="btn ghost" href="#">← 上一课</a>
+    <a class="btn ghost" href="#">目录</a>
+    <a id="navNext" class="btn ghost" href="#">下一课 →</a>
+  </nav>
+  <a class="gh" href="https://github.com/xudaniel/minicplex/tree/main/python/tutorial" target="_blank" rel="noopener">GitHub</a>
+</header>
+
+<main id="home" hidden>
+  <section class="hero">
+    <h1>用 minicplex 学 Python</h1>
+    <p>20 节中文课：先是 8 节零基础小课，再用一个真正能解优化题的求解器的源代码，学类、运算符重载、dataclass、异常和测试。</p>
+    <p class="muted">打开就能学：Python 在你的浏览器里运行，不用安装任何东西，也不用注册。每课一道练习，点一下就自动判分；写的代码自动保存在这个浏览器里。</p>
+    <p class="progress" id="progress"></p>
+  </section>
+  <section>
+    <h2>第 0 阶段：零基础入门 <span class="muted">每节 10～20 分钟</span></h2>
+    <ol class="cards" id="stage0"></ol>
+  </section>
+  <section>
+    <h2>第 1～12 课：读真实代码学 Python <span class="muted">每课 30～60 分钟</span></h2>
+    <ol class="cards" id="stage1"></ol>
+  </section>
+  <footer class="muted">
+    习惯在自己电脑上写？<a href="https://github.com/xudaniel/minicplex/blob/main/python/tutorial/README.md" target="_blank" rel="noopener">下载整个项目</a>，用 <code>python3 python/tutorial/run.py A01</code> 运行，练习和这里完全一样。
+    · 版本 __VERSION__
+  </footer>
+</main>
+
+<main id="lesson" class="lesson" hidden>
+  <div class="tabs" role="tablist">
+    <button id="tabRead" class="tab active" role="tab">📖 课文</button>
+    <button id="tabCode" class="tab" role="tab">✏️ 练习</button>
+  </div>
+  <article id="article" class="article"></article>
+  <section id="workspace" class="workspace">
+    <div class="toolbar">
+      <span id="fileName" class="file"></span>
+      <span class="spacer"></span>
+      <button id="btnReset" class="btn ghost" title="恢复成最初的练习">↺ 重置</button>
+      <button id="btnAnswer" class="btn ghost" title="看参考答案">💡 答案</button>
+      <button id="btnStop" class="btn danger" hidden>■ 停止</button>
+      <button id="btnRun" class="btn primary" title="Ctrl + Enter">▶ 运行判分</button>
+    </div>
+    <div class="editor">
+      <pre class="gutter" id="gutter" aria-hidden="true"></pre>
+      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="代码编辑器"></textarea>
+    </div>
+    <div id="status" class="status"></div>
+    <pre id="output" class="output" aria-live="polite"></pre>
+    <div id="answerBox" class="answer" hidden>
+      <div class="toolbar"><b>参考答案</b><span class="spacer"></span>
+        <button id="btnUseAnswer" class="btn ghost">用答案替换我的代码</button>
+        <button id="btnHideAnswer" class="btn ghost">收起</button></div>
+      <pre id="answerCode"></pre>
+      <p class="muted">参考答案不是唯一写法。看懂之后，试着关掉答案自己再写一遍。</p>
+    </div>
+  </section>
+</main>
+
+<div id="loading" class="loading">正在加载课程…</div>
+<script src="app.js?v=__VERSION__"></script>
+</body>
+</html>

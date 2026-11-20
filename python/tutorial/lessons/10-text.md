@@ -3,6 +3,7 @@
 > **这一课学：** 用下标扫描文本（手写词法分析器）；`split`、`strip`、`join`；f-string 的格式说明符；`%` 格式化；拼接大量文本的正确姿势
 > **用到的代码：** [`lp_reader.py`](../../minicplex/lp_reader.py) 的 `_tokenize`、[`fmt.py`](../../minicplex/fmt.py)、[`model.py`](../../minicplex/model.py) 的 `to_lp`
 > **练习：** `python3 python/tutorial/run.py 10`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l10)
 
 [← 异常](09-exceptions.md) · [目录](../README.md) · 下一课：[测试 →](11-testing.md)
 

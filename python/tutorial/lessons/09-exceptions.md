@@ -3,6 +3,7 @@
 > **这一课学：** `raise`；自定义异常类；`try / except / else / finally`；`raise … from None`；`with` 自动关文件；什么时候该抛、什么时候该接
 > **用到的代码：** [`lp_reader.py`](../../minicplex/lp_reader.py) 的 `LpParseError` 和 `read_file`、[`__main__.py`](../../minicplex/__main__.py) 的 `run`、[`model.py`](../../minicplex/model.py) 的 `add_var`
 > **练习：** `python3 python/tutorial/run.py 09`
+> **在线做：** [打开网页版，不用安装](https://xudaniel.github.io/minicplex/python/#l09)
 
 [← 排序、lambda 和堆](08-sorting-heaps.md) · [目录](../README.md) · 下一课：[字符串和文本处理 →](10-text.md)
 
