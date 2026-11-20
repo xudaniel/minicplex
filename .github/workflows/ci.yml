@@ -107,3 +107,41 @@ jobs:
           ./build/minicplex_bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv cpp_fuzz.csv
           java -cp java/build/minicplex.jar minicplex.tools.Bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv java_fuzz.csv
           python3 tools/compare_java_cpp.py cpp_fuzz.csv java_fuzz.csv --strict
+
+  python:
+    name: Python 版（${{ matrix.python }}）：测试 + 与 C++ 逐个对比
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: 测试（只用标准库 unittest）
+        run: python -m unittest discover -s python/tests -v
+      - name: 能用 pip 安装
+        run: pip install ./python && cd /tmp && python -c "import minicplex; print(minicplex.__file__)" && minicplex-py --help > /dev/null
+      - name: Python 教程：参考答案全部通过、练习文件和答案同步
+        run: |
+          python python/tutorial/make_exercises.py --check
+          python python/tutorial/run.py all --solution
+          python python/tutorial/run.py all > /dev/null; test $? -ne 1   # 练习文件（挖空版）只能是“没写完”，不能报错
+      - name: 构建 C++ 版
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j 4
+      - name: 例子输出逐字对比
+        run: tools/compare_examples_py_cpp.sh build
+      - name: 基准模型对比（节点数、迭代次数都必须一样）
+        run: |
+          ./build/minicplex_bench bench/models --quiet --csv cpp.csv
+          (cd python && python -m minicplex.bench ../bench/models --quiet --csv ../py.csv)
+          python tools/compare_java_cpp.py cpp.csv py.csv --strict --label Python
+      - name: 随机题对比（每次提交换一个种子）
+        run: |
+          SEED=${{ github.run_number }}
+          ./build/minicplex_gen --kind mixed --count 300 --seed $SEED --out fuzz
+          ./build/minicplex_bench fuzz --gap 1e-9 --nodes 200000 --quiet --csv cpp_fuzz.csv
+          (cd python && python -m minicplex.bench ../fuzz --gap 1e-9 --nodes 200000 --quiet --csv ../py_fuzz.csv)
+          python tools/compare_java_cpp.py cpp_fuzz.csv py_fuzz.csv --strict --label Python
