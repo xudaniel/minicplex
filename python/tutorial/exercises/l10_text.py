@@ -1,0 +1,43 @@
+"""第 10 课：字符串和文本处理。
+
+LP 文件是纯文本。minicplex 先把文本切成一个个“记号”（数字、名字、运算符），再按语法拼成模型；
+输出结果时又要把数字排成整齐的表格。这一课把这两件事各做一个迷你版。
+运行：python3 python/tutorial/run.py 10
+"""
+from check import lesson, eq, raises, done
+
+
+def tokenize(text):
+    """把 "2 x + 3.5 y <= 12" 切成 ["2", "x", "+", "3.5", "y", "<=", "12"]。
+    规则：空格跳过；数字由 0-9 和 . 组成；名字由字母、数字和 _ 组成（字母开头）；
+    "<=" ">=" 是两个字符的运算符；"+" "-" "=" 是一个字符的。别的字符 raise ValueError。
+    提示：用下标 i 一个个往前走，while i < len(text)；ch.isdigit()、ch.isalpha()、ch.isalnum()。"""
+    raise NotImplementedError("TODO")  # ← 在这里写你的代码
+
+
+def parse_bound(line):
+    """解析一行上下界："x <= 5" → ("x", "<=", 5.0)。用 tokenize，再检查是不是正好 3 个记号。不对就 raise ValueError。"""
+    raise NotImplementedError("TODO")  # ← 在这里写你的代码
+
+
+def format_row(name, value):
+    """排成一行表格：名字左对齐占 10 格，数值右对齐占 8 格、保留 2 位小数。
+    f-string 的格式：f"{name:<10}{value:>8.2f}"。"""
+    raise NotImplementedError("TODO")  # ← 在这里写你的代码
+
+
+def report(values):
+    """values 是 {名字: 值}。每个值一行（用 format_row），按名字排序，最后一行是 "合计"，用换行 "\\n".join 连起来。"""
+    raise NotImplementedError("TODO")  # ← 在这里写你的代码
+
+
+lesson("第 10 课：字符串和文本处理")
+eq("切分一条约束", ["2", "x", "+", "3.5", "y", "<=", "12"], lambda: tokenize("2 x + 3.5 y <= 12"))
+eq("没有空格也能切", ["x1", ">=", "0.5"], lambda: tokenize("x1>=0.5"))
+eq("名字里可以有下划线和数字", ["make_drill_w1", "=", "30"], lambda: tokenize("make_drill_w1 = 30"))
+raises("不认识的字符报错", ValueError, lambda: tokenize("x * 2"))
+eq('parse_bound("y >= 2.5")', ("y", ">=", 2.5), lambda: parse_bound("y >= 2.5"))
+raises("parse_bound 遇到不完整的行报错", ValueError, lambda: parse_bound("x <="))
+eq("format_row", "cake          3.00", lambda: format_row("cake", 3))
+eq("report", "bread         1.50\ncake          3.00\n合计            4.50", lambda: report({"cake": 3, "bread": 1.5}))
+done()

@@ -14,7 +14,7 @@
 
 A "mini CPLEX" built from scratch in C++17. It reads CPLEX `.lp` files, lets you build models in C++, and solves
 linear and mixed-integer programs. The code is short and readable, and every step can be matched against a
-textbook. A line-by-line Java 17 port follows exactly the same computation path as the C++ version.
+textbook. Line-by-line ports to Java 17 and pure Python follow exactly the same computation path as the C++ version.
 
 ## 2. Background and motivation
 
@@ -67,6 +67,7 @@ Priorities: P0 = must have, P1 = should have, P2 = nice to have.
 | M-4 | Look up variables by name | P1 | ✅ v0.1 |
 | M-5 | Modify existing constraints / delete variables | P2 | ⏳ Not started |
 | M-6 | Java modelling API (fluent style `LinExpr.of(2, x).plus(3, y).le(12)`) with the same features as C++ | P1 | ✅ v1.1 |
+| M-7 | Python modelling API (operator overloading `2 * x + 3 * y <= 12`, dataclass parameters) with the same features as C++ | P1 | ✅ v1.1 |
 
 ### 5.2 Linear programming
 
@@ -139,7 +140,7 @@ Priorities: P0 = must have, P1 = should have, P2 = nice to have.
 |---|---|---|
 | v0.1 | Two-phase simplex, branch-and-bound, LP reader and writer, command line, tests | ✅ Done |
 | v1.0 | Bounded simplex, dual simplex warm starts, plunging branch-and-bound, CI / sanitizers / fuzzing / benchmarks (about 4.5× faster in total, 95% fewer iterations) | ✅ Released 2026-11-19 |
-| v1.1 | ✅ Done: reliability branching, root Gomory cuts, presolve (28% fewer nodes on the test set, production planning 10× faster), duals (shadow prices), Java port (identical computation path). To do: MPS input, solution files, range constraints | In progress |
+| v1.1 | ✅ Done: reliability branching, root Gomory cuts, presolve (28% fewer nodes on the test set, production planning 10× faster), duals (shadow prices), Java and Python ports (identical computation path). To do: MPS input, solution files, range constraints | In progress |
 | v2.0 | Revised simplex with sparse LU factorisation; take on small MIPLIB instances | Planned |
 
 ## 9. Risks and mitigations
@@ -150,7 +151,7 @@ Priorities: P0 = must have, P1 = should have, P2 = nice to have.
 | Dense tableau limits model size | Large models are slow or run out of memory | v2.0 moves to revised simplex with sparse LU |
 | LP-format details differ from CPLEX | Some files cannot be read | Document the supported subset; report the line and reason when parsing fails |
 | Branch-and-bound may not terminate with unbounded integer variables | Optimality cannot be proven; the node limit is reached | Documented as a known limitation; v1.2 plans cuts inside the tree |
-| The C++ and Java code bases drift apart | Results differ, maintenance doubles | Keep the code line-for-line aligned; CI compares node and iteration counts model by model on every commit and fails on any difference |
+| The C++, Java and Python code bases drift apart | Results differ, maintenance multiplies | Keep the code line-for-line aligned; CI compares node and iteration counts model by model on every commit and fails on any difference |
 | Limited spare time | Schedule slips | Small, independently releasable versions |
 
 ## 10. Appendix: v0.1 acceptance
@@ -196,3 +197,18 @@ Priorities: P0 = must have, P1 = should have, P2 = nice to have.
   library (now a stable sort plus insertion-order tie-breaking); and compilers could fuse `a*b + c` into FMA
   instructions (GCC 15 on CI), changing rounding (now unified with `-ffp-contract=off`)
 - Speed: on the benchmark models Java takes about 0.72 s in total and C++ about 0.39 s
+
+## 14. Appendix: Python port acceptance (2026-11-20)
+
+- Scope: the solver, the command line (with `--trace` and `--duals`), the batch tool, all 15 examples and the tests
+  are ported; Python 3.9 or later, standard library only; installable with `pip install ./python`
+- Parity: the output of the 15 examples and the `.lp` files they export match C++ byte for byte; `--trace` matches
+  line for line; on 13 benchmark models and 650 random models (600 MIPs, 40 LPs, 10 multi-knapsacks) the status,
+  objective, node count and iteration count all match
+- Correctness: the Python version's own 20 tests pass on Python 3.9 and 3.13 (brute force on 500 models × 3
+  parameter sets, Gomory cut validity against 21,664 integer points, finite-difference checks of 249 shadow prices,
+  operator overloading)
+- Bit-level details: C++-style rounding, `ceil`/`floor` that keep the sign of `-0.0`, Java-style `min(0.0, -0.0)`,
+  and `-0.0` before `0.0` in the node queue (`python/minicplex/jmath.py`)
+- Speed: about 20 s for the benchmark models against about 0.4 s for C++; fine for teaching and small models
+- Companion: a 20-lesson Python course in Chinese (`python/tutorial/`); CI runs every reference solution on 3.9 and 3.13

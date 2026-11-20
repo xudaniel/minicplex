@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minicplex"
+version = "1.0"
+description = "A tiny, readable LP / MIP solver (simplex, branch and bound, Gomory cuts) in pure Python — a line-by-line port of the C++ minicplex"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+minicplex-py = "minicplex.__main__:main"
+
+[tool.setuptools]
+packages = ["minicplex"]
