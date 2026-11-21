@@ -232,6 +232,16 @@ gcc hash_demo.c -o hash_demo && ./hash_demo --trace "你的一句话"
 gcc fft.c -o fft && ./fft
 ```
 
+## 顺手看看：一句话到补班方案
+
+[`learning/staffing-agent/`](learning/staffing-agent/README.md) 演示优化模型在一条真实流程里的位置：护士长说一句话，经过助理（读成改动单）、门卫（规则把关）、会计（整数规划求解）、老师傅（答案怪不怪）、秘书（说人话、定谁签字）五站，得到方案、费用和审批人。求解用 OR-Tools，数字都是虚拟诊所的自编数字。
+
+```bash
+pip install ortools
+cd learning/staffing-agent
+python3 walkthrough.py --all
+```
+
 ## 它是怎么工作的
 
 ```mermaid
@@ -1841,6 +1851,7 @@ python/    minicplex/（求解器包：model.py lp_engine.py solver.py lp_reader
            tutorial/（Python 教程：A1～A8 零基础 + 12 课；lessons/、exercises/、solutions/、run.py）
            examples/（15 个例子）  tests/test_solver.py
 learning/  hash-fourier/（和求解器无关的练习：纯 C 手写 SHA-256、FNV-1a、DFT、FFT，course/ 互动小课，arcade/ 傅里叶和哈希两个游戏厅）
+           staffing-agent/（一句话到补班方案的五站流水线，OR-Tools 求解，walkthrough.py 逐站打印）
 ```
 
 ## 后续方向
