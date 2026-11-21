@@ -1,5 +1,7 @@
 # 补班 agent：一句话到方案的五步
 
+**中文** | [English](README.en.md)
+
 护士长随口说一句「下周三有人请假，常勤最多只能加 4 班」，程序给出三样东西：怎么补、多花多少、该谁签字。
 
 这个目录和 minicplex 求解器本身没有依赖关系（求解用的是 Google OR-Tools）。放在这里，是因为它演示了优化模型在真实流程里的位置：**会说话的负责听，守规矩的负责拦，会算的负责算，最后由人签字。**
@@ -15,6 +17,7 @@ python3 walkthrough.py            # 跟着主角那句话，一站一站打印
 python3 walkthrough.py --all      # 主角 + 三个翻车现场 + 四道「考考你」
 python3 walkthrough.py -i         # 自己一句一句输入，空行退出
 python3 walkthrough.py "需求改成 1300 次"
+python3 walkthrough.py --all --lang en   # 英文版：英文说法、英文输出
 python3 -m unittest -v test_staffing_agent
 ```
 
@@ -77,6 +80,6 @@ python3 -m unittest -v test_staffing_agent
 
 | 文件 | 内容 |
 |---|---|
-| `staffing_agent.py` | 五站的全部逻辑，约 115 行 |
+| `staffing_agent.py` | 五站的全部逻辑；`LANG` 切换中英文，模型和数字只有一份 |
 | `walkthrough.py` | 边跑边讲：逐站打印进出和核对算式 |
-| `test_staffing_agent.py` | 上表的情形，`unittest` |
+| `test_staffing_agent.py` | 上表的情形，中英文各一套，`unittest` |

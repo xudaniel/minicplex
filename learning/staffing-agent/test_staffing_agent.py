@@ -1,5 +1,5 @@
-# 核对补班 agent 的九句话和四道「考考你」：python3 -m unittest -v test_staffing_agent
-# 需要 OR-Tools（pip install ortools）；没装时整组跳过。
+# 核对补班 agent 的九句话和四道「考考你」，中英文各一套：python3 -m unittest -v test_staffing_agent
+# Checks the nine sentences and the quiz in Chinese and English. Needs OR-Tools (pip install ortools); skipped otherwise.
 import json, unittest
 
 try:
@@ -60,6 +60,38 @@ class StaffingAgentTest(unittest.TestCase):
         A.run("下周三有人请假，常勤最多只能加 4 班")
         self.assertEqual(A.BASE["resources"]["常勤加排"][2], 8)
         self.assertEqual(A.solve(A.BASE)["cost"], 606)
+
+
+@unittest.skipIf(A is None, "需要 pip install ortools")
+class EnglishTest(unittest.TestCase):
+    """同一套模型，英文说法、英文输出 / same model, English sentences and messages"""
+    def setUp(self): A.LANG = "en"
+    def tearDown(self): A.LANG = "zh"
+
+    def test_same_numbers(self):
+        c = A.CASES["en"]
+        self.assertEqual(A.run(c[0])["result"]["cost"], 678)
+        self.assertEqual(A.run(c[1])["result"]["cost"], 656)
+        self.assertEqual(A.run(c[2])["result"]["cost"], 641)
+        self.assertEqual(A.run(c[3])["guard"], "ask")
+        self.assertEqual(A.run(c[4])["guard"], "reject")
+        wrong = [{"type": "cost", "resource": "派遣", "value": 40, "quote": c[6]}]
+        self.assertEqual(A.run(c[5], changes=wrong)["guard"], "ask")
+        self.assertEqual(A.run(c[5])["guard"], "confirm")
+        self.assertEqual(A.run(c[5], confirmed=True)["result"]["cost"], 600)
+        log = A.run(c[5], confirmed=True, model_override={"rush_rule": False})
+        self.assertEqual(log["result"]["cost"], 520)
+        self.assertTrue(any("contract rule may be missing" in f for f in log["flags"]))
+
+    def test_english_words(self):
+        log = A.run("Someone is off next Wednesday, so regular staff can do at most 4 extra shifts")
+        self.assertEqual(log["approver"], "the director")
+        self.assertEqual(A.run("Dispatch can do at most 10 shifts")["guard"], "reject")
+        r = A.run("Regular staff can do at most 4 extra shifts, and demand will reach 140 visits")["result"]
+        self.assertEqual(r["cost"], 753)
+        line = A.explain(r, A.solve(A.BASE), [], "the director")
+        self.assertIn("rush 3 shifts", line)
+        self.assertNotIn("派遣", line)
 
 
 if __name__ == "__main__":
