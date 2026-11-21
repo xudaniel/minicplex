@@ -244,6 +244,16 @@ python3 python/tutorial/en/run.py 01      # first main-lesson exercise
 python3 python/tutorial/en/run.py all     # see how far you have got
 ```
 
+## Side trip: from one sentence to a staffing plan
+
+[`learning/staffing-agent/`](learning/staffing-agent/README.en.md) shows where an optimization model sits in a real workflow. A head nurse says one sentence; it passes through an assistant (reads it into a change request), a gatekeeper (rule checks), an accountant (integer program), an experienced colleague (does the answer look odd?) and a secretary (plain words, who signs). Out come the plan, the cost and the approver. It uses OR-Tools, the numbers belong to an invented clinic, and it runs in English or Chinese.
+
+```bash
+pip install ortools
+cd learning/staffing-agent
+python3 walkthrough.py --all --lang en
+```
+
 ## How it works
 
 ```mermaid
@@ -649,7 +659,7 @@ learning/  hash-fourier/ (unrelated to the solver: SHA-256, FNV-1a, DFT and FFT 
            interactive mini-course, Chinese only; arcade/ has four Fourier games and two hash games in English and Chinese;
            online at https://xudaniel.github.io/minicplex/hash-fourier/)
            staffing-agent/ (one sentence to a staffing plan in five steps: parse, guard, solve with OR-Tools,
-           sanity check, explain; Chinese only; walkthrough.py prints every step)
+           sanity check, explain; English and Chinese via --lang; walkthrough.py prints every step)
 ```
 
 ## Roadmap
