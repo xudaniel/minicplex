@@ -4,6 +4,11 @@
 
 ## [未发布]
 
+### 学习材料：补班 agent，一句话到方案的五步
+- 新增 `learning/staffing-agent/`（和求解器无关，求解用 OR-Tools）：护士长的一句话经过助理 `parse`、门卫 `guard`、会计 `solve`、老师傅 `sanity`、秘书 `explain` 五站，得到补班方案、费用和审批人；数字是虚拟诊所的自编数字
+- `walkthrough.py` 逐站打印输入、输出和核对算式，支持单句、`--all`（主角、三个翻车现场、四道考考你）和 `-i` 交互
+- `test_staffing_agent.py` 覆盖 11 种说法（678、656、641、600、520、753，以及反问、拒绝、要确认、罚金为 1 时什么都不排）；没装 OR-Tools 时整组跳过，未接入 CI
+
 ### 学习材料：手写 Hash 和傅里叶
 - 新增 `learning/hash-fourier/`（和求解器无关）：纯 C 手写 SHA-256（`hash_demo.c`，`--trace` 逐轮追踪雪崩效应）、FNV-1a（`simple_hash.c`，另有 Python 版）、傅里叶变换的 DFT（`fourier.c`）和 FFT（`fft.c`）；只用 `<stdio.h>`，`sin`、`cos`、开方都是手写的
 - 互动小课 `course/index.html`：八个实验（指纹、雪崩、六十四轮、撞车、混音、探针、对半拆、回得去吗），每个先猜再动手，单个文件，手机可用
