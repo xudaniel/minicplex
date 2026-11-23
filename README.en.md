@@ -254,6 +254,15 @@ cd learning/staffing-agent
 python3 walkthrough.py --all --lang en
 ```
 
+## Another side trip: change a trip itinerary with one sentence
+
+[`learning/itinerary-agent/`](learning/itinerary-agent/README.en.md) is the staffing agent's sister project: the same five stations, but the accountant now solves scheduling with time windows (CP-SAT). Say “I want to sleep in on day three, nothing before ten” and the three-day trip is rearranged, with every stop checked against opening hours and travel time. English and Chinese.
+
+```bash
+cd learning/itinerary-agent
+python3 itinerary_agent.py --all --lang en
+```
+
 ## How it works
 
 ```mermaid
@@ -660,6 +669,8 @@ learning/  hash-fourier/ (unrelated to the solver: SHA-256, FNV-1a, DFT and FFT 
            online at https://xudaniel.github.io/minicplex/hash-fourier/)
            staffing-agent/ (one sentence to a staffing plan in five steps: parse, guard, solve with OR-Tools,
            sanity check, explain; English and Chinese via --lang; walkthrough.py prints every step)
+           itinerary-agent/ (change a trip with one sentence; CP-SAT scheduling; checks every stop;
+           English and Chinese via --lang)
 ```
 
 ## Roadmap

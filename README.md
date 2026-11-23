@@ -242,6 +242,15 @@ cd learning/staffing-agent
 python3 walkthrough.py --all
 ```
 
+## 再看一个：一句话改旅行行程
+
+[`learning/itinerary-agent/`](learning/itinerary-agent/README.md) 是补班 agent 的姊妹篇：同样五站，会计的题换成带时间窗的排程（CP-SAT）。说一句「第三天想睡懒觉，十点前别安排」，三天行程整个重排，还会核对每一站的开放时间和路上时间。中英文都有。
+
+```bash
+cd learning/itinerary-agent
+python3 itinerary_agent.py --all
+```
+
 ## 它是怎么工作的
 
 ```mermaid
@@ -1852,6 +1861,7 @@ python/    minicplex/（求解器包：model.py lp_engine.py solver.py lp_reader
            examples/（15 个例子）  tests/test_solver.py
 learning/  hash-fourier/（和求解器无关的练习：纯 C 手写 SHA-256、FNV-1a、DFT、FFT，course/ 互动小课，arcade/ 傅里叶和哈希两个游戏厅）
            staffing-agent/（一句话到补班方案的五站流水线，OR-Tools 求解，walkthrough.py 逐站打印，--lang en 切英文）
+           itinerary-agent/（一句话改旅行行程，CP-SAT 排程，逐站打印并核对时间，--lang en 切英文）
 ```
 
 ## 后续方向
